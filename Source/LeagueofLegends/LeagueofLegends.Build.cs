@@ -8,7 +8,14 @@ public class LeagueofLegends : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core", 
+			"CoreUObject", 
+			"Engine", "InputCore", "EnhancedInput",
+			"RenderCore",  // 추가
+			"RHI"   
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

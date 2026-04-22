@@ -19,6 +19,18 @@ void AFOWTileMap::BeginPlay()
 	// CreateDebugTexture();
 }
 
+void AFOWTileMap::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (PixelBuffer)
+	{
+		delete[] PixelBuffer;
+		PixelBuffer = nullptr;
+		PixelBufferSize = 0;
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 void AFOWTileMap::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -26,6 +38,12 @@ void AFOWTileMap::Tick(float DeltaTime)
 
 void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 {
+	if (!MapActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GenerateFromMap: MapActor is null"));
+		return;
+	}
+
 	// Map의 BoundingBox를 가져와서 TileMap의 크기를 결정
 	FBox Bounds = MapActor->GetComponentsBoundingBox();
 	WorldMin = Bounds.Min;
@@ -159,24 +177,45 @@ void AFOWTileMap::SetTileVisibility(int32 X, int32 Y, bool bVisible)
 
 void AFOWTileMap::CreateDebugTexture()
 {
-	DebugTexture = UTexture2D::CreateTransient(MapSize, MapSize, PF_R8G8B8A8);
-	DebugTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
-	DebugTexture->UpdateResource();
+	if (!DebugTexture)
+	{
+		DebugTexture = UTexture2D::CreateTransient(MapSize, MapSize, PF_G8);
+		if (!DebugTexture)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create transient texture"));
+			return;
+		}
 
-	// 생성 직후 검정으로 초기화
-	// TArray<FColor> PixelBuffer;
-	// PixelBuffer.Init(FColor::Black, MapSize * MapSize);
-	//
-	// FTexture2DMipMap& Mip = DebugTexture->GetPlatformData()->Mips[0];
-	// void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
-	// FMemory::Memcpy(Data, PixelBuffer.GetData(), PixelBuffer.Num() * sizeof(FColor));
-	// Mip.BulkData.Unlock();
-	// DebugTexture->UpdateResource();
+		DebugTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
+		DebugTexture->CompressionSettings = TC_Grayscale;
+		DebugTexture->AddressX = TA_Clamp;
+		DebugTexture->AddressY = TA_Clamp;
+		DebugTexture->SRGB = false;
+		DebugTexture->UpdateResource();
+	}
+
+	// uint8 버퍼 동적 할당
+	PixelBufferSize = MapSize * MapSize * sizeof(uint8);
+	if (!PixelBuffer)
+	{
+		PixelBuffer = new uint8[MapSize * MapSize];
+	}
+	FMemory::Memset(PixelBuffer, 0, PixelBufferSize); // 전부 검정으로 초기화
 	
 	// MID 생성 후 텍스처 연결
 	if (DebugPlane && DebugMaterial)
 	{
-		DebugMID = UMaterialInstanceDynamic::Create(DebugMaterial, this);
+		if (!DebugMID)
+		{
+			DebugMID = UMaterialInstanceDynamic::Create(DebugMaterial, this);
+		}
+
+		if (!DebugMID)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create dynamic material instance"));
+			return;
+		}
+
 		DebugMID->SetTextureParameterValue(TEXT("DebugTex"), DebugTexture);
 		DebugPlane->GetStaticMeshComponent()->SetMaterial(0, DebugMID);
 	}
@@ -184,34 +223,38 @@ void AFOWTileMap::CreateDebugTexture()
 
 void AFOWTileMap::UpdateDebugTexture()
 {
-	if (!DebugTexture)
+	if (!DebugTexture || !PixelBuffer)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UpdateDebugTexture: DebugTexture is null"));
+		UE_LOG(LogTemp, Warning, TEXT("UpdateDebugTexture: DebugTexture or PixelBuffer is null"));
 		return;
 	}
-
-	// 픽셀 버퍼 생성
-	TArray<FColor> PixelBuffer;
-	PixelBuffer.SetNum(MapSize * MapSize);
 
 	for (int32 Y = 0; Y < MapSize; Y++)
 	{
 		for (int32 X = 0; X < MapSize; X++)
 		{
-			const FTile& Tile = *GetTile(X, Y);
+			const FTile* Tile = GetTile(X, Y);
 
-			// Wall이면 흰색, Floor면 검정
-			PixelBuffer[Y * MapSize + X] = Tile.Type == ETileType::Wall
-				? FColor::White
-				: FColor::Black;
+			// Wall이면 255(흰색), Floor면 0(검정)
+			// PF_G8 포맷: 1바이트(uint8)가 머티리얼 샘플링 시 R채널로 출력됨
+			PixelBuffer[Y * MapSize + X] = (Tile && Tile->Type == ETileType::Wall) ? 255 : 0;
 		}
 	}
 
-	// Texture2D에 픽셀 버퍼 업데이트
-	FTexture2DMipMap& Mip = DebugTexture->GetPlatformData()->Mips[0];
-	void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
-	FMemory::Memcpy(Data, PixelBuffer.GetData(), PixelBuffer.Num() * sizeof(FColor));
-	Mip.BulkData.Unlock();
-
-	DebugTexture->UpdateResource();
+	// UpdateTextureRegions: LockTexture2D 방식보다 안전하고
+	// UpdateResource() 타이밍 이슈 없이 렌더 스레드에 올바르게 전달됨
+	// SrcPitch = MapSize * 1byte(PF_G8), SrcBpp = 1byte
+	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize, MapSize);
+	DebugTexture->UpdateTextureRegions(
+		0,                           // MipIndex
+		1,                           // NumRegions
+		Region,                      // Regions
+		static_cast<uint32>(MapSize),// SrcPitch (행당 바이트 수: MapSize * 1)
+		sizeof(uint8),               // SrcBpp (픽셀당 바이트 수: 1)
+		PixelBuffer,                 // SrcData
+		[](uint8* /*SrcData*/, const FUpdateTextureRegion2D* InRegion)
+		{
+			delete InRegion; // Region 힙 해제
+		}
+	);
 }
