@@ -4,10 +4,3 @@
 #include "Struct/MinionStruct.h"
 
 
-MinionStruct::MinionStruct()
-{
-}
-
-MinionStruct::~MinionStruct()
-{
-}

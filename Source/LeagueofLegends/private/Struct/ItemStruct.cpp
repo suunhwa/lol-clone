@@ -3,11 +3,3 @@
 
 #include "Struct/ItemStruct.h"
 
-
-ItemStruct::ItemStruct()
-{
-}
-
-ItemStruct::~ItemStruct()
-{
-}
