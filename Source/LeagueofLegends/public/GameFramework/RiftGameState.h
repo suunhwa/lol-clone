@@ -68,6 +68,8 @@ private:
 
 	UFUNCTION()
 	void OnRep_CurrentPhase();
+	
+	void HandlePhaseChanged();
 
 	void IncrementTimer();
 };

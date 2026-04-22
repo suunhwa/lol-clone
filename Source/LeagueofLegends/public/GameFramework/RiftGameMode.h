@@ -19,6 +19,7 @@ public:
 	virtual void Logout(AController* Exiting) override;
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 
+	void BeginPlay() override;
 	void OnNexusDestroyed(ETeam DestroyedTeam);
 	void OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState* Victim);
 

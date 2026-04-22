@@ -18,11 +18,22 @@ ARiftGameMode::ARiftGameMode()
 void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
+	
+	UE_LOG(LogTemp, Warning, TEXT("PostLogin*************"));
 
 	ARiftPlayerState* ps = NewPlayer->GetPlayerState<ARiftPlayerState>();
 	if (!ps) return;
 
 	AssignTeam(ps);
+
+	const FString TeamStr = ps->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red");
+	UE_LOG(LogTemp,
+	       Log,
+	       TEXT("Player joined. Team: %s, Blue: %d, Red: %d"),
+	       *TeamStr,
+	       BlueCount,
+	       RedCount);
+
 	TryStartGame();
 }
 
@@ -53,6 +64,13 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	if (ValidStarts.IsEmpty()) return Super::ChoosePlayerStart_Implementation(Player);
 
 	return ValidStarts[FMath::RandRange(0, ValidStarts.Num() - 1)];
+}
+
+void ARiftGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	UE_LOG(LogTemp, Warning, TEXT("RiftGameMode BeginPlay******"));
 }
 
 void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)
