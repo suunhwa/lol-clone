@@ -1,0 +1,13 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Struct/MinionStruct.h"
+
+
+MinionStruct::MinionStruct()
+{
+}
+
+MinionStruct::~MinionStruct()
+{
+}
