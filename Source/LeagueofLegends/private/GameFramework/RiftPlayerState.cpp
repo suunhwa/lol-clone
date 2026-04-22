@@ -74,7 +74,7 @@ void ARiftPlayerState::AddGold(int32 Amount)
 void ARiftPlayerState::AddXP(float Amount)
 {
 	XP += Amount;
-	// TODO: 레벨업 조건 & 레벨 증가
+	// TODO: 레벨업 조건 & 레벨업
 }
 
 void ARiftPlayerState::OnRep_Team()

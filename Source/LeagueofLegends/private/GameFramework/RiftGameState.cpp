@@ -24,7 +24,7 @@ void ARiftGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 void ARiftGameState::SetPhase(EGamePhase InPhase)
 {
 	CurrentPhase = InPhase;
-	OnRep_CurrentPhase();
+	OnRep_CurrentPhase(); 
 }
 
 void ARiftGameState::SetWinningTeam(ETeam InTeam)
@@ -84,6 +84,8 @@ void ARiftGameState::OnRep_CurrentPhase()
 {
 	// TODO: 클라이언트 UI 페이즈 전환 처리
 }
+
+
 
 void ARiftGameState::IncrementTimer()
 {
