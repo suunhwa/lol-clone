@@ -16,7 +16,7 @@ void AFOWTileMap::BeginPlay()
 	Super::BeginPlay();
 
 	Tiles.SetNum(MapSize * MapSize); // 타일 배열 초기화
-	CreateDebugTexture();
+	// CreateDebugTexture();
 }
 
 void AFOWTileMap::Tick(float DeltaTime)
@@ -91,7 +91,7 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 		}
 	}
 	
-	// CreateDebugTexture();
+	CreateDebugTexture();
 	UpdateDebugTexture();
 }
 
