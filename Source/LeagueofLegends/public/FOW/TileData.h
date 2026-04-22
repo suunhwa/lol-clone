@@ -16,7 +16,7 @@ enum class ETileType : uint8
 USTRUCT(BlueprintType)
 struct FTile
 {
-	GENERATED_BODY()
+	GENERATED_BODY();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ETileType Type = ETileType::None;
