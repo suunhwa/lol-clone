@@ -4,10 +4,4 @@
 #include "Struct/ChampionSkillStruct.h"
 
 
-ChampionSkillStruct::ChampionSkillStruct()
-{
-}
 
-ChampionSkillStruct::~ChampionSkillStruct()
-{
-}

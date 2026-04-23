@@ -4,10 +4,3 @@
 #include "Struct/ChampionStatStruct.h"
 
 
-ChampionStatStruct::ChampionStatStruct()
-{
-}
-
-ChampionStatStruct::~ChampionStatStruct()
-{
-}

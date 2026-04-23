@@ -12,7 +12,7 @@ struct FItemBaseRow : public FTableRowBase
 
 public:
 	FItemBaseRow() : Item_ID(0), Unique_ID(TEXT("")), Price(0), RefundPrice(0), Recipe(TEXT("")), 
-	Is_Active(0), Is_Consumable(0), Cooldown(0), Max_Stack(0), Name_KR(TEXT("")), Name_EN(TEXT("")) {}
+	Is_Active(false), Is_Consumable(false), Cooldown(0), Max_Stack(0), Name_KR(TEXT("")), Name_EN(TEXT("")) {}
 
 	// DataTable Yellow Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Base")
