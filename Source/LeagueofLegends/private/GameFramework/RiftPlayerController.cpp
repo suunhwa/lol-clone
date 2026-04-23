@@ -1,5 +1,6 @@
 #include "GameFramework/RiftPlayerController.h"
 
+#include "Characters/LoLChampion.h"
 #include "GameFramework/LoLCameraActor.h"
 #include "GameFramework/RiftPlayerState.h"
 
@@ -13,32 +14,60 @@ void ARiftPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (!IsLocalController()) return;
+
 	bShowMouseCursor = true;
 	SetInputMode(FInputModeGameAndUI());
-	
-	// CameraActor 스폰
-	CameraActor = GetWorld()->SpawnActor<ALoLCameraActor>(ALoLCameraActor::StaticClass());
-    
-	// 뷰타겟으로 설정
+}
+
+void ARiftPlayerController::AcknowledgePossession(APawn* P)
+{
+	Super::AcknowledgePossession(P);
+
+	ALoLChampion* Champion = Cast<ALoLChampion>(P);
+	if (!Champion) return;
+
+	FVector CameraStartLoc = Champion->GetActorLocation();
+	CameraActor = GetWorld()->SpawnActor<ALoLCameraActor>(ALoLCameraActor::StaticClass(), FTransform(FRotator::ZeroRotator, CameraStartLoc));
+	TargetCameraLoc = CameraStartLoc;
 	SetViewTarget(CameraActor);
+}
+
+void ARiftPlayerController::AutoManageActiveCameraTarget(AActor* SuggestedTarget)
+{
+	if (CameraActor)
+	{
+		// SetViewTarget(CameraActor);
+		return;
+	}
+	
+	Super::AutoManageActiveCameraTarget(SuggestedTarget);
 }
 
 void ARiftPlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
+	if (!IsLocalController() || !CameraActor) return;
+
 	EdgeScrollWithMouse(DeltaTime);
+
+	FVector NewLoc = FMath::VInterpTo(CameraActor->GetActorLocation(), TargetCameraLoc, DeltaTime, CameraInterpSpeed);
+	CameraActor->SetActorLocation(NewLoc);
 }
 
 void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 {
+	if (!CameraActor) return;
+	
 	float mouseX, mouseY;
 	
 	if (!GetMousePosition(mouseX, mouseY)) return;
 	
-	FVector2D viewportSize;
+	
 	if (GEngine && GEngine->GameViewport)
 	{
+		FVector2D viewportSize;
 		GEngine->GameViewport->GetViewportSize(viewportSize);
 		FVector2D moveInput = FVector2D::ZeroVector;
 			
@@ -65,11 +94,17 @@ void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 		
 		if (moveInput.IsNearlyZero()) return;
 		
-		if (!CameraActor) return;
+		FVector Forward = CameraActor->GetActorForwardVector();
+		FVector Right = CameraActor->GetActorRightVector();
+		Forward.Z = 0.f; Forward.Normalize();
+		Right.Z = 0.f; Right.Normalize();
+
+		FVector Delta = (Forward * moveInput.Y + Right * moveInput.X) * EdgeScrollSpeed * DeltaTime;
 		
-		FVector Delta(moveInput.Y * EdgeScrollSpeed * DeltaTime, moveInput.X * EdgeScrollSpeed * DeltaTime, 0.f);
+		UE_LOG(LogTemp, Warning, TEXT("***Delta: %s | CamLoc: %s"), *Delta.ToString(), *CameraActor->GetActorLocation().ToString());
 		
-		CameraActor->AddActorWorldOffset(Delta);
+		// CameraActor->AddActorWorldOffset(Delta);
+		TargetCameraLoc += Delta;
 	}
 	
 }

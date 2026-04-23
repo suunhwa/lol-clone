@@ -6,6 +6,8 @@
 #include "GameFramework/RiftTypes.h"
 #include "RiftPlayerController.generated.h"
 
+class ALoLChampion;
+
 UCLASS()
 class LEAGUEOFLEGENDS_API ARiftPlayerController : public APlayerController
 {
@@ -16,6 +18,8 @@ public:
 	
 protected:
 	virtual void BeginPlay() override;
+	virtual void AcknowledgePossession(APawn* P) override;
+	virtual void AutoManageActiveCameraTarget(AActor* SuggestedTarget) override;
 	
 public:
 	// Called every frame
@@ -53,4 +57,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	float EdgeThreshold = 10.f;
+	
+	UPROPERTY(EditAnywhere, Category = "Camera")
+	float CameraInterpSpeed = 10.f;
+
+	FVector TargetCameraLoc = FVector::ZeroVector;
 };

@@ -10,21 +10,22 @@
 // Sets default values
 ALoLCameraActor::ALoLCameraActor()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 	
+	USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	RootComponent = SceneRoot;
+
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	
+
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 2000.0f;
-	CameraBoom->SetRelativeRotation(FRotator(-60.0f, 0.0f, 0.0f));
+	CameraBoom->TargetArmLength = 1000.0f;
+	CameraBoom->SetRelativeRotation(FRotator(-55.0f, 0.0f, 0.0f));
 	CameraBoom->bDoCollisionTest = false;
 	
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	CameraComp->bUsePawnControlRotation = false;
-	
 }
 
 // Called when the game starts or when spawned
