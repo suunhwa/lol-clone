@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
-#include "ItemStruct.generated.h"
+#include "SpellStruct.generated.h"
 
 
 USTRUCT(BlueprintType)
@@ -75,12 +75,12 @@ public:
 };
 
 USTRUCT(BlueprintType)
-struct FSpellSecondaryEWffectRow : public FTableRowBase
+struct FSpellSecondaryEffectRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
 public:
-	FSpellSecondaryEWffectRow() 
+	FSpellSecondaryEffectRow() 
 		: SecondaryValue(0), Duration(0), TickInterval(0), Stackable(false), Description(TEXT("")) {}
 
 	// DataTable Blue Section

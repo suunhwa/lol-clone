@@ -48,7 +48,7 @@ public :
 		:  Object_ID(0), Plate_Gold(0)
 		, Total_Plates(0), Global_Gold(0)
 		, Last_Hit_Gold(0), Global_Exp(0)
-		, bIncudeDead(false), bGlobalDist(false)
+		, bIncludeDead(false), bGlobalDist(false)
 		, Exp_Range(0), Description(TEXT("")) {}
 	
 	// Data Yellow Section
@@ -72,7 +72,7 @@ public :
 	
 	// Data Red Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Reward")
-	bool bIncudeDead;
+	bool bIncludeDead;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Reward")
 	bool bGlobalDist;
