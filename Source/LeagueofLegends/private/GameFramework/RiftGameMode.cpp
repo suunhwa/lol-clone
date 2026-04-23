@@ -13,6 +13,7 @@ ARiftGameMode::ARiftGameMode()
 	GameStateClass = ARiftGameState::StaticClass();
 	PlayerControllerClass = ARiftPlayerController::StaticClass();
 	HUDClass = ARiftHUD::StaticClass();
+	DefaultPawnClass = nullptr;
 }
 
 void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
