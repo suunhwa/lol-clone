@@ -10,11 +10,13 @@ public class LeagueofLegends : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", 
-			"CoreUObject", 
+			"Core",
+			"CoreUObject",
 			"Engine", "InputCore", "EnhancedInput",
 			"RenderCore",  // 추가
-			"RHI"   
+			"RHI",
+			"AIModule",
+			"NavigationSystem"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

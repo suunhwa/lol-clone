@@ -25,16 +25,16 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = true))
 	TObjectPtr<UCameraComponent> CameraComp;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = true))
 	TObjectPtr<USpringArmComponent> CameraBoom;
-	
+
 public:
-	UCameraComponent* GetCameraComponent() const {return CameraComp.Get();};
-	
-	USpringArmComponent* GetCameraBoom() const {return CameraBoom.Get();};
+	UCameraComponent* GetCameraComponent() const { return CameraComp.Get(); };
+
+	USpringArmComponent* GetCameraBoom() const { return CameraBoom.Get(); };
 };

@@ -20,7 +20,7 @@ ARiftGameMode::ARiftGameMode()
 void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-	
+
 	UE_LOG(LogTemp, Warning, TEXT("PostLogin*************"));
 
 	ARiftPlayerState* ps = NewPlayer->GetPlayerState<ARiftPlayerState>();
@@ -71,7 +71,7 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 void ARiftGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	UE_LOG(LogTemp, Warning, TEXT("RiftGameMode BeginPlay******"));
 }
 
