@@ -6,6 +6,7 @@
 #include "GameFramework/RiftHUD.h"
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
+#include "Characters/LoLChampion.h"
 
 ARiftGameMode::ARiftGameMode()
 {
@@ -13,12 +14,13 @@ ARiftGameMode::ARiftGameMode()
 	GameStateClass = ARiftGameState::StaticClass();
 	PlayerControllerClass = ARiftPlayerController::StaticClass();
 	HUDClass = ARiftHUD::StaticClass();
+	DefaultPawnClass = ALoLChampion::StaticClass();
 }
 
 void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-	
+
 	UE_LOG(LogTemp, Warning, TEXT("PostLogin*************"));
 
 	ARiftPlayerState* ps = NewPlayer->GetPlayerState<ARiftPlayerState>();
@@ -69,7 +71,7 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 void ARiftGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	UE_LOG(LogTemp, Warning, TEXT("RiftGameMode BeginPlay******"));
 }
 
