@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Characters/LoLMinion.h"
 #include "Kismet/GameplayStatics.h"
 #include "AStar/AStarGridManager.h"
@@ -7,121 +5,186 @@
 
 ALoLMinion::ALoLMinion()
 {
-	PrimaryActorTick.bCanEverTick = true;
+   PrimaryActorTick.bCanEverTick = true;
+   
+   // [스탯 설정] 임의로 테스트용
+   HP = 10.0f;
+   AttackDamage = 2.5f;
+   AttackSpeed = 1.0f; // 초당 1회 공격
+   AttackRange = 150.0f;
+   MoveSpeed = 300.0f;
 }
 
 void ALoLMinion::BeginPlay()
 {
-	Super::BeginPlay();
-	// 0.5초마다 타겟 갱신
-	GetWorldTimerManager().SetTimer(TargetUpdateTimerHandle,
-		this, &ALoLMinion::UpdateTarget, 0.5f, true);
-	// 월드에서 그리드 매니저 찾아오기
-	GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
+    Super::BeginPlay();
+    GetWorldTimerManager().SetTimer(TargetUpdateTimerHandle, this, &ALoLMinion::UpdateTarget, 0.5f, true);
+    GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
 }
 
 void ALoLMinion::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
+    // 죽었거나 때릴 대상이 아예 없으면 아무것도 하지 않는다
+    if (CurrentState == EMinionState::Dead || !TargetPlayer) return;
+    if (!TargetPlayer) return;
+    // 나와 타겟 사이의 거리를 계산한다
+    float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation());
 
-	if (CurrentPath.Num() > 0)
-	{
-		for (int32 i = 0; i < CurrentPath.Num() - 1; i++)
-		{
-			DrawDebugLine(GetWorld(), CurrentPath[i], CurrentPath[i+1], FColor::Yellow, false, -1.0f, 0, 5.0f);
-		}
-	}
-	
-	
-	if (!TargetPlayer || !GridManager) return;
-	
-	// 경로가 없으면 무조건 찾기 시도
-	if (CurrentPath.Num() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s is Requesting Path to %s"), *GetName(), *TargetPlayer->GetName());
-		CurrentPath = GridManager->FindPath(GetActorLocation(), TargetPlayer->GetActorLocation());
-	}
+    // 상태 결정 로직
+    // 거리가 사거리 보다 가까우면
+    if (DistanceToTarget <= AttackRange)  
+    {
+       CurrentState = EMinionState::Attacking; // 공격
+       CurrentPath.Empty(); 
+    }
+    // 거리가 사거리 보다 멀면
+    else 
+    {
+       CurrentState = EMinionState::MoveToTarget; // 이동
+    } 
+    
+    // 현재 상태가 공격이면
+    if (CurrentState == EMinionState::Attacking)
+    {
+       // 타겟쪽으로 몸을 돌리고 공격 함수 실행
+       FVector Direction = TargetPlayer->GetActorLocation() - GetActorLocation();
+       Direction.Z = 0.0f;
+       SetActorRotation(Direction.Rotation());
+       PerformAttack();
+    }
+    else if (CurrentState == EMinionState::MoveToTarget)
+    {
+       MoveAlongPath(DeltaTime); // 길 따라서 걷기 함수 실행
+    }
 
-	// 2. A* 경로가 있다면 경로 따라가기
-	if (CurrentPath.Num() > 0)
-	{
-		FVector NextPoint = CurrentPath[0];
-		FVector Direction = NextPoint - GetActorLocation();
-		Direction.Z = 0.0f;
+    // [디버그 로그] 미니언이 노리는 상대방을 노란 선으로 보여줌
+    if (TargetPlayer) {
+        DrawDebugLine(GetWorld(), GetActorLocation(), TargetPlayer->GetActorLocation(), FColor::Yellow, false, 0.1f, 0, 1.0f);
+    }
+}
 
-		if (Direction.Size() < 50.0f) 
-		{
-			CurrentPath.RemoveAt(0); // 지점 도달 시 다음 지점으로
-		}
-		else
-		{
-			Direction.Normalize();
-			SetActorLocation(GetActorLocation() + (Direction * MoveSpeed * DeltaTime));
-			SetActorRotation(Direction.Rotation());
-		}
-	}
-	// 3. 경로가 없는데 타겟만 있다면 (혹은 A* 실패 시) 직선 이동 (Fallback)
-	else if (TargetPlayer)
-	{
-		FVector Direction = TargetPlayer->GetActorLocation() - GetActorLocation();
-		Direction.Z = 0.0f;
-        
-		Direction.Normalize();
-		SetActorLocation(GetActorLocation() + (Direction * MoveSpeed * DeltaTime));
-		SetActorRotation(Direction.Rotation());
-		UE_LOG(LogTemp, Error, TEXT("AStar Failed to find path!"));
-	}
+void ALoLMinion::TakeDamageSimple(float Damage)
+{
+   if (CurrentState == EMinionState::Dead) return;
+
+   HP -= Damage;
+   UE_LOG(LogTemp, Log, TEXT("[%s] 피격! 남은 체력: %.1f"), *GetName(), HP);
+
+   if (HP <= 0.0f)
+   {
+      HP = 0.0f;
+      CurrentState = EMinionState::Dead;
+       
+      UE_LOG(LogTemp, Error, TEXT("[%s] 처치됨!"), *GetName());
+
+      // 사망 시 바로 파괴하거나, 시체가 남길 원하면 시간을 둡니다.
+      // 여기서는 사태 진압을 위해 0.1초 뒤 즉시 제거합니다.
+      SetLifeSpan(0.1f); 
+   }
 }
 
 void ALoLMinion::UpdateTarget()
 {
-	// 성능을 위해 주기적으로 근처의 액터를 검색
-	TArray<AActor*> FoundActors;
-	// 월드의 모든 캐릭터를 가져와 태그 비교
-	UGameplayStatics::GetAllActorsWithTag(GetWorld(), TEXT("Character"), FoundActors);
+    // 월드에서 'Character' 태그를 가진 모든 액터를 찾는다
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsWithTag(GetWorld(), TEXT("Character"), FoundActors);
 
-	AActor* BestTarget = nullptr;
-	float ClosestDistance = MAX_FLT;
-	
-	// 내 팀 태그 있는지 확인
-	FName MyTeamTag = (Tags.Num() > 0) ? Tags[0] : NAME_None;
-	
-	// 1순위 : 주변 적 유닛 (챔피언, 미니언 등) 검색
-	for (AActor* Actor : FoundActors)
-	{
-		if (Actor == this || !Actor) continue;
-        
-		if (Actor->ActorHasTag(TEXT("Character")) && !Actor->ActorHasTag(MyTeamTag)) 
-		{
-			float Distance = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
-			if (Distance < ClosestDistance)
-			{
-				ClosestDistance = Distance;
-				BestTarget = Actor;
-			}
-		}
-	}
-	// 2순위: 주변에 적 유닛이 없다면 적 넥서스 검색
-	if (BestTarget == nullptr)
-	{
-		TArray<AActor*> NexusActors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ANexus::StaticClass(), NexusActors);
+    AActor* BestTarget = nullptr;
+    float ClosestDistance = MAX_FLT;
+    // 내 팀 태그(팀 태그는 Tag[0] 인덱스에 쓰도록 한다. RedTeam/BlueTeam/GreenTeam ....
+    FName MyTeamTag = (Tags.Num() > 0) ? Tags[0] : NAME_None;
+    
+    // 1순위 : 주변 적 유닛 중 가장 가까운 대상을 찾는다
+    for (AActor* Actor : FoundActors)
+    {
+       if (!Actor || Actor == this) continue; // 나 자신은 제외
+       // 'Character' 태그가 잇어도 내 팀 태그와 다르면 적으로 간주
+       if (Actor->ActorHasTag(TEXT("Character")) && !Actor->ActorHasTag(MyTeamTag)) 
+       {
+          float Distance = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
+          if (Distance < ClosestDistance) // 그중 가장 가까운 놈을 후보로 타겟팅
+          {
+             ClosestDistance = Distance;
+             BestTarget = Actor;
+          }
+       }
+    }
 
-		for (AActor* Nexus : NexusActors)
-		{
-			// 넥서스에도 팀 태그가 있어야 작동
-			if (Nexus && !Nexus->ActorHasTag(MyTeamTag))
-			{
-				BestTarget = Nexus;
-				break; // 넥서스는 보통 하나이므로 찾으면 바로 중단
-			}
-		}
-	}
-	
-	// 이전 타겟과 새로 찾은 타겟이 다르면 경로 초기화 하고 새로 길을 찾아야 함
-	if (TargetPlayer != BestTarget)
-	{
-		CurrentPath.Empty();
-		TargetPlayer = BestTarget;
-	}
+    // 2순위: 주변에 적 유닛이 하나도 없다면, 적팀의 넥서스를 찾는다.
+    if (!BestTarget)
+    {
+       TArray<AActor*> NexusActors;
+       UGameplayStatics::GetAllActorsOfClass(GetWorld(), ANexus::StaticClass(), NexusActors);
+       for (AActor* Nexus : NexusActors)
+       {
+          if (Nexus && !Nexus->ActorHasTag(MyTeamTag)) // 적팀 넥서스 발견
+          {
+             BestTarget = Nexus;
+             break;
+          }
+       }
+    }
+    
+    // 타겟이 바뀌었을 때만 기존 경로를 지운다
+    if (TargetPlayer != BestTarget)
+    {
+       UE_LOG(LogTemp, Warning, TEXT("[%s] 타겟 변경됨 -> %s"), *GetName(), BestTarget ? *BestTarget->GetName() : TEXT("None"));
+       TargetPlayer = BestTarget;
+       CurrentPath.Empty(); // 새 타겟을 위한 새 길을 찾기 위해 비워둔다
+    }
+}
+// 암튼 이거 공격 로직인데 데이터 불러온거도 없어서 야매로 해서 땜빵침 나중에 대대적인 수정
+void ALoLMinion::PerformAttack()
+{
+    if (!TargetPlayer) return;
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+   // 공격 속도에 맞춰서 시간이 지났을 때만 때리기
+    if (CurrentTime - LastAttackTime >= (1.0f / AttackSpeed))
+    {
+       if (ALoLMinion* Enemy = Cast<ALoLMinion>(TargetPlayer))
+       {
+          Enemy->TakeDamageSimple(AttackDamage);
+       }
+       else if (ANexus* TargetNexus = Cast<ANexus>(TargetPlayer))
+       {
+          TargetNexus->ReceiveDamage(AttackDamage);
+          UE_LOG(LogTemp, Warning, TEXT("넥서스 타격 중! 남은 체력: %f"), TargetNexus->Health);
+       }
+       LastAttackTime = CurrentTime;
+    }
+}
+
+void ALoLMinion::MoveAlongPath(float DeltaTime)
+{
+    if (!GridManager || !TargetPlayer) return;
+    // 가야 할 경로가 비어있으면 매니저한테 길을 물어봄
+    if (CurrentPath.Num() == 0)
+    {
+       CurrentPath = GridManager->FindPath(GetActorLocation(), TargetPlayer->GetActorLocation());
+    }
+    // 경로가 있으면
+    if (CurrentPath.Num() > 0)
+    {
+       FVector NextPoint = CurrentPath[0]; // 가야 할 첫번째 지점
+       FVector MyLoc = GetActorLocation();
+       
+       // 경로 시각화, 노란선
+       DrawDebugLine(GetWorld(), MyLoc, NextPoint, FColor::Yellow, false, 0.1f, 0, 5.0f);
+       // 바닥 기준으로 다음 지점까지 거리 계산
+       float DistToPoint = FVector2D::Distance(FVector2D(MyLoc.X, MyLoc.Y), FVector2D(NextPoint.X, NextPoint.Y));
+
+       if (DistToPoint < 45.0f) // 지점에 충분히 가까워졌으면
+       {
+          CurrentPath.RemoveAt(0); // 목록에서 지우고 다음 지점으로 이동
+       }
+       else // 가깝지 않으면 계속이동
+       {
+          FVector Direction = (NextPoint - MyLoc).GetSafeNormal2D();
+          SetActorLocation(MyLoc + (Direction * MoveSpeed * DeltaTime));
+          
+          FRotator TargetRot = Direction.Rotation();
+          SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.0f));
+       }
+    }
 }
