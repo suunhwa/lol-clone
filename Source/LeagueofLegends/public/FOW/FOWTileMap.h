@@ -26,6 +26,11 @@ public:
 public:
 	UFUNCTION(BlueprintCallable)
 	void GenerateFromMap(AActor* MapActor);
+	void UpdateDebugTexture();
+	void ResetTileVisibility();
+	
+	FIntPoint WorldToTile(const FVector& WorldLocation) const;
+	FVector2D TileToUV(const FIntPoint& Tile) const;
 	
 	FTile* GetTile(int32 X, int32 Y);
 	const FTile* GetTile(int32 X, int32 Y) const;
@@ -38,7 +43,6 @@ public:
 
 private:
 	void CreateDebugTexture();
-	void UpdateDebugTexture();
 	
 public:
 	static constexpr int32 MapSize = 128;

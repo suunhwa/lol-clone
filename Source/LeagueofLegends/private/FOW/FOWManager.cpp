@@ -4,6 +4,7 @@
 #include "FOW/FOWManager.h"
 
 #include "FOW/FOWTileMap.h"
+#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values
@@ -18,10 +19,33 @@ void AFOWManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	TestActor = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn(); // 플레이어의 Pawn을 가져와서 TestActor로 설정
+}
+
+void AFOWManager::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	
+	if (TestActor && TestTileMap)
+	{
+		TestTileMap->ResetTileVisibility();
+		
+		FIntPoint Origin = TestTileMap->WorldToTile(TestActor->GetActorLocation());
+		ComputeFOV(Origin, TestTileMap);
+		TestTileMap->UpdateDebugTexture();
+	}
 }
 
 void AFOWManager::ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap)
 {
+	TileMap->SetTileVisibility(Origin.X, Origin.Y, true); // 플레이어 위치는 항상 보이도록 설정
+	
+	// 4분면 각각에 대해 Scan 호출
+	for (int32 i = 0; i < 4; i++)
+	{
+		FQuadrant Quadrant{ static_cast<EQuadrantDirection>(i), Origin };
+		Scan(FRow(), Quadrant, TileMap);
+	}
 }
 
 void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap)
@@ -37,7 +61,7 @@ void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap
 			Reveal(CurTilePoint, Quadrant, TileMap);
 		}
 		
-		if (!bHasPrev)
+		if (bHasPrev)
 		{
 			if (IsWall(PrevTilePoint, Quadrant, TileMap) && IsFloor(CurTilePoint, Quadrant, TileMap))
 			{

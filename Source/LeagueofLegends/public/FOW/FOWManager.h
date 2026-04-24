@@ -74,7 +74,7 @@ struct FRow
 {
 	GENERATED_BODY()
 
-	FRow() : Depth(0), StartSlop(FFraction{-1, 2}), EndSlop(FFraction{1, 2})
+	FRow() : Depth(0), StartSlop(FFraction{-1, 1}), EndSlop(FFraction{1, 1})
 	{
 	}
 	
@@ -117,6 +117,9 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	
+public:
+	virtual void Tick(float DeltaTime) override;
 
 public:
 	UFUNCTION()
@@ -151,4 +154,15 @@ private:
 	
 	UPROPERTY()
 	TArray<AActor*> BlueSightActor;
+	
+#pragma region Test
+	UPROPERTY(EditAnywhere)
+	AActor* TestActor;  // 에디터에서 챔피언 하나 연결
+
+	UPROPERTY(EditAnywhere)
+	AFOWTileMap* TestTileMap;  // 에디터에서 TileMap 연결
+
+	UPROPERTY(EditAnywhere)
+	int32 SightRadius = 10;  // 테스트용 시야 반경
+#pragma endregion
 };

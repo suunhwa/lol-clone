@@ -94,11 +94,11 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 				}
 
 				// DebugBox 그리기
-				FVector BoxCenter(TileCenterX, TileCenterY, HitResult.Location.Z);
-				FVector BoxExtent(HalfTileSize, HalfTileSize, 10.f);
-
-				FColor BoxColor = BoxCenter.Z < 150.f ? FColor::Green : FColor::Red;
-				DrawDebugBox(GetWorld(), BoxCenter, BoxExtent, BoxColor, true, -1.f);
+				// FVector BoxCenter(TileCenterX, TileCenterY, HitResult.Location.Z);
+				// FVector BoxExtent(HalfTileSize, HalfTileSize, 10.f);
+				//
+				// FColor BoxColor = BoxCenter.Z < 150.f ? FColor::Green : FColor::Red;
+				// DrawDebugBox(GetWorld(), BoxCenter, BoxExtent, BoxColor, true, -1.f);
 			}
 			else
 			{
@@ -111,6 +111,25 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 	
 	CreateDebugTexture();
 	UpdateDebugTexture();
+}
+
+FIntPoint AFOWTileMap::WorldToTile(const FVector& WorldLocation) const
+{
+	int32 TileX = FMath::FloorToInt((WorldLocation.X - WorldMin.X) / TileSize);
+	int32 TileY = FMath::FloorToInt((WorldLocation.Y - WorldMin.Y) / TileSize);
+	return FIntPoint(TileX, TileY);
+}
+
+FVector2D AFOWTileMap::TileToUV(const FIntPoint& Tile) const
+{
+	if (!IsValidRange(Tile.X, Tile.Y))
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	float U = static_cast<float>(Tile.X) / MapSize;
+	float V = static_cast<float>(Tile.Y) / MapSize;
+	return FVector2D(U, V);
 }
 
 FTile* AFOWTileMap::GetTile(int32 X, int32 Y)
@@ -237,7 +256,8 @@ void AFOWTileMap::UpdateDebugTexture()
 
 			// Wall이면 255(흰색), Floor면 0(검정)
 			// PF_G8 포맷: 1바이트(uint8)가 머티리얼 샘플링 시 R채널로 출력됨
-			PixelBuffer[Y * MapSize + X] = (Tile && Tile->Type == ETileType::Wall) ? 255 : 0;
+			// PixelBuffer[Y * MapSize + X] = (Tile && Tile->Type == ETileType::Wall) ? 255 : 0;
+			PixelBuffer[Y * MapSize + X] = (Tile && Tile->bIsVisible) ? 255 : 0;
 		}
 	}
 
@@ -257,4 +277,12 @@ void AFOWTileMap::UpdateDebugTexture()
 			delete InRegion; // Region 힙 해제
 		}
 	);
+}
+
+void AFOWTileMap::ResetTileVisibility()
+{
+	for (FTile& Tile : Tiles)
+	{
+		Tile.bIsVisible = false;
+	}
 }
