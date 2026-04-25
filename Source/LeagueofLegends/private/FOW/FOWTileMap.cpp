@@ -4,6 +4,7 @@
 #include "FOW/FOWTileMap.h"
 
 #include "Engine/StaticMeshActor.h"
+#include "Kismet/GameplayStatics.h"
 
 
 AFOWTileMap::AFOWTileMap()
@@ -34,6 +35,14 @@ void AFOWTileMap::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AFOWTileMap::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	if (FOWPostProcessMID)
+	{
+		FVector PlayerWorldPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation();
+		FOWPostProcessMID->SetVectorParameterValue(
+			TEXT("PlayerLocation"),
+			FLinearColor(PlayerWorldPos.X, PlayerWorldPos.Y, 0, 0));
+	}
 }
 
 void AFOWTileMap::GenerateFromMap(AActor* MapActor)
@@ -108,9 +117,10 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 			}
 		}
 	}
-	
+
 	CreateDebugTexture();
 	UpdateDebugTexture();
+	CreateFOWPostProcess();
 }
 
 FIntPoint AFOWTileMap::WorldToTile(const FVector& WorldLocation) const
@@ -211,6 +221,7 @@ void AFOWTileMap::CreateDebugTexture()
 		DebugTexture->AddressY = TA_Clamp;
 		DebugTexture->SRGB = false;
 		DebugTexture->UpdateResource();
+		FlushRenderingCommands();
 	}
 
 	// uint8 버퍼 동적 할당
@@ -220,7 +231,7 @@ void AFOWTileMap::CreateDebugTexture()
 		PixelBuffer = new uint8[MapSize * MapSize];
 	}
 	FMemory::Memset(PixelBuffer, 0, PixelBufferSize); // 전부 검정으로 초기화
-	
+
 	// MID 생성 후 텍스처 연결
 	if (DebugPlane && DebugMaterial)
 	{
@@ -237,6 +248,75 @@ void AFOWTileMap::CreateDebugTexture()
 
 		DebugMID->SetTextureParameterValue(TEXT("DebugTex"), DebugTexture);
 		DebugPlane->GetStaticMeshComponent()->SetMaterial(0, DebugMID);
+	}
+}
+
+void AFOWTileMap::CreateFOWPostProcess()
+{
+	if (!FOWPostProcessMaterial)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CreateFOWPostProcess: FOWPostProcessMaterial is null"));
+		return;
+	}
+
+	if (!FOWPostProcessMID)
+	{
+		FOWPostProcessMID = UMaterialInstanceDynamic::Create(FOWPostProcessMaterial, this);
+	}
+
+	if (!FOWPostProcessMID)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CreateFOWPostProcess: Failed to create dynamic material instance"));
+		return;
+	}
+
+	// // FOW 텍스처 연결
+	// FOWPostProcessMID->SetTextureParameterValue(TEXT("FogTexture"), DebugTexture);
+	// // MapMin 전달
+	// FOWPostProcessMID->SetVectorParameterValue(TEXT("MapMin"),
+	//                                            FLinearColor(WorldMin.X, WorldMin.Y, 0, 0));
+	// // MapSize 전달
+	// FOWPostProcessMID->SetScalarParameterValue(TEXT("MapSize"),
+	//                                            TileSize * MapSize);
+
+	// VolumeExtentXY
+	FOWPostProcessMID->SetScalarParameterValue(
+		TEXT("VolumeExtentXY"), GetVolumeExtentXY());
+
+	// TileMapLocation
+	FVector MapCenter = WorldMin + FVector(
+		(TileSize * MapSize) / 2.f,
+		(TileSize * MapSize) / 2.f,
+		0.f
+	);
+	FOWPostProcessMID->SetVectorParameterValue(
+		TEXT("MapCenter"), FLinearColor(
+			MapCenter.X,
+			MapCenter.Y,
+			0, 0)
+	);
+
+	// FOWTexture
+	FOWPostProcessMID->SetTextureParameterValue(
+		TEXT("FogTexture"), DebugTexture
+	);
+
+	// FOWPostProcessMID->SetScalarParameterValue(
+	// 	TEXT("SightRadius"),
+	// 	10
+	// );
+
+	// PostProcessVolume 찾아서 MID 적용
+	APostProcessVolume* PPV = Cast<APostProcessVolume>(
+		UGameplayStatics::GetActorOfClass(GetWorld(), APostProcessVolume::StaticClass())
+	);
+
+	if (PPV)
+	{
+		FWeightedBlendable Blendable;
+		Blendable.Object = FOWPostProcessMID;
+		Blendable.Weight = 1.0f;
+		PPV->Settings.WeightedBlendables.Array.Add(Blendable);
 	}
 }
 
@@ -266,12 +346,12 @@ void AFOWTileMap::UpdateDebugTexture()
 	// SrcPitch = MapSize * 1byte(PF_G8), SrcBpp = 1byte
 	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize, MapSize);
 	DebugTexture->UpdateTextureRegions(
-		0,                           // MipIndex
-		1,                           // NumRegions
-		Region,                      // Regions
-		static_cast<uint32>(MapSize),// SrcPitch (행당 바이트 수: MapSize * 1)
-		sizeof(uint8),               // SrcBpp (픽셀당 바이트 수: 1)
-		PixelBuffer,                 // SrcData
+		0, // MipIndex
+		1, // NumRegions
+		Region, // Regions
+		static_cast<uint32>(MapSize), // SrcPitch (행당 바이트 수: MapSize * 1)
+		sizeof(uint8), // SrcBpp (픽셀당 바이트 수: 1)
+		PixelBuffer, // SrcData
 		[](uint8* /*SrcData*/, const FUpdateTextureRegion2D* InRegion)
 		{
 			delete InRegion; // Region 힙 해제

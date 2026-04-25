@@ -41,8 +41,14 @@ public:
 	bool IsVisibleTile(int32 X, int32 Y) const;
 	void SetTileVisibility(int32 X, int32 Y, bool bVisible);
 
+	float GetVolumeExtentXY() const
+	{
+		return TileSize * MapSize / 2.f;
+	}
+	
 private:
 	void CreateDebugTexture();
+	void CreateFOWPostProcess();
 	
 public:
 	static constexpr int32 MapSize = 128;
@@ -56,6 +62,12 @@ protected:
 	
 	UPROPERTY()
 	TArray<FTile> Tiles;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UMaterialInterface> FOWPostProcessMaterial;
+	
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> FOWPostProcessMID;
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<AStaticMeshActor> DebugPlane; // 에디터에서 Plane 연결
