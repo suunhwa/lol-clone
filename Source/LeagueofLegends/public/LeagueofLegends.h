@@ -4,3 +4,44 @@
 
 #include "CoreMinimal.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(SH, Warning, All)
+DECLARE_LOG_CATEGORY_EXTERN(HJ, Warning, All)
+DECLARE_LOG_CATEGORY_EXTERN(TK, Warning, All)
+
+// --- 개별 로그 활성화 설정 (1: 켬, 0: 끔) ---
+#define USE_LOG_GT 0
+#define USE_LOG_SH 1
+#define USE_LOG_JJ 0
+// ------------------------------------------
+
+// Shipping 빌드에서는 무조건 비활성화, 그 외 빌드에서는 개별 설정 참조
+#if !UE_BUILD_SHIPPING
+	#define CALLINFO (FString(__FUNCTION__) + TEXT("(") + FString::FromInt(__LINE__) + TEXT(")"))
+
+	// 선화 로그 제어
+	#if USE_LOG_GT
+		#define PRINTLOG_SH(format, ...) UE_LOG(SH, Log, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
+	#else
+		#define PRINTLOG_SH(format, ...)
+	#endif
+
+	// 형진 로그 제어
+	#if USE_LOG_SH
+		#define PRINTLOG_HJ(format, ...) UE_LOG(HJ, Warning, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
+	#else
+		#define PRINTLOG_HJ(format, ...)
+	#endif
+
+	// 상혁 로그 제어
+	#if USE_LOG_JJ
+		#define PRINTLOG_TK(format, ...) UE_LOG(TK, Log, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
+	#else
+		#define PRINTLOG_TK(format, ...)
+	#endif
+
+#else
+	// Shipping 빌드 전체 비활성화
+	#define PRINTLOG_SH(format, ...)
+	#define PRINTLOG_HJ(format, ...)
+	#define PRINTLOG_TK(format, ...)
+#endif
