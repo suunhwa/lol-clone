@@ -4,10 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/Damageable.h"
+#include "Interfaces/Targetable.h"
 #include "LoLCharacterBase.generated.h"
 
+class UStatComponent;
+class UCombatComponent;
+class UTagComponent;
+class UStateComponent;
+class UStatusEffectComponent;
+class UCooldownComponent;
+class USkillComponent;
+class UTargetingComponent;
+
 UCLASS(Abstract)
-class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter
+class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamageable, public ITargetable
 {
 	GENERATED_BODY()
 
@@ -18,8 +29,43 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void Tick(float DeltaTime) override;
+	// --- IDamageable
+	virtual void ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
+	virtual bool IsDead() const override;
 
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	// --- ITargetable
+	virtual bool IsTargetable() const override;
+	virtual FVector GetTargetLocation() const override;
+	virtual ETeam GetTeam() const override;
+
+	// --- Components
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UStatComponent> StatComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UCombatComponent> CombatComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UTagComponent> TagComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UStateComponent> StateComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UStatusEffectComponent> StatusEffectComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UCooldownComponent> CooldownComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<USkillComponent> SkillComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UTargetingComponent> TargetingComp;
+
+protected:
+	virtual void OnDeath(AActor* DamageInstigator);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_OnDeath();
 };
-
