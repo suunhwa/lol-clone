@@ -19,13 +19,14 @@ ALoLCameraActor::ALoLCameraActor()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 800.0f;
-	CameraBoom->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
+	CameraBoom->TargetArmLength = 2000.0f;
+	CameraBoom->SetRelativeRotation(FRotator(-55.0f, 130.0f, 0.0f));
 	CameraBoom->bDoCollisionTest = false;
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	CameraComp->bUsePawnControlRotation = false;
+	CameraComp->FieldOfView = 70.0f;
 }
 
 // Called when the game starts or when spawned
@@ -38,4 +39,20 @@ void ALoLCameraActor::BeginPlay()
 void ALoLCameraActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+FVector ALoLCameraActor::GetViewForwardXY() const
+{
+	FVector Forward = CameraComp->GetForwardVector();
+	Forward.Z = 0.f;
+	Forward.Normalize();
+	return Forward;
+}
+
+FVector ALoLCameraActor::GetViewRightXY() const
+{
+	FVector Right = CameraComp->GetRightVector();
+	Right.Z = 0.f;
+	Right.Normalize();
+	return Right;
 }
