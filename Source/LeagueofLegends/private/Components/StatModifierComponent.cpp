@@ -3,34 +3,65 @@
 
 #include "Components/StatModifierComponent.h"
 
+#include "LeagueofLegends.h"
 
-// Sets default values for this component's properties
+
 UStatModifierComponent::UStatModifierComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
-
-// Called when the game starts
-void UStatModifierComponent::BeginPlay()
+FStatModifierHandle UStatModifierComponent::AddModifier(const FStatModifier& Modifier)
 {
-	Super::BeginPlay();
+	FStatModifierHandle Handle;
+	Handle.ID = NextHandleID++;
 
-	// ...
+	Modifiers.Add(Handle.ID, Modifier);
+
+	return Handle;
+}
+
+void UStatModifierComponent::RemoveModifier(const FStatModifierHandle& Handle)
+{
+	if (!Handle.IsValid())
+	{
+		PRINTLOG_TK(TEXT("Invalid StatModifierHandle: %d"), Handle.ID);
+		return;
+	}
+
+	const FStatModifier* Found = Modifiers.Find(Handle.ID);
+	if (!Found)
+	{
+		PRINTLOG_TK(TEXT("StatModifierHandle not found: %d"), Handle.ID);
+		return;
+	}
 	
+	ELolStatType StatType = Found->StatType;
+	Modifiers.Remove(Handle.ID);
 }
 
-
-// Called every frame
-void UStatModifierComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                           FActorComponentTickFunction* ThisTickFunction)
+float UStatModifierComponent::GetFinalValue(ELolStatType StatType, float BaseValue) const
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
+	float AddSum = 0.f;
+	float MulProduct = 1.f;
+	
+	for (const auto& Pair : Modifiers)
+	{
+		const FStatModifier& Mod = Pair.Value;
+		if (Mod.StatType == StatType)
+		{
+			if (Mod.Op == EModifierOp::Add)
+			{
+				AddSum += Mod.Value;
+			}
+			else
+			{
+				MulProduct *= Mod.Value;
+			}
+		}
+	}
+	
+	return (BaseValue + AddSum) * MulProduct;
 }
+
 

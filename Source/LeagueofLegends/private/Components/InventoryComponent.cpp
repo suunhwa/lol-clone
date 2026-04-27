@@ -18,3 +18,19 @@ void UInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
+bool UInventoryComponent::PurchaseItem(UItemDataAsset* ItemData)
+{
+}
+
+void UInventoryComponent::SellItem(int32 SlotIndex)
+{
+}
+
+void UInventoryComponent::UndoPurchase()
+{
+}
+
+bool UInventoryComponent::EquipTrinket(UItemDataAsset* TrinketData)
+{
+}
+

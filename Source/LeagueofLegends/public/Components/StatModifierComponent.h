@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Type/StatModifierTypes.h"
 #include "StatModifierComponent.generated.h"
-
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class LEAGUEOFLEGENDS_API UStatModifierComponent : public UActorComponent
@@ -16,12 +16,14 @@ public:
 	// Sets default values for this component's properties
 	UStatModifierComponent();
 
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
+	FStatModifierHandle AddModifier(const FStatModifier& Modifier);
+	
+	void RemoveModifier(const FStatModifierHandle& Handle);
+	
+	float GetFinalValue(ELolStatType StatType, float BaseValue) const;
+	
+private:
+	int32 NextHandleID = 0;
+	
+	TMap<int32, FStatModifier> Modifiers;
 };
