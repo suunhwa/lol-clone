@@ -12,6 +12,8 @@ ARiftPlayerController::ARiftPlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bShowMouseCursor = true;
+	DefaultMouseCursor = EMouseCursor::Default;
+	CurrentMouseCursor = EMouseCursor::Default;
 }
 
 void ARiftPlayerController::BeginPlay()
@@ -19,9 +21,12 @@ void ARiftPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	if (!IsLocalController()) return;
-
+	
 	bShowMouseCursor = true;
-	SetInputMode(FInputModeGameAndUI());
+	
+	FInputModeGameAndUI InputMode;
+	InputMode.SetHideCursorDuringCapture(false);
+	SetInputMode(InputMode);
 }
 
 void ARiftPlayerController::AcknowledgePossession(APawn* P)
@@ -71,7 +76,15 @@ void ARiftPlayerController::Tick(float DeltaTime)
 	{
 		EdgeScrollWithMouse(DeltaTime);
 	}
+	
+	// GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Yellow, FString::Printf(TEXT("******CamXY: %.0f, %.0f"), TargetCameraLoc.X, TargetCameraLoc.Y));
 
+	if (bCameraBoundsEnabled)
+	{
+		TargetCameraLoc.X = FMath::Clamp(TargetCameraLoc.X, CameraBoundsMin.X, CameraBoundsMax.X);
+		TargetCameraLoc.Y = FMath::Clamp(TargetCameraLoc.Y, CameraBoundsMin.Y, CameraBoundsMax.Y);
+	}
+	
 	FVector NewLoc = FMath::VInterpTo(CameraActor->GetActorLocation(), TargetCameraLoc, DeltaTime, CameraInterpSpeed);
 	CameraActor->SetActorLocation(NewLoc);
 }
@@ -113,23 +126,10 @@ void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 
 		if (moveInput.IsNearlyZero()) return;
 
-		FVector Forward = CameraActor->GetActorForwardVector();
-		FVector Right = CameraActor->GetActorRightVector();
-		Forward.Z = 0.f;
-		Forward.Normalize();
-		Right.Z = 0.f;
-		Right.Normalize();
+		FVector Forward = CameraActor->GetViewForwardXY();
+		FVector Right = CameraActor->GetViewRightXY();
 
-		FVector Delta = (Forward * moveInput.Y + Right * moveInput.X) * EdgeScrollSpeed * DeltaTime;
-
-		UE_LOG(LogTemp,
-		       Warning,
-		       TEXT("***Delta: %s | CamLoc: %s"),
-		       *Delta.ToString(),
-		       *CameraActor->GetActorLocation().ToString());
-
-		// CameraActor->AddActorWorldOffset(Delta);
-		TargetCameraLoc += Delta;
+		TargetCameraLoc += (Forward * moveInput.Y + Right * moveInput.X) * EdgeScrollSpeed * DeltaTime;
 	}
 }
 
@@ -153,15 +153,9 @@ void ARiftPlayerController::SetupInputComponent()
 	if (!EIC) return;
 
 	EIC->BindAction(IA_LockCam, ETriggerEvent::Started, this, &ARiftPlayerController::OnCameraLockToggled);
-	EIC->BindAction(IA_FocusChamp, ETriggerEvent::Started, this, &ARiftPlayerController::OnCameraFocusStarted);
 	EIC->BindAction(IA_FocusChamp, ETriggerEvent::Triggered, this, &ARiftPlayerController::OnCameraFocusHeld);
 	EIC->BindAction(IA_FocusChamp, ETriggerEvent::Completed, this, &ARiftPlayerController::OnCameraFocusReleased);
 	EIC->BindAction(IA_Move, ETriggerEvent::Started, this, &ARiftPlayerController::OnMove);
-}
-
-void ARiftPlayerController::OnCameraFocusStarted()
-{
-	PreFocusCameraLoc = TargetCameraLoc;
 }
 
 void ARiftPlayerController::OnCameraFocusHeld()
@@ -174,10 +168,7 @@ void ARiftPlayerController::OnCameraFocusHeld()
 
 void ARiftPlayerController::OnCameraFocusReleased()
 {
-	if (!bCameraLocked)
-	{
-		TargetCameraLoc = PreFocusCameraLoc;
-	}
+	// TargetCameraLoc은 챔피언 시점에서 멈춤
 }
 
 void ARiftPlayerController::OnMove()

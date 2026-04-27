@@ -35,7 +35,9 @@ public:
 	// 로비: 라인 선택 하게 ?
 	UFUNCTION(Server, Reliable)
 	void Server_SelectLane(ELane Lane);
-
+	
+public:
+	// ---------------------------------- Camera --------------------------------
 	// Edge scrolling
 	void EdgeScrollWithMouse(float DeltaTime);
 
@@ -53,6 +55,15 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Camera|Settings")
 	float CameraInterpSpeed = 20.f;
+	
+	UPROPERTY(EditAnywhere, Category = "Camera|Bounds")
+	bool bCameraBoundsEnabled = false;
+
+	UPROPERTY(EditAnywhere, Category = "Camera|Bounds", meta = (EditCondition = "bCameraBoundsEnabled"))
+	FVector2D CameraBoundsMin = FVector2D(-4000.f, -4000.f);
+
+	UPROPERTY(EditAnywhere, Category = "Camera|Bounds", meta = (EditCondition = "bCameraBoundsEnabled"))
+	FVector2D CameraBoundsMax = FVector2D(4000.f, 4000.f);;
 
 	FVector TargetCameraLoc = FVector::ZeroVector;
 
@@ -77,15 +88,13 @@ protected:
 
 public:
 	bool bCameraLocked = false;
-	FVector PreFocusCameraLoc = FVector::ZeroVector;
 
 	// y키
 	// 고정시점
 	void OnCameraLockToggled();
 
 	// space bar
-	// 스페이스바 누르고 있을 때만 챔피언 시점으로 떼면 다시 돌아감
-	void OnCameraFocusStarted();
+	// 스페이스바 누르는 동안 챔피언 시점, 떼면 그 위치에서 멈춤
 	void OnCameraFocusHeld();
 	void OnCameraFocusReleased();
 

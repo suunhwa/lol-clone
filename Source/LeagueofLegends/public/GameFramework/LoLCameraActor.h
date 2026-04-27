@@ -35,6 +35,9 @@ private:
 
 public:
 	UCameraComponent* GetCameraComponent() const { return CameraComp.Get(); };
-
 	USpringArmComponent* GetCameraBoom() const { return CameraBoom.Get(); };
+
+	// XY 평면에 투영된 카메라 뷰 방향 (엣지스크롤용)
+	FVector GetViewForwardXY() const;
+	FVector GetViewRightXY() const;
 };
