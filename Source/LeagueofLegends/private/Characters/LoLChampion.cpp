@@ -2,8 +2,10 @@
 
 #include "Characters/LoLChampion.h"
 
+#include "Characters/Data/ChampionData.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Net/UnrealNetwork.h"
 
 ALoLChampion::ALoLChampion()
 {
@@ -25,10 +27,34 @@ ALoLChampion::ALoLChampion()
 void ALoLChampion::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (!ChampionData) return;
+}
+
+void ALoLChampion::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ALoLChampion, ChampionData);
 }
 
 void ALoLChampion::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
+
+void ALoLChampion::OnRep_ChampionData()
+{
+	InitVisuals();
+}
+
+void ALoLChampion::InitVisuals()
+{
+	
+}
+
+void ALoLChampion::InitStats()
+{
+}
+
 

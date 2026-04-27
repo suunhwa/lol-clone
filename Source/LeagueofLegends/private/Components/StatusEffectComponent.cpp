@@ -7,11 +7,11 @@ static FName GetTagForEffect(EStatusEffect Type)
 {
 	switch (Type)
 	{
-	case EStatusEffect::Stun:    return UnitTags::Stunned;
-	case EStatusEffect::Root:    return UnitTags::Rooted;
+	case EStatusEffect::Stun: return UnitTags::Stunned;
+	case EStatusEffect::Root: return UnitTags::Rooted;
 	case EStatusEffect::Silence: return UnitTags::Silenced;
 	case EStatusEffect::Knockup: return UnitTags::Knockup;
-	default:                     return NAME_None;
+	default: return NAME_None;
 	}
 }
 
@@ -21,7 +21,9 @@ UStatusEffectComponent::UStatusEffectComponent()
 	SetIsReplicatedByDefault(true);
 }
 
-void UStatusEffectComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UStatusEffectComponent::TickComponent(float DeltaTime,
+                                           ELevelTick TickType,
+                                           FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -42,15 +44,15 @@ void UStatusEffectComponent::ApplyEffect(EStatusEffect Type, float Duration, flo
 		if (Effect.Type == Type)
 		{
 			Effect.Remaining = FMath::Max(Effect.Remaining, Duration);
-			Effect.Duration  = FMath::Max(Effect.Duration, Duration);
+			Effect.Duration = FMath::Max(Effect.Duration, Duration);
 			Effect.Magnitude = FMath::Max(Effect.Magnitude, Magnitude);
 			return;
 		}
 	}
 
 	FActiveStatusEffect New;
-	New.Type      = Type;
-	New.Duration  = Duration;
+	New.Type = Type;
+	New.Duration = Duration;
 	New.Remaining = Duration;
 	New.Magnitude = Magnitude;
 	ActiveEffects.Add(New);
