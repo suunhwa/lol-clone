@@ -7,7 +7,7 @@ void AAStarGridManager::BeginPlay() { Super::BeginPlay(); ScanWorld(); }
 
 void AAStarGridManager::ScanWorld()
 {
-    float BaseZ = 5.0f; // 격자가 바닥에 파묻히지 않게 살짝 올림
+    float BaseZ = 20.0f; // 격자가 바닥에 파묻히지 않게 살짝 올림
     GridMap.Empty(); // 기존 지도 비움
 
     FCollisionQueryParams Params;
@@ -28,8 +28,8 @@ void AAStarGridManager::ScanWorld()
 
             FHitResult Hit;
             // 허리 높이 스캔, 충돌 검사
-            FVector Start = WorldPos + FVector(0, 0, 50.f);
-            FVector End = WorldPos + FVector(0, 0, 100.f);
+            FVector Start = WorldPos + FVector(0, 0, 100.f);
+            FVector End = WorldPos + FVector(0, 0, 10.f);
             // 격자 크기의 80% 정도 되는 보이지 않는 박스를 생성
             FCollisionShape Box = FCollisionShape::MakeBox(FVector(GridSize * 0.4f, GridSize * 0.4f, 20.f));
             
@@ -39,8 +39,10 @@ void AAStarGridManager::ScanWorld()
             if (bHitObstacle && Hit.GetActor())
             {
                 // 넥서스는 벽이 아님을 명시
-                if (Hit.GetActor()->ActorHasTag(TEXT("Structure"))) Node.bIsWalkable = true;
-                else Node.bIsWalkable = false; // 그 외 일반 벽이면 못 가는 길
+                if (Hit.GetActor()->ActorHasTag(TEXT("Structure" )) || Hit.GetActor()->ActorHasTag(TEXT("Floor"))) 
+                    Node.bIsWalkable = true;
+                else 
+                    Node.bIsWalkable = false; // 그 외 일반 벽이면 못 가는 길
             }
             else { Node.bIsWalkable = !bHitObstacle; }
 

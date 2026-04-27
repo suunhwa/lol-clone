@@ -8,16 +8,18 @@ ALoLMinion::ALoLMinion()
    PrimaryActorTick.bCanEverTick = true;
    
    // [스탯 설정] 임의로 테스트용
-   HP = 10.0f;
-   AttackDamage = 2.5f;
-   AttackSpeed = 1.0f; // 초당 1회 공격
-   AttackRange = 150.0f;
-   MoveSpeed = 300.0f;
+   HP = 0.0f;
+   AttackDamage = 0.0f;
+   AttackSpeed = 0.0f; // 초당 1회 공격
+   AttackRange = 0.0f;
+   MoveSpeed = 0.0f;
 }
 
 void ALoLMinion::BeginPlay()
 {
     Super::BeginPlay();
+    InitializeStatsFromTable();
+   
     GetWorldTimerManager().SetTimer(TargetUpdateTimerHandle, this, &ALoLMinion::UpdateTarget, 0.5f, true);
     GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
 }
@@ -81,6 +83,45 @@ void ALoLMinion::TakeDamageSimple(float Damage)
       // 사망 시 바로 파괴하거나, 시체가 남길 원하면 시간을 둡니다.
       // 여기서는 사태 진압을 위해 0.1초 뒤 즉시 제거합니다.
       SetLifeSpan(0.1f); 
+   }
+}
+
+void ALoLMinion::InitializeStatsFromTable()
+{
+   UMinionDataSubsystem* DataSubsystem = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>();
+   if (!DataSubsystem) return;
+
+   int32 TargetID = FCString::Atoi(*MinionDataID.ToString());
+
+   FMinionBaseRow* BaseData = DataSubsystem->GetBaseRowByID(TargetID);
+   FMinionGrowthRow* GrowthData = DataSubsystem->GetGrowthRowByID(TargetID);
+
+   if (BaseData && GrowthData)
+   {
+      // 1. 기본 스탯 설정 (BaseTable)
+      MoveSpeed = BaseData->MoveSpeed;
+      AttackRange = BaseData->AtkRange;
+      AttackSpeed = BaseData->AtkSpeed;
+        
+      // 2. 성장 스탯 계산 (GrowthTable)
+      // 현재 게임 시간이나 웨이브 횟수에 따라 성장치를 적용 가능
+      // 여기서는 일단 초기값만 적용
+      float CurrentGameTime = GetWorld()->GetTimeSeconds();
+        
+      // 예시 : 90초마다 성장한다면? (Interval 활용)
+      int32 GrowthCycle = FMath::FloorToInt(CurrentGameTime / GrowthData->Interval);
+      GrowthCycle = FMath::Min(GrowthCycle, GrowthData->Max_Cycle); // 최대치 제한
+
+      HP = GrowthData->Base_HP + (GrowthData->HP_Up * GrowthCycle);
+      AttackDamage = GrowthData->Base_AD + (GrowthData->AD_Up * GrowthCycle);
+
+      UE_LOG(LogTemp, Log, TEXT("[%s] 로드 완료: 체력 %.1f, 공격력 %.1f, 이동속도 %.1f"), 
+          *BaseData->Name_KR, HP, AttackDamage, MoveSpeed);
+   }
+   else {
+      // 데이터 못 불러오면 로그 찍고 최소한의 속도라도 부여
+      UE_LOG(LogTemp, Error, TEXT("[%s] 데이터를 못 찾음! RowName: %s"), *GetName(), *MinionDataID.ToString());
+      MoveSpeed = 300.0f; 
    }
 }
 
