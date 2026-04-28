@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+
+class USkillExecutorComponent;
+
 #include "ChampionData.generated.h"
 
 /**
@@ -48,24 +51,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Champion|Animation")
 	TObjectPtr<UAnimMontage> RespawnMontage;
 
-	// 수치는 DataTable에서 ChampionID로 조회
-	// FChampionBaseRow (MoveSpeed 등)
-	UPROPERTY(EditDefaultsOnly, Category = "Champion|Data")
-	TObjectPtr<UDataTable> BaseTable;
-	
-	// FChampionStatRow (HP, AD 등)
-	UPROPERTY(EditDefaultsOnly, Category = "Champion|Data")
-	TObjectPtr<UDataTable> StatTable; 
-	
-	// FChampionGrowthRow
-	UPROPERTY(EditDefaultsOnly, Category = "Champion|Data")
-	TObjectPtr<UDataTable> GrowthTable;
-	
-	// FMasterSkillCoreRow
-	UPROPERTY(EditDefaultsOnly, Category = "Champion|Data")
-	TObjectPtr<UDataTable> SkillCoreTable; 
-	
-	// FDetailSkillStatsRow
-	UPROPERTY(EditDefaultsOnly, Category = "Champion|Data")
-	TObjectPtr<UDataTable> SkillDetailTable; 
+	// 스킬 실행 컴포넌트 클래스. 챔피언별 BP 자식 클래스 지정 (예: BP_EzrealSkillExecutor)
+	// 발사체 클래스는 SkillExecutorComponent 안에서 설정
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Skill")
+	TSubclassOf<USkillExecutorComponent> SkillExecutorClass;
+
+	// 수치 데이터는 ChampionDataSubsystem이 공용 DataTable에서 ChampionID로 조회
+	// BaseTable / StatTable / GrowthTable → ChampionDataSubsystem으로 이전됨
 };

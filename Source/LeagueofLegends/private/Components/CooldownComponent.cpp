@@ -35,3 +35,9 @@ float UCooldownComponent::GetRemaining(FName Tag) const
 	const float* Remaining = Cooldowns.Find(Tag);
 	return Remaining ? *Remaining : 0.f;
 }
+
+void UCooldownComponent::ReduceAllCooldowns(float Amount)
+{
+	for (auto& [Tag, Remaining] : Cooldowns)
+		Remaining = FMath::Max(0.f, Remaining - Amount);
+}

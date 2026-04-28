@@ -22,6 +22,7 @@ public:
 	void StartCooldown(FName Tag, float Duration);
 	bool IsOnCooldown(FName Tag) const;
 	float GetRemaining(FName Tag) const;
+	void ReduceAllCooldowns(float Amount); // Q 패시브 등 쿨다운 감소
 
 	// LoL CDR 상한 45%
 	void SetCDR(float InCDR) { CDR = FMath::Clamp(InCDR, 0.f, 0.45f); }

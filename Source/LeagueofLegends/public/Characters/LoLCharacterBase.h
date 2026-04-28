@@ -63,6 +63,10 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UTargetingComponent> TargetingComp;
 
+	// 모든 클라이언트에 몽타주 재생 (서버에서 호출)
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayMontage(UAnimMontage* Montage);
+
 protected:
 	virtual void OnDeath(AActor* DamageInstigator);
 

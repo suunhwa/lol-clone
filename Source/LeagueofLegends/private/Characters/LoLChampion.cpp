@@ -4,13 +4,11 @@
 
 #include "LeagueofLegends.h"
 #include "Characters/Data/ChampionData.h"
-#include "Components/StatComponent.h"
-#include "UObject/ConstructorHelpers.h"
-#include "Components/SkeletalMeshComponent.h"
+#include "Components/CombatComponent.h"
 #include "Components/SkillComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/SkillExecutorComponent.h"
+#include "Manager/ChampionDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
-#include "Struct/ChampionStatStruct.h"
 
 ALoLChampion::ALoLChampion()
 {
@@ -20,30 +18,30 @@ ALoLChampion::ALoLChampion()
 void ALoLChampion::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	PRINTLOG_SH(TEXT("LoLChampion BeginPlay***"));
-	
-	PRINTLOG_SH(TEXT("SkillComp: %s"), *GetNameSafe(SkillComp));
+
 	if (SkillComp)
 	{
 		SkillComp->OnSkillActivated.AddUObject(this, &ALoLChampion::HandleSkillActivated);
 
 		// 테스트용: 모든 스킬 랭크 1로 설정
 		// TODO: 레벨업 시 플레이어가 직접 할당하도록 변경 예정
-		bool bQ = SkillComp->AssignSkillPoint(ESkillSlot::Q);
-		bool bW = SkillComp->AssignSkillPoint(ESkillSlot::W);
-		bool bE = SkillComp->AssignSkillPoint(ESkillSlot::E);
-		bool bR = SkillComp->AssignSkillPoint(ESkillSlot::R);
-		PRINTLOG_SH(TEXT("AssignSkillPoint — Q:%d W:%d E:%d R:%d"), bQ, bW, bE, bR);
+		SkillComp->AssignSkillPoint(ESkillSlot::Q);
+		SkillComp->AssignSkillPoint(ESkillSlot::W);
+		SkillComp->AssignSkillPoint(ESkillSlot::E);
+		SkillComp->AssignSkillPoint(ESkillSlot::R);
 	}
 
 	if (!ChampionData) return;
 
-	InitVisuals();
+	UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+	if (!Sub) return;
+
+	Sub->ApplyVisuals(this, ChampionData);
 
 	if (HasAuthority())
 	{
-		InitStats();
+		Sub->ApplyStats(this, ChampionData);
+		CreateSkillExecutor();
 	}
 }
 
@@ -61,121 +59,70 @@ void ALoLChampion::Tick(float DeltaTime)
 
 void ALoLChampion::OnRep_ChampionData()
 {
-	InitVisuals();
+	UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+	if (Sub && ChampionData)
+		Sub->ApplyVisuals(this, ChampionData);
 }
 
-void ALoLChampion::InitVisuals()
+// ===== ChampionData 세팅 (런타임, 캐릭터 선택 후) =====
+
+void ALoLChampion::SetChampionData(UChampionData* Data)
 {
-	if (!ChampionData) return;
+	if (!HasAuthority() || !Data) return;
 
-	if (ChampionData->Mesh)
+	ChampionData = Data;
+
+	UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+	if (Sub)
 	{
-		GetMesh()->SetSkeletalMesh(ChampionData->Mesh);
-		GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -90.f));
-		GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+		Sub->ApplyVisuals(this, ChampionData);
+		Sub->ApplyStats(this, ChampionData);
 	}
 
-	if (ChampionData->AnimBP)
-	{
-		GetMesh()->SetAnimInstanceClass(ChampionData->AnimBP);
-	}
+	CreateSkillExecutor();
 }
 
-// data table row name에 ChampionID 포함된 첫 번째 행 반환
-template <typename T>
-static const T* FindRowByChampionID(UDataTable* Table, const FName& ChampionID)
-{
-	if (!Table) return nullptr;
+// ===== SkillExecutor 동적 생성 =====
 
-	const FString id = ChampionID.ToString();
-	for (const FName& RowName : Table->GetRowNames())
-	{
-		if (RowName.ToString().Contains(id, ESearchCase::IgnoreCase))
+void ALoLChampion::CreateSkillExecutor()
+{
+	if (!ChampionData || !ChampionData->SkillExecutorClass) return;
+
+	if (SkillExecutor)
+		SkillExecutor->DestroyComponent();
+
+	SkillExecutor = NewObject<USkillExecutorComponent>(
+		this, ChampionData->SkillExecutorClass, TEXT("SkillExecutor"));
+	SkillExecutor->RegisterComponent();
+
+	PRINTLOG_SH(TEXT("[%s] SkillExecutor 생성: %s"),
+		*ChampionData->ChampionID.ToString(),
+		*ChampionData->SkillExecutorClass->GetName());
+}
+
+// ===== 스킬 활성화 → Executor 위임 =====
+
+void ALoLChampion::HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc)
+{
+	if (!SkillExecutor) return;
+	SkillExecutor->Execute(Slot, TargetLoc);
+}
+
+// ===== 평타 =====
+
+void ALoLChampion::ExecuteBasicAttack(AActor* Target)
+{
+	if (!HasAuthority() || !Target) return;
+
+	Multicast_PlayMontage(ChampionData ? ChampionData->BasicAttackMontage : nullptr);
+
+	// TODO: AnimNotify 방식으로 교체
+	TWeakObjectPtr<AActor> WeakTarget(Target);
+	GetWorldTimerManager().SetTimer(BasicAttackImpactTimer,
+		[this, WeakTarget]()
 		{
-			return Table->FindRow<T>(RowName, TEXT(""));
-		}
-	}
-	return nullptr;
-}
-
-// data table row name에 ChampionID 포함된 모든 행 반환 (skill관련 table etc)
-template <typename T>
-static TArray<const T*> FindAllRowsByChampionID(UDataTable* Table, const FName& ChampionID)
-{
-	TArray<const T*> Result;
-	if (!Table) return Result;
-
-	const FString id = ChampionID.ToString();
-	for (const FName& RowName : Table->GetRowNames())
-	{
-		if (RowName.ToString().Contains(id, ESearchCase::IgnoreCase))
-		{
-			if (const T* Row = Table->FindRow<T>(RowName, TEXT("")))
-			{
-				Result.Add(Row);
-			}
-		}
-	}
-
-	return Result;
-}
-
-
-void ALoLChampion::InitStats()
-{
-	if (!ChampionData || !StatComp) return;
-
-	// BaseTable : Row name = ChampionID
-	const FChampionBaseRow* baseRow = FindRowByChampionID<FChampionBaseRow>(
-		ChampionData->BaseTable,
-		ChampionData->ChampionID);
-	const FChampionStatRow* statRow = FindRowByChampionID<FChampionStatRow>(
-		ChampionData->StatTable,
-		ChampionData->ChampionID);
-	const FChampionGrowthRow* growthRow = FindRowByChampionID<FChampionGrowthRow>(
-		ChampionData->GrowthTable,
-		ChampionData->ChampionID);
-
-	if (!baseRow || !statRow || !growthRow)
-	{
-		PRINTLOG_SH(TEXT("[%s] 테이블 Row 못 찾음 — Base:%d Stat:%d Growth:%d"),
-		            *ChampionData->ChampionID.ToString(),
-		            !!baseRow,
-		            !!statRow,
-		            !!growthRow);
-		return;
-	}
-
-	StatComp->InitStats(*baseRow, *statRow, *growthRow);
-
-	// moveSpeed characterMovement에 반영
-	GetCharacterMovement()->MaxWalkSpeed = StatComp->GetMoveSpeed();
-
-	PRINTLOG_SH(TEXT("[%s] InitStats Succeeded - HP: %.f Mana: %.f AD: %.1f Armor: %.1f MoveSpeed: %.0f"),
-	            *ChampionData->ChampionID.ToString(),
-	            StatComp->GetCurrentHP(),
-	            StatComp->GetCurrentMana(),
-	            StatComp->GetAD(),
-	            StatComp->GetArmor(),
-	            StatComp->GetMoveSpeed());
-}
-
-void ALoLChampion::HandleSkillActivated(ESkillSlot Slot, FVector TargetLocation)
-{
-	switch (Slot)
-	{
-	case ESkillSlot::Q:
-		PRINTLOG_SH(TEXT("Q 발동 → %s"), *TargetLocation.ToString());
-		// TODO: 이즈리얼 Q 구현
-		break;
-	case ESkillSlot::W:
-		PRINTLOG_SH(TEXT("W 발동"));
-		break;
-	case ESkillSlot::E:
-		PRINTLOG_SH(TEXT("E 발동"));
-		break;
-	case ESkillSlot::R:
-		PRINTLOG_SH(TEXT("R 발동"));
-		break;
-	}
+			if (WeakTarget.IsValid() && CombatComp)
+				CombatComp->PerformBasicAttack(WeakTarget.Get());
+		},
+		0.3f, false);
 }

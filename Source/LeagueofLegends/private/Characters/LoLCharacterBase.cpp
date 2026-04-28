@@ -86,6 +86,12 @@ void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)
 	Multicast_OnDeath();
 }
 
+void ALoLCharacterBase::Multicast_PlayMontage_Implementation(UAnimMontage* Montage)
+{
+	if (!Montage) return;
+	PlayAnimMontage(Montage);
+}
+
 void ALoLCharacterBase::Multicast_OnDeath_Implementation()
 {
 	SetActorEnableCollision(false);
