@@ -1,5 +1,7 @@
 #include "Manager/MinionDataSubsystem.h"
 
+#include "LeagueofLegends.h"
+
 void UMinionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -14,7 +16,7 @@ void UMinionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("서브시스템: 데이터 테이블 로드 성공!"));
+		PRINTLOG_HJ(TEXT("서브시스템: 데이터 테이블 로드 성공!"));
 	}
 	
 }

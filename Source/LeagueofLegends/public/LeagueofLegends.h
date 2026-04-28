@@ -20,14 +20,14 @@ DECLARE_LOG_CATEGORY_EXTERN(TK, Warning, All)
 
 	// 선화 로그 제어
 	#if USE_LOG_SH
-		#define PRINTLOG_SH(format, ...) UE_LOG(SH, Log, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
+		#define PRINTLOG_SH(format, ...) UE_LOG(SH, Warning, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
 	#else
 		#define PRINTLOG_SH(format, ...)
 	#endif
 
 	// 형진 로그 제어
 	#if USE_LOG_HJ
-		#define PRINTLOG_HJ(format, ...) UE_LOG(HJ, Warning, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
+		#define PRINTLOG_HJ(format, ...) UE_LOG(HJ, Log, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
 	#else
 		#define PRINTLOG_HJ(format, ...)
 	#endif

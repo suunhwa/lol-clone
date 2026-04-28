@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Characters/LoLCharacterBase.h"
+#include "Components/SkillComponent.h"
 #include "Data/ChampionData.h"
 #include "LoLChampion.generated.h"
 
@@ -28,6 +29,8 @@ public:
 private:
 	void InitVisuals();
 	void InitStats();
+	
+	void HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc);
 	
 	UFUNCTION()
 	void OnRep_ChampionData();

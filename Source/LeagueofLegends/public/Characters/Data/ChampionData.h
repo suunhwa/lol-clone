@@ -22,7 +22,7 @@ public:
 	TObjectPtr<USkeletalMesh> Mesh;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Champion|Visual")
-	TObjectPtr<UAnimInstance> AnimBP;
+	TSubclassOf<UAnimInstance> AnimBP;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Champion|Animation")
 	TObjectPtr<UAnimMontage> BasicAttackMontage;
