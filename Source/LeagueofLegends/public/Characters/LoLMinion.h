@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Characters/LoLCharacterBase.h"
+#include "Struct/MinionStruct.h"
+#include "Manager/MinionDataSubsystem.h"
 #include "LoLMinion.generated.h"
 
 
@@ -33,13 +35,22 @@ public:
 	void TakeDamageSimple(float Damage);
 	
 protected:
+	
+	// 2. 이 미니언이 어떤 데이터(Row)를 쓸지 결정하는 ID
+	// 에디터 디테일 창에서 "Melee", "Ranged" 등을 적어줄 수 있게 합니다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Data")
+	FName MinionDataID = TEXT("3002"); 
+
+	// 3. 스탯을 테이블에서 가져와 초기화하는 함수 선언
+	void InitializeStatsFromTable();
+	
+	
+	
 	// 플레이어를 타겟으로 저장
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	AActor* TargetPlayer;
 	
-	// 이동속도 // 나중에 데이터테이블에서 가져오기 전까지 사용할 임시값
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	float MoveSpeed = 300.0f;
+	
 	
 	UPROPERTY(VisibleAnywhere, Category = "AI")
 	EMinionState CurrentState = EMinionState::MoveToTarget;
@@ -54,16 +65,20 @@ protected:
 	
 	// --- 전투 스탯 (임시) ---
 	UPROPERTY(EditAnywhere, Category = "AI|Stats")
-	float HP = 50.0f;
+	float HP;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Stats")
-	float AttackDamage = 10.0f;
+	float AttackDamage;
 
 	UPROPERTY(EditAnywhere, Category = "AI|Stats")
-	float AttackRange = 150.0f; 
+	float AttackRange; 
 
+	// 이동속도 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float MoveSpeed;
+	
 	UPROPERTY(EditAnywhere, Category = "AI|Stats")
-	float AttackSpeed = 1.0f; // 초당 공격 횟수
+	float AttackSpeed; // 초당 공격 횟수
 
 	float LastAttackTime = 0.0f;
 	

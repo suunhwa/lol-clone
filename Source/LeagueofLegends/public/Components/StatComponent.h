@@ -59,17 +59,21 @@ public:
 	// --- delegates 
 	FOnHPChanged OnHPChanged;
 	FOnManaChanged OnManaChanged;
-
-private:
+	
+	// 자식 접근을 위해 공통변수로 뺌
+protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHP)
 	float CurrentHP = 0.f;
-
+	// ------------------------
+private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentMana)
 	float CurrentMana = 0.f;
 
 	UPROPERTY(Replicated)
 	int32 Level = 1;
 
+	// 자식 접근을 위해 공통변수로 뺌
+protected:
 	// 기본 스탯 (DataAsset 연결 전 InitStats로 세팅)
 	float BaseHP = 0.f;
 	float BaseMana = 0.f;
@@ -81,14 +85,20 @@ private:
 	float BaseAS = 0.f;
 	float BaseASRatio = 0.f;
 	float BaseRange = 0.f;
-
+	// --------------------------
+	
+private:
 	float BaseHPRegen = 0.f;
 	float BaseCritMult = 1.75f; // LoL 기본 크리 배율
 
 	// 성장치 (레벨업마다 적용)
+	// 자식 접근을 위해 공통변수로 뺌
+protected:
 	float HP_G = 0.f;
-	float Mana_G = 0.f;
 	float AD_G = 0.f;
+	// --------------------------
+private:
+	float Mana_G = 0.f;
 	float Armor_G = 0.f;
 	float MR_G = 0.f;
 	float AS_G = 0.f;
@@ -97,10 +107,15 @@ private:
 	float HPRegen_G = 0.f;
 
 	// 보너스 스탯 (아이템/버프)
+	// 자식 접근을 위해 공통변수로 뺌
+protected:
 	float BonusHP = 0.f;
 	float BonusAD = 0.f;
-	float BonusAP = 0.f;
 	float BonusArmor = 0.f;
+	// ---------------------------
+private:
+	float BonusAP = 0.f;
+	
 
 	UFUNCTION()
 	void OnRep_CurrentHP();
