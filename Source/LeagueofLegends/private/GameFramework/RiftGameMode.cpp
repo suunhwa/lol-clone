@@ -6,6 +6,7 @@
 #include "GameFramework/RiftHUD.h"
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
+#include "LeagueofLegends.h"
 #include "Characters/LoLChampion.h"
 
 ARiftGameMode::ARiftGameMode()
@@ -21,7 +22,7 @@ void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
-	UE_LOG(LogTemp, Warning, TEXT("PostLogin*************"));
+	// PRINTLOG_SH(TEXT("PostLogin*************"));
 
 	ARiftPlayerState* ps = NewPlayer->GetPlayerState<ARiftPlayerState>();
 	if (!ps) return;
@@ -72,7 +73,7 @@ void ARiftGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UE_LOG(LogTemp, Warning, TEXT("RiftGameMode BeginPlay******"));
+	// PRINTLOG_SH(TEXT("BeginPlay*************"));
 }
 
 void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)

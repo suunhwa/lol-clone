@@ -4,6 +4,8 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/LoLCameraActor.h"
 #include "GameFramework/RiftTypes.h"
+#include "AStar/AStarGridManager.h"
+#include "Components/SkillComponent.h"
 #include "RiftPlayerController.generated.h"
 
 class ALoLChampion;
@@ -80,6 +82,24 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
 	TObjectPtr<UInputAction> IA_Move;
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_SkillQ;
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_SkillW;
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_SkillE;
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_SkillR;
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_Attack_A;
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_LeftClick;
 
 	UPROPERTY(EditDefaultsOnly, Category="Camera")
 	TSubclassOf<ALoLCameraActor> CameraActorClass;
@@ -99,4 +119,22 @@ public:
 	void OnCameraFocusReleased();
 
 	void OnMove();
+	void OnSkillQ();
+	void OnSkillW();
+	void OnSkillE();
+	void OnSkillR();
+	void OnAPressed();
+	void OnAReleased();
+	void OnLeftClick();
+	
+	bool bAKeyPressed = false;
+	
+private:
+	void RequestSkill(ESkillSlot Slot);
+	void TryBasicAttackAtCursor();
+	
+private:
+	UPROPERTY()
+	TObjectPtr<AAStarGridManager> GridManager;
+
 };
