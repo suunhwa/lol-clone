@@ -15,6 +15,8 @@ public :
 	FObjectBaseRow() 
 		:  Object_ID(0), Object_Type(TEXT(""))
 		, Base_HP(0), HP_Regen(0)
+		, Base_AD(0.0f), AD_Growth_Per_Min(0.0f), Max_AD(0.0f)
+		, Atk_Range(0.0f), Atk_Speed(0.0f)
 		, Required_Target_ID(TEXT("")), Description(TEXT("")) {}
 	
 	// Data Yellow Section
@@ -31,6 +33,21 @@ public :
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
 	float HP_Regen;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
+	float Base_AD;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
+	float AD_Growth_Per_Min;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
+	float Max_AD;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
+	float Atk_Range;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
+	
+	float Atk_Speed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
 	FString Required_Target_ID;
 	
