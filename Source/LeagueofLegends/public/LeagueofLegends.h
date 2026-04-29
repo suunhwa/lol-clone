@@ -9,9 +9,9 @@ DECLARE_LOG_CATEGORY_EXTERN(HJ, Warning, All)
 DECLARE_LOG_CATEGORY_EXTERN(TK, Warning, All)
 
 // --- 개별 로그 활성화 설정 (1: 켬, 0: 끔) ---
-#define USE_LOG_SH 1
+#define USE_LOG_SH 0
 #define USE_LOG_HJ 0
-#define USE_LOG_TK 0
+#define USE_LOG_TK 1
 // ------------------------------------------
 
 // Shipping 빌드에서는 무조건 비활성화, 그 외 빌드에서는 개별 설정 참조
@@ -27,14 +27,14 @@ DECLARE_LOG_CATEGORY_EXTERN(TK, Warning, All)
 
 	// 형진 로그 제어
 	#if USE_LOG_HJ
-		#define PRINTLOG_HJ(format, ...) UE_LOG(HJ, Log, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
+		#define PRINTLOG_HJ(format, ...) UE_LOG(HJ, Warning, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
 	#else
 		#define PRINTLOG_HJ(format, ...)
 	#endif
 
 	// 상혁 로그 제어
 	#if USE_LOG_TK
-		#define PRINTLOG_TK(format, ...) UE_LOG(TK, Log, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
+		#define PRINTLOG_TK(format, ...) UE_LOG(TK, Warning, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
 	#else
 		#define PRINTLOG_TK(format, ...)
 	#endif
