@@ -141,16 +141,18 @@ void ALoLMinion::UpdateTarget()
     float ClosestDistance = MAX_FLT;
     // 내 팀 태그(팀 태그는 Tag[0] 인덱스에 쓰도록 한다. RedTeam/BlueTeam/GreenTeam ....
     FName MyTeamTag = (Tags.Num() > 0) ? Tags[0] : NAME_None;
-    
+    // 상대 팀 태그 결정
+    FName EnemyTeamTag = (MyTeamTag == TEXT("RedTeam")) ? TEXT("BlueTeam") : TEXT("RedTeam");
+   
     // 1순위 : 주변 적 유닛 중 가장 가까운 대상을 찾는다
     for (AActor* Actor : FoundActors)
     {
        if (!Actor || Actor == this) continue; // 나 자신은 제외
        // 'Character' 태그가 잇어도 내 팀 태그와 다르면 적으로 간주
-       if (Actor->ActorHasTag(TEXT("Character")) && !Actor->ActorHasTag(MyTeamTag)) 
+       if (Actor->ActorHasTag(TEXT("Character")) && Actor->ActorHasTag(EnemyTeamTag))
        {
           float Distance = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
-          if (Distance < ClosestDistance) // 그중 가장 가까운 놈을 후보로 타겟팅
+          if (Distance < ClosestDistance)
           {
              ClosestDistance = Distance;
              BestTarget = Actor;
@@ -184,22 +186,21 @@ void ALoLMinion::UpdateTarget()
 // 암튼 이거 공격 로직인데 데이터 불러온거도 없어서 야매로 해서 땜빵침 나중에 대대적인 수정
 void ALoLMinion::PerformAttack()
 {
-    /*if (!TargetPlayer) return;
-    float CurrentTime = GetWorld()->GetTimeSeconds();
-    // 공격 속도에 맞춰서 시간이 지났을 때만 때리기
-    if (CurrentTime - LastAttackTime >= (1.0f / AttackSpeed))
-    {
-       if (ALoLMinion* Enemy = Cast<ALoLMinion>(TargetPlayer))
-       {
-          Enemy->TakeDamageSimple(AttackDamage);
-       }
-       else if (ANexus* TargetNexus = Cast<ANexus>(TargetPlayer))
-       {
-          TargetNexus->ReceiveDamage(AttackDamage);
-          UE_LOG(LogTemp, Warning, TEXT("넥서스 타격 중! 남은 체력: %f"), TargetNexus->Health);
-       }
-       LastAttackTime = CurrentTime;
-    }*/
+   if (!TargetPlayer) return;
+   float CurrentTime = GetWorld()->GetTimeSeconds();
+
+   if (CurrentTime - LastAttackTime >= (1.0f / AttackSpeed))
+   {
+      // 1. 인터페이스 방식으로 데미지 전달 (가장 권장되는 방식)
+      IDamageable* DamageTarget = Cast<IDamageable>(TargetPlayer);
+      if (DamageTarget)
+      {
+         // 미니언/구조물 구분 없이 데미지 입힘
+         DamageTarget->ReceiveDamage(AttackDamage, EDamageType::Physical, this);
+      }
+        
+      LastAttackTime = CurrentTime;
+   }
 }
 
 void ALoLMinion::MoveAlongPath(float DeltaTime)
