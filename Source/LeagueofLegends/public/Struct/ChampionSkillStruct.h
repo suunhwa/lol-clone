@@ -48,7 +48,8 @@ struct FDetailSkillStatsRow : public FTableRowBase
 
 public:
     FDetailSkillStatsRow()
-        : Skill_ID(TEXT("")), Step(0), Base_Value(0.0f), Cost(0.0f), CoolDown(0.0f) {}
+        : Skill_ID(TEXT("")), Step(0), Base_Value(0.0f), Factor_Stat1(TEXT("")), Factor_Stat2(TEXT(""))
+        , Coefficient1(TEXT("")), Coefficient2(TEXT("")),Cost(0.0f), CoolDown(0.0f) {}
 
     // Data Yellow Section
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Detail")
@@ -62,10 +63,16 @@ public:
     float Base_Value; // 기본 깡딜/수치
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Detail")
-    TArray<FString> Factor_Stat; // 참조할 스탯 종류 (배열)
+    FString Factor_Stat1; // 참조할 스탯 종류 (배열)
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Detail")
+    FString Factor_Stat2; // 참조할 스탯 종류 (배열)
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Detail")
-    TArray<float> Coefficient; // 각 스탯 계수 가중치 (배열)
+    FString Coefficient1; // 각 스탯 계수 가중치 (배열)
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Detail")
+    FString Coefficient2; // 각 스탯 계수 가중치 (배열)
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Detail")
     float Cost; // 소모량

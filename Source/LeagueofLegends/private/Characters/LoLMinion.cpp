@@ -2,22 +2,25 @@
 #include "Kismet/GameplayStatics.h"
 #include "AStar/AStarGridManager.h"
 #include "Characters/Nexus/Nexus.h"
+#include "Components/CapsuleComponent.h"
 
 ALoLMinion::ALoLMinion()
 {
    PrimaryActorTick.bCanEverTick = true;
    
    // [스탯 설정] 임의로 테스트용
-   HP = 10.0f;
-   AttackDamage = 2.5f;
-   AttackSpeed = 1.0f; // 초당 1회 공격
-   AttackRange = 150.0f;
-   MoveSpeed = 300.0f;
+   HP = 0.0f;
+   AttackDamage = 0.0f;
+   AttackSpeed = 0.0f; // 초당 1회 공격
+   AttackRange = 0.0f;
+   MoveSpeed = 0.0f;
 }
 
 void ALoLMinion::BeginPlay()
 {
     Super::BeginPlay();
+    InitializeStatsFromTable();
+   
     GetWorldTimerManager().SetTimer(TargetUpdateTimerHandle, this, &ALoLMinion::UpdateTarget, 0.5f, true);
     GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
 }
@@ -84,6 +87,50 @@ void ALoLMinion::TakeDamageSimple(float Damage)
    }
 }
 
+void ALoLMinion::InitializeStatsFromTable()
+{
+   UMinionDataSubsystem* DataSubsystem = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>();
+   if (!DataSubsystem) return;
+
+   int32 TargetID = FCString::Atoi(*MinionDataID.ToString());
+
+   FMinionBaseRow* BaseData = DataSubsystem->GetBaseRowByID(TargetID);
+   FMinionGrowthRow* GrowthData = DataSubsystem->GetGrowthRowByID(TargetID);
+
+   if (BaseData && GrowthData)
+   {
+      // [BaseTable 정보 로드]
+      MinionID        = BaseData->MinionID;
+      MoveSpeed       = BaseData->MoveSpeed;
+      AttackRange     = BaseData->AtkRange;
+      AttackSpeed     = BaseData->AtkSpeed;
+      ProjSpeed       = BaseData->ProjSpeed; // 원거리에서 쓸 변수
+      Armor           = BaseData->Armor;
+      MagicResistance = BaseData->MR;
+      CollisionRadius = BaseData->Collision;
+      bIsSiege        = BaseData->Is_Siege;
+      bIsSuper        = BaseData->Is_Super;
+      TowerDamageReduction = BaseData->Tower_DR;
+      Name_KR         = BaseData->Name_KR;
+
+      // [캡슐 컴포넌트 크기 동적 설정]
+      // 테이블의 Collision 값에 따라 미니언의 물리적 크기가 결정됩니다.
+      if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+      {
+         Capsule->SetCapsuleRadius(CollisionRadius);
+      }
+        
+      // [GrowthTable 성장 스탯 계산]
+      float CurrentGameTime = GetWorld()->GetTimeSeconds();
+      int32 GrowthCycle = FMath::Min(FMath::FloorToInt(CurrentGameTime / GrowthData->Interval), GrowthData->Max_Cycle);
+
+      HP = GrowthData->Base_HP + (GrowthData->HP_Up * GrowthCycle);
+      AttackDamage = GrowthData->Base_AD + (GrowthData->AD_Up * GrowthCycle);
+
+      UE_LOG(LogTemp, Log, TEXT("[%s] 데이터 로드 완료: HP %.1f, AD %.1f"), *Name_KR, HP, AttackDamage);
+   }
+}
+
 void ALoLMinion::UpdateTarget()
 {
     // 월드에서 'Character' 태그를 가진 모든 액터를 찾는다
@@ -137,9 +184,9 @@ void ALoLMinion::UpdateTarget()
 // 암튼 이거 공격 로직인데 데이터 불러온거도 없어서 야매로 해서 땜빵침 나중에 대대적인 수정
 void ALoLMinion::PerformAttack()
 {
-    if (!TargetPlayer) return;
+    /*if (!TargetPlayer) return;
     float CurrentTime = GetWorld()->GetTimeSeconds();
-   // 공격 속도에 맞춰서 시간이 지났을 때만 때리기
+    // 공격 속도에 맞춰서 시간이 지났을 때만 때리기
     if (CurrentTime - LastAttackTime >= (1.0f / AttackSpeed))
     {
        if (ALoLMinion* Enemy = Cast<ALoLMinion>(TargetPlayer))
@@ -152,7 +199,7 @@ void ALoLMinion::PerformAttack()
           UE_LOG(LogTemp, Warning, TEXT("넥서스 타격 중! 남은 체력: %f"), TargetNexus->Health);
        }
        LastAttackTime = CurrentTime;
-    }
+    }*/
 }
 
 void ALoLMinion::MoveAlongPath(float DeltaTime)

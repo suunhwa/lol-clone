@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Characters/LoLCharacterBase.h"
+#include "Struct/MinionStruct.h"
+#include "Manager/MinionDataSubsystem.h"
 #include "LoLMinion.generated.h"
 
 
@@ -15,7 +17,7 @@ enum class EMinionState : uint8
 	Dead             // 사망
 };
 
-UCLASS()
+UCLASS(Abstract)
 class LEAGUEOFLEGENDS_API ALoLMinion : public ALoLCharacterBase
 {
 	GENERATED_BODY()
@@ -33,13 +35,28 @@ public:
 	void TakeDamageSimple(float Damage);
 	
 protected:
+	
+	// 2. 이 미니언이 어떤 데이터(Row)를 쓸지 결정하는 ID
+	// 에디터 디테일 창에서 "Melee", "Ranged" 등을 적어줄 수 있게 합니다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Data")
+	FName MinionDataID; 
+
+	// 3. 스탯을 테이블에서 가져와 초기화하는 함수 선언
+	void InitializeStatsFromTable();
+	
+	UFUNCTION()
+	virtual void PerformAttack();
+	
+	UFUNCTION()
+	void MoveAlongPath(float DeltaTime);
+	
+	// 타겟 갱신 함수
+	UFUNCTION()
+	void UpdateTarget();
+	
 	// 플레이어를 타겟으로 저장
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	AActor* TargetPlayer;
-	
-	// 이동속도 // 나중에 데이터테이블에서 가져오기 전까지 사용할 임시값
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	float MoveSpeed = 300.0f;
 	
 	UPROPERTY(VisibleAnywhere, Category = "AI")
 	EMinionState CurrentState = EMinionState::MoveToTarget;
@@ -52,31 +69,52 @@ protected:
 	UPROPERTY()
 	class AAStarGridManager* GridManager;
 	
-	// --- 전투 스탯 (임시) ---
-	UPROPERTY(EditAnywhere, Category = "AI|Stats")
-	float HP = 50.0f;
+	// 여기서부터 미니언 관련테이블 및 구조체에 있는 모든 변수 선언
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	int32 MinionID;
 
-	UPROPERTY(EditAnywhere, Category = "AI|Stats")
-	float AttackDamage = 10.0f;
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	float MoveSpeed;
 
-	UPROPERTY(EditAnywhere, Category = "AI|Stats")
-	float AttackRange = 150.0f; 
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	float AttackRange;
 
-	UPROPERTY(EditAnywhere, Category = "AI|Stats")
-	float AttackSpeed = 1.0f; // 초당 공격 횟수
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	float AttackSpeed;
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	float ProjSpeed;
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	int32 Armor;
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	int32 MagicResistance;
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	float CollisionRadius;
+    
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	bool bIsSiege;
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	bool bIsSuper;
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	float TowerDamageReduction; // Tower_DR
+    
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	FString Name_KR;
+    
+	// --- [GrowthTable 관련 변수 - 실시간 계산용] ---
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Stats")
+	float HP; // 현재/최대 체력
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Stats")
+	float AttackDamage;
 
 	float LastAttackTime = 0.0f;
 	
-public:
-	// 타겟 갱신 함수
-	UFUNCTION()
-	void UpdateTarget();
-
-	UFUNCTION()
-	void PerformAttack();
-	
-	UFUNCTION()
-	void MoveAlongPath(float DeltaTime);
 };
 
 

@@ -9,11 +9,16 @@
 #include "Components/CooldownComponent.h"
 #include "Components/SkillComponent.h"
 #include "Components/TargetingComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
+	
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComp"));
 	CombatComp = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComp"));
