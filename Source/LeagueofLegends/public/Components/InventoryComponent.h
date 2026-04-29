@@ -9,6 +9,22 @@
 class UItemDataAsset;
 class UItemInstance;
 
+USTRUCT(BlueprintType)
+struct FPurchaseRecord
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	int32 ActionType{0}; // 0: 구매, 1: 판매
+	
+	UPROPERTY()
+	int32 SlotIndex{INDEX_NONE};   
+	
+	UPROPERTY()
+	TObjectPtr<UItemInstance> ItemInstance = nullptr;
+};
+
+DECLARE_MULTICAST_DELEGATE(FOnInventoryChanged);
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class LEAGUEOFLEGENDS_API UInventoryComponent : public UActorComponent
 {
@@ -19,27 +35,31 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
-public:
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
 public:
 #pragma region Getter Setter
 	float GetGold() const { return Gold; }
 	void SetGold(float NewGold) { Gold = NewGold; }
-#pragma endregion
-	
 	void AddGold(float Amount) { SetGold(Gold + Amount); }
 	void SpendGold(float Amount) { SetGold(Gold - Amount); }
 	
-public:
-	bool PurchaseItem(UItemDataAsset* ItemData);
+	UItemInstance* GetItemAtSlot(int32 SlotIndex) const;
+	UItemInstance* GetTrinket() const { return TrinketSlot; }
+	
+	bool IsHistoryEmpty() const { return PurchaseHistoryStack.Num() == 0; }
+#pragma endregion
+	
+	bool PurchaseItem(int32 ItemID);
 	void SellItem(int32 SlotIndex);
-	void UndoPurchase();
+	void Undo();
+	void ClearHistory() { PurchaseHistoryStack.Empty(); }
 	bool EquipTrinket(UItemDataAsset* TrinketData);
+	
+	FOnInventoryChanged OnInventoryChanged;
 
 private:
+	int GetEmptySlotIndex() const;
+	
 	UPROPERTY(VisibleAnywhere, Category = "Inventory")
 	float Gold = 0.f;
 	
@@ -47,13 +67,13 @@ private:
 	int32 MaxSlotCount = 6;
 	
 	UPROPERTY(VisibleAnywhere, Category = "Inventory|Slot")
-	TArray<UItemInstance*> ItemSlot;
+	TArray<TObjectPtr<UItemInstance>> ItemSlot;
 	
 	UPROPERTY(VisibleAnywhere, Category = "Inventory|Slot")	
 	TObjectPtr<UItemInstance> TrinketSlot;
 	
 	// 구매 내역 스택 (구매 취소용)
 	UPROPERTY(VisibleAnywhere, Category = "Inventory|History")
-	TArray<UItemDataAsset*> PurchaseHistoryStack;
+	TArray<FPurchaseRecord> PurchaseHistoryStack;
 };
 

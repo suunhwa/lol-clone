@@ -8,6 +8,9 @@
 #include "Data/ChampionData.h"
 #include "LoLChampion.generated.h"
 
+class UInventoryComponent;
+class UStatModifierComponent;
+
 UCLASS()
 class LEAGUEOFLEGENDS_API ALoLChampion : public ALoLCharacterBase
 {
@@ -26,6 +29,12 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 	
+public:
+#pragma region Component Getters
+	UStatModifierComponent* GetStatModifierComp() const { return StatModifierComp; }
+	UInventoryComponent* GetInventoryComp() const { return InventoryComp; }
+#pragma endregion
+	
 private:
 	void InitVisuals();
 	void InitStats();
@@ -34,4 +43,11 @@ private:
 	
 	UFUNCTION()
 	void OnRep_ChampionData();
+	
+private:
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UStatModifierComponent> StatModifierComp;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UInventoryComponent> InventoryComp;
 };
