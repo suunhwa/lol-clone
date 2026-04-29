@@ -2,7 +2,8 @@
 
 #include "Components/SkillExecutorComponent.h"
 
-#include "Characters/ChampionSkillProjectile.h"
+#include "LeagueofLegends.h"
+#include "Champions/Projectile/ChampionSkillProjectile.h"
 #include "Characters/LoLCharacterBase.h"
 #include "Components/CooldownComponent.h"
 #include "Components/StatComponent.h"
@@ -32,11 +33,20 @@ void USkillExecutorComponent::PlayMontage(UAnimMontage* Montage) const
 
 AChampionSkillProjectile* USkillExecutorComponent::SpawnProjectile(
 	const FVector& Direction, float Speed, float Range,
-	FDamageContext Ctx, bool bPiercing, bool bCooldownOnHit) const
+	FDamageContext Ctx, bool bPiercing, bool bCooldownOnHit, FName SocketName) const
 {
 	if (!ProjectileClass || !OwnerChar) return nullptr;
 
-	const FVector SpawnLoc = OwnerChar->GetActorLocation() + FVector(0.f, 0.f, 50.f);
+	FVector SpawnLoc = OwnerChar->GetActorLocation() + FVector(0.f, 0.f, 50.f);
+	if (SocketName != NAME_None)
+	{
+		USkeletalMeshComponent* Mesh = OwnerChar->GetMesh();
+		if (Mesh && Mesh->DoesSocketExist(SocketName))
+			SpawnLoc = Mesh->GetSocketLocation(SocketName);
+	}
+
+	// 챔피언 캡슐 밖으로 살짝 앞으로 밀어서 스폰 (캡슐 충돌 방지)
+	SpawnLoc += Direction * 60.f;
 
 	AChampionSkillProjectile* Proj = OwnerChar->GetWorld()->SpawnActor<AChampionSkillProjectile>(
 		ProjectileClass, SpawnLoc, Direction.Rotation());
@@ -44,6 +54,10 @@ AChampionSkillProjectile* USkillExecutorComponent::SpawnProjectile(
 	if (!Proj) return nullptr;
 
 	Proj->SetOwner(OwnerChar);
+	if (UPrimitiveComponent* Root = Cast<UPrimitiveComponent>(Proj->GetRootComponent()))
+	{
+		Root->IgnoreActorWhenMoving(OwnerChar, true);
+	}
 	Proj->Launch(Ctx, Speed, Range, bPiercing, bCooldownOnHit);
 	return Proj;
 }

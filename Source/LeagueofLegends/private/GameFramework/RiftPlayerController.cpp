@@ -6,6 +6,7 @@
 #include "AStar/AStarGridManager.h"
 #include "Engine/LocalPlayer.h"
 #include "Characters/LoLChampion.h"
+#include "Characters/LoLCharacterBase.h"
 #include "GameFramework/LoLCameraActor.h"
 #include "GameFramework/RiftPlayerState.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
@@ -73,6 +74,8 @@ void ARiftPlayerController::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (!IsLocalController() || !CameraActor) return;
+
+	UpdateIndicator();
 
 	if (bCameraLocked && OwnedChamp)
 	{
@@ -165,10 +168,13 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_FocusChamp, ETriggerEvent::Completed, this, &ARiftPlayerController::OnCameraFocusReleased);
 	EIC->BindAction(IA_Move, ETriggerEvent::Started, this, &ARiftPlayerController::OnMove);
 
-	EIC->BindAction(IA_SkillQ, ETriggerEvent::Started, this, &ARiftPlayerController::OnSkillQ);
-	EIC->BindAction(IA_SkillW, ETriggerEvent::Started, this, &ARiftPlayerController::OnSkillW);
-	EIC->BindAction(IA_SkillE, ETriggerEvent::Started, this, &ARiftPlayerController::OnSkillE);
-	EIC->BindAction(IA_SkillR, ETriggerEvent::Started, this, &ARiftPlayerController::OnSkillR);
+	EIC->BindAction(IA_SkillQ, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillQPressed);
+	EIC->BindAction(IA_SkillQ, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillQReleased);
+	EIC->BindAction(IA_SkillW, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillWPressed);
+	EIC->BindAction(IA_SkillW, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillWReleased);
+	EIC->BindAction(IA_SkillE, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillEPressed);
+	EIC->BindAction(IA_SkillE, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillEReleased);
+	EIC->BindAction(IA_SkillR, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillR);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Started, this, &ARiftPlayerController::OnAPressed);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Completed, this, &ARiftPlayerController::OnAReleased);
 	EIC->BindAction(IA_LeftClick, ETriggerEvent::Started, this, &ARiftPlayerController::OnLeftClick);
@@ -189,20 +195,28 @@ void ARiftPlayerController::OnCameraFocusReleased()
 
 void ARiftPlayerController::OnMove()
 {
-	/*PRINTLOG_SH(TEXT("*컨트롤러: %s"), *GetNameSafe(this));
-	PRINTLOG_SH(TEXT("*Pawn: %s"), *GetNameSafe(GetPawn()));
-	PRINTLOG_SH(TEXT("*OwnedChamp: %s"), *GetNameSafe(OwnedChamp));*/
+	if (!OwnedChamp) return;
 
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
 	if (!HitResult.bBlockingHit) return;
 
+	// 커서가 적 위에 있으면 이동 대신 공격
+	ALoLCharacterBase* HitChar = Cast<ALoLCharacterBase>(HitResult.GetActor());
+	if (HitChar && HitChar != OwnedChamp)
+	{
+		UStatComponent* TargetStat = HitChar->FindComponentByClass<UStatComponent>();
+		if (TargetStat && !TargetStat->IsDead())
+		{
+			Server_RequestBasicAttack(HitChar);
+			return;
+		}
+	}
+
 	FVector Dir = HitResult.ImpactPoint - OwnedChamp->GetActorLocation();
 	Dir.Z = 0.f;
 	if (!Dir.IsNearlyZero())
-	{
 		OwnedChamp->SetActorRotation(Dir.ToOrientationRotator());
-	}
 
 	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
 }
@@ -214,7 +228,7 @@ void ARiftPlayerController::OnCameraLockToggled()
 
 void ARiftPlayerController::OnAPressed()
 {
-	bCameraLocked = true;
+	bAKeyPressed = true;
 }
 
 void ARiftPlayerController::OnAReleased()
@@ -277,33 +291,83 @@ void ARiftPlayerController::TryBasicAttackAtCursor()
 
 	if (Target)
 	{
-		OwnedChamp->CombatComp->PerformBasicAttack(Target);
-		PRINTLOG_SH(TEXT("A+LMB 평타 -> %s"), *GetNameSafe(Target));
+		ALoLCharacterBase* TargetChar = Cast<ALoLCharacterBase>(Target);
+		if (TargetChar)
+		{
+			Server_RequestBasicAttack(TargetChar);
+			PRINTLOG_SH(TEXT("A+LMB 평타 -> %s"), *GetNameSafe(Target));
+		}
 	}
 }
 
-void ARiftPlayerController::OnSkillQ()
-{
-	PRINTLOG_SH(TEXT("[Q] OwnedChamp: %s"), *GetNameSafe(OwnedChamp));
-	RequestSkill(ESkillSlot::Q);
-}
+void ARiftPlayerController::OnSkillQPressed()  { ShowSkillIndicator(ESkillSlot::Q); }
+void ARiftPlayerController::OnSkillQReleased() { FirePendingSkill(); }
 
-void ARiftPlayerController::OnSkillW()
-{
-	PRINTLOG_SH(TEXT("[W] OwnedChamp: %s"), *GetNameSafe(OwnedChamp));
-	RequestSkill(ESkillSlot::W);
-}
+void ARiftPlayerController::OnSkillWPressed()  { ShowSkillIndicator(ESkillSlot::W); }
+void ARiftPlayerController::OnSkillWReleased() { FirePendingSkill(); }
 
-void ARiftPlayerController::OnSkillE()
-{
-	PRINTLOG_SH(TEXT("[E] OwnedChamp: %s"), *GetNameSafe(OwnedChamp));
-	RequestSkill(ESkillSlot::E);
-}
+void ARiftPlayerController::OnSkillEPressed()  { ShowSkillIndicator(ESkillSlot::E); }
+void ARiftPlayerController::OnSkillEReleased() { FirePendingSkill(); }
 
 void ARiftPlayerController::OnSkillR()
 {
-	PRINTLOG_SH(TEXT("[R] OwnedChamp: %s"), *GetNameSafe(OwnedChamp));
 	RequestSkill(ESkillSlot::R);
+}
+
+void ARiftPlayerController::ShowSkillIndicator(ESkillSlot Slot)
+{
+	if (!OwnedChamp) return;
+
+	HideSkillIndicator();
+	PendingSkillSlot = static_cast<int32>(Slot);
+
+	// E는 원형, Q/W는 선형
+	TSubclassOf<AActor> IndicatorClass = (Slot == ESkillSlot::E)
+		? CircleIndicatorClass : LineIndicatorClass;
+
+	if (!IndicatorClass) return;
+
+	FVector SpawnLoc = OwnedChamp->GetActorLocation();
+	CurrentIndicator = GetWorld()->SpawnActor<AActor>(IndicatorClass, SpawnLoc, FRotator::ZeroRotator);
+	if (CurrentIndicator)
+		CurrentIndicator->AttachToActor(OwnedChamp, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+}
+
+void ARiftPlayerController::HideSkillIndicator()
+{
+	if (CurrentIndicator)
+	{
+		CurrentIndicator->Destroy();
+		CurrentIndicator = nullptr;
+	}
+	PendingSkillSlot = -1;
+}
+
+void ARiftPlayerController::UpdateIndicator()
+{
+	if (!CurrentIndicator || !OwnedChamp || PendingSkillSlot < 0) return;
+
+	FHitResult HitResult;
+	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+	if (!HitResult.bBlockingHit) return;
+
+	FVector CursorLoc = HitResult.ImpactPoint;
+	FVector ChampLoc  = OwnedChamp->GetActorLocation();
+
+	FVector Dir = (CursorLoc - ChampLoc).GetSafeNormal2D();
+	if (Dir.IsNearlyZero()) return;
+
+	// Attach되어 있으므로 위치는 자동, 방향만 업데이트
+	CurrentIndicator->SetActorRotation(Dir.ToOrientationRotator());
+}
+
+void ARiftPlayerController::FirePendingSkill()
+{
+	if (PendingSkillSlot < 0) return;
+
+	ESkillSlot Slot = static_cast<ESkillSlot>(PendingSkillSlot);
+	HideSkillIndicator();
+	RequestSkill(Slot);
 }
 
 void ARiftPlayerController::RequestSkill(ESkillSlot Slot)
@@ -313,11 +377,23 @@ void ARiftPlayerController::RequestSkill(ESkillSlot Slot)
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
 
-	FVector targetLoc = HitResult.bBlockingHit
+	FVector TargetLoc = HitResult.bBlockingHit
 		                    ? HitResult.ImpactPoint
 		                    : OwnedChamp->GetActorLocation() + OwnedChamp->GetActorForwardVector() * 1000.f;
 
-	OwnedChamp->SkillComp->RequestActivateSkill(Slot, targetLoc);
+	Server_RequestSkill(Slot, TargetLoc);
+}
+
+void ARiftPlayerController::Server_RequestSkill_Implementation(ESkillSlot Slot, FVector TargetLoc)
+{
+	if (!OwnedChamp || !OwnedChamp->SkillComp) return;
+	OwnedChamp->SkillComp->RequestActivateSkill(Slot, TargetLoc);
+}
+
+void ARiftPlayerController::Server_RequestBasicAttack_Implementation(ALoLCharacterBase* Target)
+{
+	if (!OwnedChamp || !Target) return;
+	OwnedChamp->ExecuteBasicAttack(Target);
 }
 
 void ARiftPlayerController::Server_SelectSummonerSpells_Implementation(ESummonerSpell Spell1, ESummonerSpell Spell2)

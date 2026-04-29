@@ -18,8 +18,9 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	// 챔피언 DataAsset 레지스트리 로드 → ChampionID 맵 빌드
 	// TODO: 실제 에셋 경로로 교체
 	UChampionDataRegistry* Registry = Cast<UChampionDataRegistry>(
-		StaticLoadObject(UChampionDataRegistry::StaticClass(), nullptr,
-		                 TEXT("/Game/Data/DA_ChampionRegistry.DA_ChampionRegistry")));
+		StaticLoadObject(UChampionDataRegistry::StaticClass(),
+		                 nullptr,
+		                 TEXT("/Game/Champions/Data/DA_ChampionRegistry.DA_ChampionRegistry")));
 
 	if (Registry)
 	{
@@ -37,13 +38,18 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	// 공용 스탯 DataTable 로드
 	// TODO: 실제 에셋 경로로 교체
-	BaseTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
-	                                              TEXT("/Game/Data/ChampionDataTable_Base.ChampionDataTable_Base")));
-	StatTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
-	                                              TEXT("/Game/Data/ChampionDataTable_Stat.ChampionDataTable_Stat")));
-	GrowthTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
+	BaseTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+	                                              nullptr,
+	                                              TEXT(
+		                                              "/Game/Data/ChampionStatDataTable_ChampionBase.ChampionStatDataTable_ChampionBase")));
+	StatTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+	                                              nullptr,
+	                                              TEXT(
+		                                              "/Game/Data/ChampionStatDataTable_ChampionStatValues.ChampionStatDataTable_ChampionStatValues")));
+	GrowthTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+	                                                nullptr,
 	                                                TEXT(
-		                                                "/Game/Data/ChampionDataTable_Growth.ChampionDataTable_Growth")));
+		                                                "/Game/Data/ChampionStatDataTable_ChampionGrowth.ChampionStatDataTable_ChampionGrowth")));
 
 	if (!BaseTable || !StatTable || !GrowthTable)
 		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 스탯 DataTable 로드 실패. 경로 확인 필요"));
@@ -118,7 +124,10 @@ void UChampionDataSubsystem::ApplyStats(ALoLCharacterBase* Target, UChampionData
 	if (!BaseRow || !StatRow || !GrowthRow)
 	{
 		PRINTLOG_SH(TEXT("[%s] ChampionDataSubsystem: Row 못 찾음 — Base:%d Stat:%d Growth:%d"),
-		            *Data->ChampionID.ToString(), !!BaseRow, !!StatRow, !!GrowthRow);
+		            *Data->ChampionID.ToString(),
+		            !!BaseRow,
+		            !!StatRow,
+		            !!GrowthRow);
 		return;
 	}
 
@@ -131,6 +140,9 @@ void UChampionDataSubsystem::ApplyStats(ALoLCharacterBase* Target, UChampionData
 
 	PRINTLOG_SH(TEXT("[%s] ApplyStats — HP:%.f Mana:%.f AD:%.1f Armor:%.1f MS:%.0f"),
 	            *Data->ChampionID.ToString(),
-	            Target->StatComp->GetCurrentHP(), Target->StatComp->GetCurrentMana(),
-	            Target->StatComp->GetAD(), Target->StatComp->GetArmor(), Target->StatComp->GetMoveSpeed());
+	            Target->StatComp->GetCurrentHP(),
+	            Target->StatComp->GetCurrentMana(),
+	            Target->StatComp->GetAD(),
+	            Target->StatComp->GetArmor(),
+	            Target->StatComp->GetMoveSpeed());
 }

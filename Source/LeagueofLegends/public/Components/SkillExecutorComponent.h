@@ -33,14 +33,16 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Skill")
 	TSubclassOf<AChampionSkillProjectile> ProjectileClass;
 
-protected:
-	// 모든 클라이언트에 몽타주 재생
-	void PlayMontage(UAnimMontage* Montage) const;
-
+public:
 	// 발사체 스폰 (서버 전용)
 	AChampionSkillProjectile* SpawnProjectile(
 		const FVector& Direction, float Speed, float Range,
-		FDamageContext Ctx, bool bPiercing, bool bCooldownOnHit = false) const;
+		FDamageContext Ctx, bool bPiercing, bool bCooldownOnHit = false,
+		FName SocketName = NAME_None) const;
+
+protected:
+	// 모든 클라이언트에 몽타주 재생
+	void PlayMontage(UAnimMontage* Montage) const;
 
 	// 오너 컴포넌트 캐시 (BeginPlay에서 세팅)
 	UPROPERTY()

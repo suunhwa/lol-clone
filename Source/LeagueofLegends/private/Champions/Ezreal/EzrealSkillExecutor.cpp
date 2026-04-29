@@ -1,7 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Champion/EzrealSkillExecutor.h"
+#include "Champions/Ezreal/EzrealSkillExecutor.h"
 
+#include "Engine/OverlapResult.h"
 #include "Characters/LoLCharacterBase.h"
 #include "Characters/LoLChampion.h"
 #include "Characters/Data/ChampionData.h"
@@ -15,14 +16,14 @@ namespace EzrealStats
 	constexpr float Q_Damage_ADRatio = 1.3f;
 	constexpr float Q_Speed          = 2000.f;
 	constexpr float Q_Range          = 1100.f;
-	constexpr float Q_Cooldown       = 5.5f;
+	constexpr float Q_Cooldown       = 0.f;
 	constexpr float Q_ManaCost       = 28.f;
 
 	constexpr float W_Damage_Base    = 80.f;
 	constexpr float W_Damage_APRatio = 0.6f;
 	constexpr float W_Speed          = 1600.f;
 	constexpr float W_Range          = 1000.f;
-	constexpr float W_Cooldown       = 8.f;
+	constexpr float W_Cooldown       = 0.f;
 	constexpr float W_ManaCost       = 50.f;
 
 	constexpr float E_Blink_Range              = 475.f;
@@ -30,7 +31,7 @@ namespace EzrealStats
 	constexpr float E_Secondary_Damage_ADRatio = 0.5f;
 	constexpr float E_Secondary_Speed          = 2000.f;
 	constexpr float E_Secondary_Range          = 750.f;
-	constexpr float E_Cooldown                 = 19.f;
+	constexpr float E_Cooldown                 = 0.f;
 	constexpr float E_ManaCost                 = 90.f;
 }
 
@@ -75,7 +76,7 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 	Ctx.SourceTag        = TEXT("Ezreal.Q");
 
 	SpawnProjectile((TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-		EzrealStats::Q_Speed, EzrealStats::Q_Range, Ctx, false, true);
+		EzrealStats::Q_Speed, EzrealStats::Q_Range, Ctx, false, true, TEXT("Socket_Q"));
 }
 
 // ===== W — 본질 유출 =====
@@ -96,7 +97,7 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 	Ctx.SourceTag        = TEXT("Ezreal.W");
 
 	SpawnProjectile((TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-		EzrealStats::W_Speed, EzrealStats::W_Range, Ctx, true);
+		EzrealStats::W_Speed, EzrealStats::W_Range, Ctx, true, false, TEXT("Socket_Q"));
 }
 
 // ===== E — 신비한 이동 =====
@@ -113,9 +114,9 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	const FVector Dir2D  = (TargetLoc - CurLoc).GetSafeNormal2D();
 	const float   Dist   = FMath::Min(FVector::Dist2D(TargetLoc, CurLoc), EzrealStats::E_Blink_Range);
 
-	OwnerChar->SetActorLocation(CurLoc + Dir2D * Dist, true);
+	OwnerChar->TeleportTo(CurLoc + Dir2D * Dist, OwnerChar->GetActorRotation());
 
-	FireESecondaryShot();
+	// FireESecondaryShot(); // TODO: 나중에 활성화
 }
 
 void UEzrealSkillExecutor::FireESecondaryShot()

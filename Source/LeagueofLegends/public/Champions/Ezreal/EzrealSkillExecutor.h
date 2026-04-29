@@ -8,7 +8,7 @@
 
 class ALoLChampion;
 
-UCLASS()
+UCLASS(Blueprintable)
 class LEAGUEOFLEGENDS_API UEzrealSkillExecutor : public USkillExecutorComponent
 {
 	GENERATED_BODY()

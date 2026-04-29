@@ -9,6 +9,7 @@
 #include "RiftPlayerController.generated.h"
 
 class ALoLChampion;
+class ALoLCharacterBase;
 class UInputMappingContext;
 class UInputAction;
 
@@ -37,6 +38,12 @@ public:
 	// 로비: 라인 선택 하게 ?
 	UFUNCTION(Server, Reliable)
 	void Server_SelectLane(ELane Lane);
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestSkill(ESkillSlot Slot, FVector TargetLoc);
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestBasicAttack(ALoLCharacterBase* Target);
 	
 public:
 	// ---------------------------------- Camera --------------------------------
@@ -119,18 +126,38 @@ public:
 	void OnCameraFocusReleased();
 
 	void OnMove();
-	void OnSkillQ();
-	void OnSkillW();
-	void OnSkillE();
+	void OnSkillQPressed();
+	void OnSkillQReleased();
+	void OnSkillWPressed();
+	void OnSkillWReleased();
+	void OnSkillEPressed();
+	void OnSkillEReleased();
 	void OnSkillR();
 	void OnAPressed();
 	void OnAReleased();
 	void OnLeftClick();
-	
+
 	bool bAKeyPressed = false;
-	
+
+	// 스킬 조준 상태 (-1 = 없음, 0=Q, 1=W, 2=E, 3=R)
+	int32 PendingSkillSlot = -1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Skill|Indicators")
+	TSubclassOf<AActor> CircleIndicatorClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Skill|Indicators")
+	TSubclassOf<AActor> LineIndicatorClass;
+
+	UPROPERTY()
+	TObjectPtr<AActor> CurrentIndicator;
+
+	void ShowSkillIndicator(ESkillSlot Slot);
+	void HideSkillIndicator();
+	void UpdateIndicator();
+
 private:
 	void RequestSkill(ESkillSlot Slot);
+	void FirePendingSkill();
 	void TryBasicAttackAtCursor();
 	
 private:

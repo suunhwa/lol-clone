@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Characters/ChampionSkillProjectile.h"
+#include "Champions/Projectile/ChampionSkillProjectile.h"
 
 #include "Characters/LoLCharacterBase.h"
 #include "Components/CooldownComponent.h"
@@ -30,11 +30,11 @@ AChampionSkillProjectile::AChampionSkillProjectile()
 	ProjectileMovement->MaxSpeed = 5000.f;
 }
 
-void AChampionSkillProjectile::Launch(FDamageContext InCtx, float Speed, float MaxRange, bool bPiercing, bool bCooldownOnHit)
+void AChampionSkillProjectile::Launch(FDamageContext InCtx, float Speed, float MaxRange, bool bPiercing, bool bInCooldownOnHit)
 {
 	DamageCtx = InCtx;
 	bIsPiercing = bPiercing;
-	this->bCooldownOnHit = bCooldownOnHit;
+	bCooldownOnHit = bInCooldownOnHit;
 
 	if (bPiercing)
 	{

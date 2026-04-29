@@ -10,7 +10,7 @@
 class USphereComponent;
 class UProjectileMovementComponent;
 
-UCLASS()
+UCLASS(Blueprintable)
 class LEAGUEOFLEGENDS_API AChampionSkillProjectile : public AActor
 {
 	GENERATED_BODY()
@@ -20,7 +20,7 @@ public:
 
 	// bPiercing=true: 관통 (W), false: 첫 적 명중 후 소멸 (Q, E 보조)
 	// bCooldownOnHit: 명중 시 시전자 쿨다운 1.5초 감소 (이즈리얼 Q 패시브)
-	void Launch(FDamageContext InCtx, float Speed, float MaxRange, bool bPiercing, bool bCooldownOnHit = false);
+	void Launch(FDamageContext InCtx, float Speed, float MaxRange, bool bPiercing, bool bInCooldownOnHit = false);
 
 protected:
 	// 관통 발사체 (W): Overlap 방식

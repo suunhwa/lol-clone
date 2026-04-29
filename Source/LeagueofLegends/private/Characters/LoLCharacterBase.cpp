@@ -35,7 +35,10 @@ void ALoLCharacterBase::BeginPlay()
 	Super::BeginPlay();
 
 	if (HasAuthority())
+	{
+		TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
+	}
 }
 
 void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)

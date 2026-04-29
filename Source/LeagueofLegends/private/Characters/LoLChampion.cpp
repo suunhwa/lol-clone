@@ -4,7 +4,9 @@
 
 #include "LeagueofLegends.h"
 #include "Characters/Data/ChampionData.h"
+#include "Champions/Projectile/ChampionSkillProjectile.h"
 #include "Components/CombatComponent.h"
+#include "Components/StatComponent.h"
 #include "Components/SkillComponent.h"
 #include "Components/SkillExecutorComponent.h"
 #include "Manager/ChampionDataSubsystem.h"
@@ -64,8 +66,7 @@ void ALoLChampion::OnRep_ChampionData()
 		Sub->ApplyVisuals(this, ChampionData);
 }
 
-// ===== ChampionData 세팅 (런타임, 캐릭터 선택 후) =====
-
+// ChampionData 세팅 (런타임, 캐릭터 선택 후) 
 void ALoLChampion::SetChampionData(UChampionData* Data)
 {
 	if (!HasAuthority() || !Data) return;
@@ -82,8 +83,7 @@ void ALoLChampion::SetChampionData(UChampionData* Data)
 	CreateSkillExecutor();
 }
 
-// ===== SkillExecutor 동적 생성 =====
-
+// SkillExecutor 동적 생성 
 void ALoLChampion::CreateSkillExecutor()
 {
 	if (!ChampionData || !ChampionData->SkillExecutorClass) return;
@@ -100,23 +100,35 @@ void ALoLChampion::CreateSkillExecutor()
 		*ChampionData->SkillExecutorClass->GetName());
 }
 
-// ===== 스킬 활성화 → Executor 위임 =====
-
+// 스킬 활성화 → Executor 위임 
 void ALoLChampion::HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc)
 {
 	if (!SkillExecutor) return;
 	SkillExecutor->Execute(Slot, TargetLoc);
 }
 
-// ===== 평타 =====
-
+// 평타 
 void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 {
 	if (!HasAuthority() || !Target) return;
 
 	Multicast_PlayMontage(ChampionData ? ChampionData->BasicAttackMontage : nullptr);
 
-	// TODO: AnimNotify 방식으로 교체
+	// 발사체로 평타 처리
+	if (SkillExecutor && SkillExecutor->ProjectileClass)
+	{
+		FDamageContext Ctx;
+		Ctx.RawDamage        = StatComp ? StatComp->GetAD() : 0.f;
+		Ctx.DamageType       = EDamageType::Physical;
+		Ctx.DamageInstigator = this;
+		Ctx.SourceTag        = TEXT("BasicAttack");
+
+		FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+		SkillExecutor->SpawnProjectile(Dir, 1800.f, 800.f, Ctx, false, false, TEXT("Socket_Q"));
+		return;
+	}
+
+	// 발사체 없으면 타이머로 직접 데미지
 	TWeakObjectPtr<AActor> WeakTarget(Target);
 	GetWorldTimerManager().SetTimer(BasicAttackImpactTimer,
 		[this, WeakTarget]()
