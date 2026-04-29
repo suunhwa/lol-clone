@@ -4,10 +4,3 @@
 #include "Type/StatModifierTypes.h"
 
 
-StatModifierTypes::StatModifierTypes()
-{
-}
-
-StatModifierTypes::~StatModifierTypes()
-{
-}

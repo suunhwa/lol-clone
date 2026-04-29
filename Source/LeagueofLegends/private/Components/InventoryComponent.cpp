@@ -20,6 +20,7 @@ void UInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 bool UInventoryComponent::PurchaseItem(UItemDataAsset* ItemData)
 {
+	return true;
 }
 
 void UInventoryComponent::SellItem(int32 SlotIndex)
@@ -32,5 +33,6 @@ void UInventoryComponent::UndoPurchase()
 
 bool UInventoryComponent::EquipTrinket(UItemDataAsset* TrinketData)
 {
+	return true;
 }
 

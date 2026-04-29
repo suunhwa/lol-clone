@@ -9,8 +9,7 @@ struct FItemBaseRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-public:
-	FItemBaseRow() : Item_ID(0), Unique_ID(TEXT("")), Price(0), RefundPrice(0), Recipe(TEXT("")), 
+	FItemBaseRow() : Item_ID(0), Effect_ID_R(TEXT("")), Price(0), RefundPrice(0), Recipe(TEXT("")), 
 	Is_Active(false), Is_Consumable(false), Cooldown(0), Max_Stack(0), Name_KR(TEXT("")), Name_EN(TEXT("")) {}
 
 	// DataTable Yellow Section
@@ -18,7 +17,7 @@ public:
 	int32 Item_ID;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Base")
-	FString Unique_ID;
+	FString Effect_ID_R;
 	
 	// DataTable Blue Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Base")
@@ -55,8 +54,7 @@ struct FItemStatRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-public:
-	FItemStatRow() : Item_ID(0), Stat_Type(TEXT("")), Stat_Value(0.f), Description(TEXT("")) {}
+	FItemStatRow() : Item_ID(0), Stat_Type_R(TEXT("")), Stat_Value(0.f), Description(TEXT("")) {}
 
 	// DataTable Yellow Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Stat")
@@ -64,7 +62,7 @@ public:
 
 	// DataTable Red Section 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Stat")
-	FString Stat_Type;
+	FString Stat_Type_R;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Stat")
 	float Stat_Value;
@@ -78,8 +76,7 @@ struct FItemEffectRow : public FTableRowBase
 {
 	GENERATED_BODY()
 	
-public:
-	FItemEffectRow() : Effect_Name(TEXT("")), Stat_Type(TEXT("")), Value01(0.f), Value02(0.f), Description(TEXT("")) {}
+	FItemEffectRow() : Effect_Name(TEXT("")), Stat_Type_R(TEXT("")), Value01(0.f), Value02(0.f), Description(TEXT("")) {}
 	
 	// DataTable Yellow Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Effect")
@@ -87,7 +84,7 @@ public:
 	
 	// DataTable Red Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Effect")
-	FString Stat_Type;
+	FString Stat_Type_R;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Effect")
 	float Value01;
@@ -104,8 +101,7 @@ struct FItemStatTypeRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-public:
-	FItemStatTypeRow() : Category(TEXT("")), StatType(TEXT("")), DataType(TEXT("")) {}
+	FItemStatTypeRow() : Category(TEXT("")), StatType(TEXT("")), Op(TEXT("")) {}
 
 	// DataTable Red Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|StatType")
@@ -115,5 +111,5 @@ public:
 	FString StatType;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|StatType")
-	FString DataType;
+	FString Op;
 };
