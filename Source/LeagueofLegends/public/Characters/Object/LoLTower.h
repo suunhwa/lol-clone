@@ -18,23 +18,21 @@ protected:
 	// 타겟을 찾고 공격을 결정하는 메인 로직
 	void CheckAndAttack();
 
-	// 실제 투사체를 발사하거나 데미지를 입히는 함수
+	// 실제 데미지를 입히고 시각화하는 함수
 	void Fire();
 
 	// 현재 타겟
-	UPROPERTY(VisibleAnywhere, Category = "AI")
-	AActor* CurrentTarget;
+	UPROPERTY(VisibleAnywhere, Category = "Object|AI")
+	TObjectPtr<AActor> CurrentTarget;
 
 	// 공격 타이머 핸들
 	FTimerHandle AttackTimerHandle;
 
-	// --- 스탯 (깡통) ---
-	UPROPERTY(EditAnywhere, Category = "Stats")
-	float AttackDamage = 150.f;
+	// --- 런타임 적용 스탯 ---
+	float AttackDamage;
+	float AttackRange;
+	float AttackInterval;
 
-	UPROPERTY(EditAnywhere, Category = "Stats")
-	float AttackRange = 850.f;
-
-	UPROPERTY(EditAnywhere, Category = "Stats")
-	float AttackInterval = 1.2f; // 초당 공격 횟수의 역수
+	// [추가] 가열(Heating) 시스템용 변수
+	int32 CurrentHeatStack = 0;
 };

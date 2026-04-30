@@ -2,8 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Interfaces/Damageable.h" // 인터페이스 포함
-#include "Interfaces/Targetable.h"     // ETeam 정의 위치에 따라 수정 필요
+#include "Interfaces/Damageable.h"
+#include "Interfaces/Targetable.h"
+#include "Struct/ObjectStruct.h" // 구조체 포함 필수
 #include "LoLStructure.generated.h"
 
 UCLASS()
@@ -17,6 +18,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/** 데이터 테이블로부터 스탯을 로드하는 함수 */
+	virtual void InitializeStructureData();
+
 public:
 	// --- IDamageable Interface ---
 	virtual void ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
@@ -28,14 +32,27 @@ public:
 	virtual ETeam GetTeam() const override { return Team; }
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float Health = 1000.f;
+	// --- 핵심 설정 및 데이터 ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Config")
+	int32 ObjectID; // 데이터 테이블과 매칭될 ID (예: 101, 201 등)
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float MaxHealth = 1000.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Config")
 	ETeam Team;
+
+	// --- 런타임 스탯 (데이터 테이블에서 채워짐) ---
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Object|Stats")
+	float Health;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Object|Stats")
+	float MaxHealth;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Object|Stats")
+	float HP_Regen;
+
+	// 데이터 보관용 (자식 클래스인 Tower 등에서 사용 가능하도록 protected)
+	FObjectBaseRow StatData;
+	FObjectRewardRow RewardData;
+	FObjectMechanicsRow MechData;
 
 	bool bIsDestroyed = false;
 
