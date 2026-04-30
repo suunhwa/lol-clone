@@ -10,11 +10,14 @@
 #include "Components/SkillComponent.h"
 #include "Components/TargetingComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
+
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Champion"));
 	
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;

@@ -16,7 +16,6 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 
 	// 챔피언 DataAsset 레지스트리 로드 → ChampionID 맵 빌드
-	// TODO: 실제 에셋 경로로 교체
 	UChampionDataRegistry* Registry = Cast<UChampionDataRegistry>(
 		StaticLoadObject(UChampionDataRegistry::StaticClass(),
 		                 nullptr,
@@ -37,7 +36,6 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	}
 
 	// 공용 스탯 DataTable 로드
-	// TODO: 실제 에셋 경로로 교체
 	BaseTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
 	                                              nullptr,
 	                                              TEXT(

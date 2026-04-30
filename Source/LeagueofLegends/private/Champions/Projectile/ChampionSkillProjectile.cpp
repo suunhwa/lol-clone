@@ -13,12 +13,7 @@ AChampionSkillProjectile::AChampionSkillProjectile()
 
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComp"));
 	CollisionComp->InitSphereRadius(20.f);
-	CollisionComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	CollisionComp->SetCollisionObjectType(ECC_WorldDynamic);
-	CollisionComp->SetCollisionResponseToAllChannels(ECR_Ignore);
-	// 기본은 Pawn과 Block (Q, E 비관통). Launch()에서 피어싱 여부에 따라 변경
-	CollisionComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-	CollisionComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block); // 벽에 막힘
+	CollisionComp->SetCollisionProfileName(TEXT("Projectile"));
 	CollisionComp->OnComponentHit.AddDynamic(this, &AChampionSkillProjectile::OnHit);
 	CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &AChampionSkillProjectile::OnBeginOverlap);
 	RootComponent = CollisionComp;
