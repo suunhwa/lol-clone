@@ -115,6 +115,12 @@ protected:
 
 	float LastAttackTime = 0.0f;
 	
+public:
+	// 부모의 ReceiveDamage를 오버라이드하여 미니언 전용 HP 로직과 연결
+	virtual void ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
+
+	// 포탑이 팀을 확인할 때 사용할 인터페이스 함수 오버라이드
+	virtual ETeam GetTeam() const override;
 };
 
 
