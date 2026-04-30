@@ -15,8 +15,8 @@ public :
 	FObjectBaseRow() 
 		:  Object_ID(0), Object_Type(TEXT(""))
 		, Base_HP(0), HP_Regen(0)
-		, Base_AD(0.0f), AD_Growth_Per_Min(0.0f), Max_AD(0.0f)
-		, Atk_Range(0.0f), Atk_Speed(0.0f)
+		, Base_AD(0), AD_Growth_Per_Min(0), Max_AD(0)
+		, Atk_Range(0), Atk_Speed(0)
 		, Required_Target_ID(TEXT("")), Description(TEXT("")) {}
 	
 	// Data Yellow Section
@@ -48,6 +48,7 @@ public :
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
 	
 	float Atk_Speed;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object|Base")
 	FString Required_Target_ID;
 	
@@ -110,13 +111,13 @@ struct FObjectMechanicsRow : public FTableRowBase
 public:
 	FObjectMechanicsRow()
 		: Object_ID(0)
-		, Heating_Rate(0.0f)
+		, Heating_Rate(0)
 		, Max_Heating(0)
-		, Plate_Expiry_Time(0.0f)
-		, Base_Armor_After_Expiry(0.0f)
-		, Plate_Armor_Bonus(0.0f)
+		, Plate_Expiry_Time(0)
+		, Base_Armor_After_Expiry(0)
+		, Plate_Armor_Bonus(0)
 		, Spawn_Unit_ID(0)
-		, Respawn_Time(0.0f)
+		, Respawn_Time(0)
 	{}
 
 	// Data Yellow Section

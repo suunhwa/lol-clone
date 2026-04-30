@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/CombatComponent.h"
+
+#include "LeagueofLegends.h"
 #include "Components/StatComponent.h"
 #include "Components/StateComponent.h"
 #include "Components/TagComponent.h"
@@ -19,6 +21,10 @@ void UCombatComponent::DealDamage(AActor* Target, FDamageContext Ctx)
 	if (!TargetStat || TargetStat->IsDead()) return;
 
 	float FinalDamage = CalculateFinalDamage(Ctx, Target);
+
+	PRINTLOG_SH(TEXT("DealDamage — Target:%s 데미지:%.1f HP:%.1f→%.1f"),
+		*GetNameSafe(Target), FinalDamage,
+		TargetStat->GetCurrentHP(), TargetStat->GetCurrentHP() - FinalDamage);
 
 	TargetStat->ApplyHealthChange(-FinalDamage);
 

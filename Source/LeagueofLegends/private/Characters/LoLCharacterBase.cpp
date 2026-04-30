@@ -10,11 +10,14 @@
 #include "Components/SkillComponent.h"
 #include "Components/TargetingComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
+
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Champion"));
 	
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -35,7 +38,10 @@ void ALoLCharacterBase::BeginPlay()
 	Super::BeginPlay();
 
 	if (HasAuthority())
+	{
+		TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
+	}
 }
 
 void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
@@ -84,6 +90,12 @@ ETeam ALoLCharacterBase::GetTeam() const
 void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)
 {
 	Multicast_OnDeath();
+}
+
+void ALoLCharacterBase::Multicast_PlayMontage_Implementation(UAnimMontage* Montage)
+{
+	if (!Montage) return;
+	PlayAnimMontage(Montage);
 }
 
 void ALoLCharacterBase::Multicast_OnDeath_Implementation()
