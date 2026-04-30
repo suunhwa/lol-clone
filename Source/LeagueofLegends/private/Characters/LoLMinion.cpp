@@ -1,4 +1,6 @@
 #include "Characters/LoLMinion.h"
+
+#include "LeagueofLegends.h"
 #include "Kismet/GameplayStatics.h"
 #include "AStar/AStarGridManager.h"
 #include "Characters/LoLStructure.h"
@@ -30,11 +32,22 @@ void ALoLMinion::BeginPlay()
 
 void ALoLMinion::Tick(float DeltaTime)
 {
-    Super::Tick(DeltaTime);
+	Super::Tick(DeltaTime);
 	
 	// 죽었거나 때릴 대상이 아예 없으면 아무것도 하지 않는다
 	if (CurrentState == EMinionState::Dead) return;
-	if (!TargetPlayer) return;
+	if (!TargetPlayer) 
+	{
+		// 1초에 한 번만 출력되도록 제한
+		static float LastLogTime = 0;
+		if (GetWorld()->GetTimeSeconds() - LastLogTime > 1.0f)
+		{
+			PRINTLOG_HJ(LogTemp, Warning, TEXT("[%s] 현재 타겟 없음! 대기 중..."), *GetName());
+			LastLogTime = GetWorld()->GetTimeSeconds();
+		}
+		
+		return;
+	}
 	
     // 나와 타겟 사이의 거리를 계산한다
     float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation());
@@ -79,7 +92,7 @@ void ALoLMinion::TakeDamageSimple(float Damage)
     if (CurrentState == EMinionState::Dead) return;
 
     HP -= Damage;
-    UE_LOG(LogTemp, Log, TEXT("[%s] 피격! 남은 체력: %.1f"), *GetName(), HP);
+    PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 피격! 남은 체력: %.1f"), *GetName(), HP);
 
     if (HP <= 0.0f)
     {
@@ -135,7 +148,7 @@ void ALoLMinion::InitializeStatsFromTable()
        HP = GrowthData->Base_HP + (GrowthData->HP_Up * GrowthCycle);
        AttackDamage = GrowthData->Base_AD + (GrowthData->AD_Up * GrowthCycle);
 
-       UE_LOG(LogTemp, Log, TEXT("[%s] 데이터 로드 완료: HP %.1f, AD %.1f"), *Name_KR, HP, AttackDamage);
+       PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 데이터 로드 완료: HP %.1f, AD %.1f"), *Name_KR, HP, AttackDamage);
     }
 }
 
@@ -158,6 +171,7 @@ void ALoLMinion::UpdateTarget()
     {
         if (!Actor || Actor == this) continue;
     	
+    	if (!UKismetSystemLibrary::IsValid(Actor)) continue;
         // 적 팀 태그를 가졌는지 확인
         if (Actor->ActorHasTag(EnemyTeamTag))
         {
@@ -189,6 +203,10 @@ void ALoLMinion::UpdateTarget()
     // 타겟이 실제로 바뀌었을 때만 경로 초기화
     if (TargetPlayer != NewTarget)
     {
+    	FString OldTargetName = TargetPlayer ? TargetPlayer->GetName() : TEXT("None");
+    	FString NewTargetName = NewTarget ? NewTarget->GetName() : TEXT("None");
+    	PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 타겟 변경: %s -> %s"), *GetName(), *OldTargetName, *NewTargetName);
+    	
         TargetPlayer = NewTarget;
         CurrentPath.Empty(); 
     }
@@ -220,7 +238,19 @@ void ALoLMinion::MoveAlongPath(float DeltaTime)
     // 가야 할 경로가 비어있으면 매니저한테 길을 물어봄
     if (CurrentPath.Num() == 0)
     {
-       CurrentPath = GridManager->FindPath(GetActorLocation(), TargetPlayer->GetActorLocation());
+    	// 로그 3: 경로 탐색 시도
+    	PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 경로가 비어있음. %s 방향으로 경로 탐색 시도"), *GetName(), *TargetPlayer->GetName());
+    	CurrentPath = GridManager->FindPath(GetActorLocation(), TargetPlayer->GetActorLocation());
+       
+    	if (CurrentPath.Num() == 0)
+    	{
+    		PRINTLOG_HJ(LogTemp, Error, TEXT("[%s] 경로 탐색 실패! (갈 수 없는 지역이거나 타겟이 격자 밖임)"), *GetName());
+    	}
+    	else 
+    	{
+    		PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 경로 탐색 성공: %d개 지점 발견"), *GetName(), CurrentPath.Num());
+    	}
+    	
     }
     // 경로가 있으면
     if (CurrentPath.Num() > 0)
