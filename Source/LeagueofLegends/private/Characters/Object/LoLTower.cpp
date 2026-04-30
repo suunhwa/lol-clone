@@ -1,95 +1,117 @@
 ﻿#include "Characters/Object/LoLTower.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "LeagueofLegends.h" // PRINTLOG_HJ 등 매크로 포함
+#include "Characters/LoLMinion.h"
+#include "Interfaces/Targetable.h"
+#include "Interfaces/Damageable.h"
 
 ALoLTower::ALoLTower()
 {
-    // 생성자에서는 기본적인 초기화만 수행
-    AttackDamage = 0.f;
-    AttackRange = 0.f;
-    AttackInterval = 1.2f;
+    // 스탯 초기값 (BeginPlay에서 부모에 의해 덮어씌워짐)
+    CurrentTarget = nullptr;
+    LastAttackedTarget = nullptr;
+    CurrentHeatStack = 0;
 }
 
 void ALoLTower::BeginPlay()
 {
-    // 1. 부모의 BeginPlay 호출 (여기서 데이터 테이블 로드가 일어남)
+    // 1. 부모의 BeginPlay 호출 (모든 스탯 변수 할당 완료)
     Super::BeginPlay();
 
-    // 2. 부모가 로드한 StatData(FObjectBaseRow)를 사용하여 타워 스탯 설정
-    // StatData는 부모 클래스인 ALoLStructure에 선언되어 있음
-    if (StatData.Object_ID != 0)
-    {
-        AttackDamage = StatData.Base_AD;
-        AttackRange = StatData.Atk_Range;
-        
-        // 롤의 Atk_Speed는 초당 공격 횟수이므로, 타이머용 인터벌(초)로 변환
-        AttackInterval = (StatData.Atk_Speed > 0.f) ? (1.0f / StatData.Atk_Speed) : 1.2f;
-    }
+    // 2. 부모가 로드한 AttackSpeed를 기반으로 타이머 인터벌 계산
+    // 예: AttackSpeed가 1.2라면 약 0.83초마다 공격
+    float FinalInterval = (AttackSpeed > 0.f) ? (1.0f / AttackSpeed) : 1.2f;
 
-    // 3. 설정된 인터벌로 공격 타이머 시작
-    GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &ALoLTower::CheckAndAttack, AttackInterval, true);
+    // 3. 공격 루틴 시작
+    GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &ALoLTower::CheckAndAttack, FinalInterval, true);
+
+    UE_LOG(LogTemp, Warning, TEXT("[%s] 타워 시스템 가동 - 주기: %.2f초, 공격력: %.1f, 사거리: %.1f"), 
+        *GetName(), FinalInterval, AttackDamage, AttackRange);
 }
 
 void ALoLTower::CheckAndAttack()
 {
-    // 0. 타워 자체가 파괴 중인지 확인 (IsActorBeingDestroyed 사용)
-    if (IsActorBeingDestroyed() || bIsDestroyed) return;
+    UE_LOG(LogTemp, VeryVerbose, TEXT("[%s] CheckAndAttack 루틴 실행 중..."), *GetName());
+    
+    if (bIsDestroyed || IsActorBeingDestroyed()) return;
 
     // 1. 기존 타겟 유효성 검사
-    // IsValid()는 null 체크와 PendingKill(Garbage) 체크를 동시에 수행합니다.
     if (IsValid(CurrentTarget))
     {
         float Dist = FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation());
         IDamageable* Damageable = Cast<IDamageable>(CurrentTarget);
-        
-        // 타겟이 범위 밖이거나, 죽었거나, 혹은 제거 중(BeingDestroyed)인지 확인
-        if (Dist > AttackRange || (Damageable && Damageable->IsDead()) || CurrentTarget->IsActorBeingDestroyed())
+        ITargetable* Targetable = Cast<ITargetable>(CurrentTarget);
+
+        // 타겟이 사거리 밖이거나, 죽었거나, 타겟 불가 상태가 되면 포기
+        if (Dist > AttackRange || (Damageable && Damageable->IsDead()) || (Targetable && !Targetable->IsTargetable()))
         {
-            UE_LOG(LogTemp, Display, TEXT("[%s] 타겟 유실: %s (거리: %.1f)"), *GetName(), *CurrentTarget->GetName(), Dist);
             CurrentTarget = nullptr;
-            CurrentHeatStack = 0; 
+            CurrentHeatStack = 0; // 타겟 유실 시 가열 스택 초기화
         }
     }
-    else
-    {
-        // 타겟이 이미 GC에 의해 소멸되었거나 nullptr인 경우
-        CurrentTarget = nullptr;
-        CurrentHeatStack = 0;
-    }
 
-    // 2. 새로운 타겟 찾기
+    // 2. 새로운 타겟 탐색 (타겟이 없을 때만 수행)
     if (CurrentTarget == nullptr)
     {
         TArray<AActor*> FoundActors;
+        // 타겟팅 시스템용 공통 태그 "Character" 사용
         UGameplayStatics::GetAllActorsWithTag(GetWorld(), TEXT("Character"), FoundActors);
 
+        
+        if (FoundActors.Num() == 0)
+        {
+            // 이 로그가 계속 뜬다면 태그 설정 문제임
+            UE_LOG(LogTemp, Warning, TEXT("[%s] 주변에 'Character' 태그를 가진 액터가 하나도 없습니다."), *GetName());
+        }
+        
+        AActor* BestTarget = nullptr;
+        int32 BestPriority = -1; // 미니언(2) > 챔피언(1)
         float ClosestDist = AttackRange;
-        FName MyTeamTag = (Tags.Num() > 0) ? Tags[0] : NAME_None;
 
         for (AActor* Actor : FoundActors)
         {
-            // [최신 방식] IsValid()로 유효성 및 소멸 여부 동시 체크
             if (!IsValid(Actor) || Actor == this) continue;
 
+            // 구조물은 공격 대상에서 제외
+            if (Actor->IsA(ALoLStructure::StaticClass())) continue;
+
             ITargetable* Targetable = Cast<ITargetable>(Actor);
-            if (Targetable && Targetable->GetTeam() != GetTeam() && Targetable->IsTargetable())
+            if (Targetable && Targetable->IsTargetable())
             {
-                float Dist = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
-                if (Dist <= ClosestDist)
+                // 적군 팀인지 확인 (MyTeam != TargetTeam)
+                if (Targetable->GetTeam() != GetTeam() && Targetable->GetTeam() != ETeam::None)
                 {
-                    ClosestDist = Dist;
-                    CurrentTarget = Actor;
+                    float Dist = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
+                    if (Dist <= AttackRange)
+                    {
+                        // 미니언 최우선순위 (롤 방식)
+                        int32 CurrentPriority = Actor->IsA(ALoLMinion::StaticClass()) ? 2 : 1;
+
+                        if (CurrentPriority > BestPriority || (CurrentPriority == BestPriority && Dist < ClosestDist))
+                        {
+                            BestPriority = CurrentPriority;
+                            ClosestDist = Dist;
+                            BestTarget = Actor;
+                        }
+                    }
                 }
             }
         }
-        if (IsValid(CurrentTarget))
+
+        if (BestTarget)
         {
-            UE_LOG(LogTemp, Warning, TEXT("[%s] 신규 타겟 포착! -> %s"), *GetName(), *CurrentTarget->GetName());
+            CurrentTarget = BestTarget;
+            // 공격 대상이 바뀌었다면 가열 스택 초기화
+            if (CurrentTarget != LastAttackedTarget)
+            {
+                CurrentHeatStack = 0;
+            }
+            UE_LOG(LogTemp, Log, TEXT("[%s] 새 타겟 포착: %s"), *GetName(), *CurrentTarget->GetName());
         }
-        
     }
 
-    // 3. 타겟이 확정되었다면 발사
+    // 3. 공격 실행
     if (IsValid(CurrentTarget))
     {
         Fire();
@@ -98,33 +120,38 @@ void ALoLTower::CheckAndAttack()
 
 void ALoLTower::Fire()
 {
-    if (!CurrentTarget) return;
+    if (!IsValid(CurrentTarget)) return;
 
-    // [가열 시스템 예시] 스택당 데미지 증가 (MechData 활용)
+    // 1. 대미지 계산 로직 (기존과 동일)
     float FinalDamage = AttackDamage;
-    if (MechData.Max_Heating > 0)
+    if (Max_Heating > 0)
     {
-        FinalDamage *= (1.0f + (CurrentHeatStack * MechData.Heating_Rate));
-        CurrentHeatStack = FMath::Min(CurrentHeatStack + 1, MechData.Max_Heating);
+        FinalDamage *= (1.0f + (CurrentHeatStack * Heating_Rate));
     }
-    // 시각화
-    FVector StartLocation = GetActorLocation() + FVector(0, 0, 200);
-    FVector EndLocation = CurrentTarget->GetActorLocation();
-    
-    // [시각화]
-    DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0,0,200), CurrentTarget->GetActorLocation(), FColor::Red, false, 0.2f, 0, 5.0f);
 
-    // [로그] 공격 상세 정보
-    UE_LOG(LogTemp, Warning, TEXT("[%s] Fire! -> %s [데미지: %.1f (가열 %d스택)]"), 
-        *GetName(), *CurrentTarget->GetName(), FinalDamage, CurrentHeatStack);
-    
-    // [데미지 입히기]
+    // 2. [시각화] 빨간색 레이저 발사
+    DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0, 0, 400), CurrentTarget->GetActorLocation(), FColor::Red, false, 0.2f, 0, 10.0f);
+
+    // 3. [대미지 전달] Execute_ 대신 C++ 직접 캐스팅 사용
+    // TObjectPtr이나 AActor*를 인터페이스 포인터로 변환합니다.
     IDamageable* DamageableTarget = Cast<IDamageable>(CurrentTarget);
+
     if (DamageableTarget)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[%s] 공격 -> %s (데미지: %.1f, 스택: %d)"), 
-            *GetName(), *CurrentTarget->GetName(), FinalDamage, CurrentHeatStack);
-            
+        // 직접 가상 함수를 호출합니다. (IDamageable에 ReceiveDamage가 구현되어 있어야 함)
         DamageableTarget->ReceiveDamage(FinalDamage, EDamageType::Physical, this);
+        
+        // 가열 스택 증가 및 마지막 타겟 갱신
+        LastAttackedTarget = CurrentTarget;
+        CurrentHeatStack = FMath::Min(CurrentHeatStack + 1, Max_Heating);
+
+        UE_LOG(LogTemp, Warning, TEXT("[%s] 발사! -> %s [최종 대미지: %.1f (가열 %d스택)]"), 
+            *GetName(), *CurrentTarget->GetName(), FinalDamage, CurrentHeatStack);
+    }
+    else
+    {
+        // 타겟이 인터페이스를 상속받지 않았을 경우를 대비한 예외 처리
+        UE_LOG(LogTemp, Error, TEXT("[%s] 타겟(%s)이 IDamageable을 구현하지 않았습니다!"), 
+            *GetName(), *CurrentTarget->GetName());
     }
 }

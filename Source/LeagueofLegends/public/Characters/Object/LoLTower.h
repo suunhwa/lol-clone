@@ -15,24 +15,24 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	// 타겟을 찾고 공격을 결정하는 메인 로직
+	// 타워 AI 메인 루틴: 타겟 유효성 검사 및 탐색
 	void CheckAndAttack();
 
-	// 실제 데미지를 입히고 시각화하는 함수
+	// 실제 대미지 연산 및 시각화
 	void Fire();
 
-	// 현재 타겟
+	// 현재 공격 중인 대상
 	UPROPERTY(VisibleAnywhere, Category = "Object|AI")
 	TObjectPtr<AActor> CurrentTarget;
 
 	// 공격 타이머 핸들
 	FTimerHandle AttackTimerHandle;
 
-	// --- 런타임 적용 스탯 ---
-	float AttackDamage;
-	float AttackRange;
-	float AttackInterval;
-
-	// [추가] 가열(Heating) 시스템용 변수
+	// 현재 적용 중인 가열 스택
+	UPROPERTY(VisibleAnywhere, Category = "Object|Stats")
 	int32 CurrentHeatStack = 0;
+
+	// 마지막으로 공격한 대상 (대상이 바뀌면 스택 초기화를 위해 필요)
+	UPROPERTY()
+	TObjectPtr<AActor> LastAttackedTarget;
 };

@@ -1,52 +1,76 @@
 #include "Characters/LoLStructure.h"
-#include "Manager/ObjectDataSubsystem.h" // 서브시스템 포함
+#include "Manager/ObjectDataSubsystem.h"
 
 ALoLStructure::ALoLStructure()
 {
     PrimaryActorTick.bCanEverTick = false;
-    ObjectID = 0; // 기본값
+    ObjectID = 0;
+    Team = ETeam::None;
+    bIsDestroyed = false;
 }
 
 void ALoLStructure::BeginPlay()
 {
-    // 1. 데이터 테이블 로드 (부모 클래스 레벨에서 수행)
+    // 1. 데이터 테이블 로드 및 모든 변수 할당
     InitializeStructureData();
 
     Super::BeginPlay();
 
-    // 2. 태그 설정 (미니언/타워 타겟팅 시스템용)
-    Tags.Empty();
+    // 2. 태그 설정
     FName TeamTag = (Team == ETeam::Red) ? TEXT("RedTeam") : TEXT("BlueTeam");
     Tags.Add(TeamTag);
-    Tags.Add(TEXT("Character")); // Character 태그 유지
+    Tags.Add(TEXT("Character")); 
 
-    UE_LOG(LogTemp, Log, TEXT("[%s] 구조물 초기화 완료 - ID: %d, 팀: %s, 체력: %.1f"), 
-        *GetName(), ObjectID, *TeamTag.ToString(), MaxHealth);
+    UE_LOG(LogTemp, Log, TEXT("[%s] 구조물 풀 스탯 초기화 완료 - ID: %d, 팀: %s"), 
+        *GetName(), ObjectID, *TeamTag.ToString());
 }
 
 void ALoLStructure::InitializeStructureData()
 {
-    // 서브시스템 호출
     UObjectDataSubsystem* DataSubsystem = GetGameInstance()->GetSubsystem<UObjectDataSubsystem>();
     if (DataSubsystem)
     {
-        // 서브시스템의 편의 함수를 이용해 3개 테이블 데이터를 한 번에 가져옴
         if (DataSubsystem->GetAllTowerData(ObjectID, StatData, RewardData, MechData))
         {
-            // 가져온 데이터를 멤버 변수에 적용
+            // [Base Section]
+            ObjectType = StatData.Object_Type;
             MaxHealth = StatData.Base_HP;
             Health = MaxHealth;
             HP_Regen = StatData.HP_Regen;
-            
-            // [로그] 데이터 연동 성공 알림
+            AttackDamage = StatData.Base_AD;
+            AD_Growth_Per_Min = StatData.AD_Growth_Per_Min;
+            Max_AD = StatData.Max_AD;
+            AttackRange = StatData.Atk_Range;
+            AttackSpeed = StatData.Atk_Speed;
+
+            // [Reward Section]
+            Plate_Gold = RewardData.Plate_Gold;
+            Total_Plates = RewardData.Total_Plates;
+            Global_Gold = RewardData.Global_Gold;
+            Last_Hit_Gold = RewardData.Last_Hit_Gold;
+            Global_Exp = RewardData.Global_Exp;
+            bIncludeDead = RewardData.bIncludeDead;
+            bGlobalDist = RewardData.bGlobalDist;
+            Exp_Range = RewardData.Exp_Range;
+
+            // [Mechanics Section]
+            Heating_Rate = MechData.Heating_Rate;
+            Max_Heating = MechData.Max_Heating;
+            Plate_Expiry_Time = MechData.Plate_Expiry_Time;
+            CurrentArmor = MechData.Base_Armor_After_Expiry; // 초기 방어력 설정
+            Plate_Armor_Bonus = MechData.Plate_Armor_Bonus;
+            Spawn_Unit_ID = MechData.Spawn_Unit_ID;
+            Respawn_Time = MechData.Respawn_Time;
+
             UE_LOG(LogTemp, Warning, TEXT("========================================"));
-            UE_LOG(LogTemp, Warning, TEXT("[Data Success] 이름: %s | ID: %d"), *GetName(), ObjectID);
-            UE_LOG(LogTemp, Warning, TEXT("[Stats] HP: %.1f | AD: %.1f | Range: %.1f"), MaxHealth, StatData.Base_AD, StatData.Atk_Range);
+            UE_LOG(LogTemp, Warning, TEXT("[Data Full Load Success] %s (ID: %d)"), *GetName(), ObjectID);
+            UE_LOG(LogTemp, Warning, TEXT("HP: %.1f | AD: %.1f | Armor: %.1f | Reward: %.1f Gold"), 
+                MaxHealth, AttackDamage, CurrentArmor, Global_Gold);
             UE_LOG(LogTemp, Warning, TEXT("========================================"));
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("[%s] ObjectID %d를 데이터 테이블에서 찾을 수 없습니다!"), *GetName(), ObjectID);
+            UE_LOG(LogTemp, Error, TEXT("[%s] ObjectID %d를 찾을 수 없어 데이터 연동에 실패했습니다."), *GetName(), ObjectID);
         }
     }
 }
@@ -55,11 +79,15 @@ void ALoLStructure::ReceiveDamage(float Amount, EDamageType DamageType, AActor* 
 {
     if (bIsDestroyed) return;
 
-    // 롤의 구조물은 보통 방어력이 적용되지만, 우선은 기본 로직 유지
-    Health = FMath::Clamp(Health - Amount, 0.f, MaxHealth);
-    
-    UE_LOG(LogTemp, Log, TEXT("[%s] 구조물 피격! 남은 체력: %.1f"), *GetName(), Health);
+    // 롤 방어력 공식: 실제 피해량 = 데미지 * (100 / (100 + 방어력))
+    float DamageMultiplier = 100.0f / (100.0f + CurrentArmor);
+    float FinalDamage = Amount * DamageMultiplier;
 
+    Health = FMath::Clamp(Health - FinalDamage, 0.f, MaxHealth);
+    
+    UE_LOG(LogTemp, Log, TEXT("[%s] ReceiveDamage - 원본: %.1f, 최종: %.1f, 남은 HP: %.1f"), 
+        *GetName(), Amount, FinalDamage, Health);
+    
     if (Health <= 0.f)
     {
        OnDestroyed();
@@ -71,14 +99,11 @@ void ALoLStructure::OnDestroyed()
     if (bIsDestroyed) return;
     bIsDestroyed = true;
 
-    // 1. 태그 제거 (타겟팅 방지)
     Tags.Empty();
 
-    // 2. 파괴 보상 지급 (RewardData 활용)
-    // 예: 플레이어 골드 지급 로직이 있다면 여기서 RewardData.Global_Gold 등을 사용
-    
-    UE_LOG(LogTemp, Error, TEXT("[%s] 구조물 파괴됨! 보상 골드: %.1f"), *GetName(), RewardData.Global_Gold);
+    // 파괴 시 골드 보상 로직 (예시: 모든 플레이어에게 Global_Gold 지급 등)
+    UE_LOG(LogTemp, Error, TEXT("[%s] 구조물 파괴! 전역 골드 지급: %.1f, 막타 골드: %.1f"), 
+        *GetName(), Global_Gold, Last_Hit_Gold);
 
-    // 3. 시각 효과 및 소멸 처리
-    // Destroy()는 보통 이펙트 후 처리를 위해 지연시키거나 BP에서 처리
+    // TODO: 시각 효과(파괴 애니메이션) 및 실제 Destroy 처리 로직 추가
 }

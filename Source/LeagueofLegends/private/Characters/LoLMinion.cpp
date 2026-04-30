@@ -224,6 +224,10 @@ void ALoLMinion::PerformAttack()
        IDamageable* DamageTarget = Cast<IDamageable>(TargetPlayer);
        if (DamageTarget)
        {
+	       // [로그 추가] 미니언이 실제로 대미지를 주려고 시도하는지 확인
+	       UE_LOG(LogTemp, Log, TEXT("[%s] %s에게 공격 시도 (AD: %.1f)"),
+	              *GetName(), *TargetPlayer->GetName(), AttackDamage);
+       	
           // 미니언/구조물 구분 없이 데미지 입힘
           DamageTarget->ReceiveDamage(AttackDamage, EDamageType::Physical, this);
        }
@@ -310,4 +314,20 @@ void ALoLMinion::MoveAlongPath(float DeltaTime)
           SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.0f));
        }
     }
+}
+
+// 포탑이 호출하는 ReceiveDamage를 미니언의 HP 로직으로 연결
+void ALoLMinion::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
+{
+	// 부모 클래스의 HasAuthority() 체크를 우회하여 즉시 대미지 적용
+	// 미니언 클래스에 이미 만들어둔 TakeDamageSimple 함수를 호출합니다.
+	TakeDamageSimple(Amount);
+}
+
+// 태그를 기반으로 정확한 팀 정보를 반환
+ETeam ALoLMinion::GetTeam() const
+{
+	if (Tags.Contains(TEXT("RedTeam"))) return ETeam::Red;
+	if (Tags.Contains(TEXT("BlueTeam"))) return ETeam::Blue;
+	return ETeam::None;
 }
