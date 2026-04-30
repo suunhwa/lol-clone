@@ -9,7 +9,7 @@ ALoLMinion_Melee::ALoLMinion_Melee()
 
 void ALoLMinion_Melee::PerformAttack()
 {
-	// 타겟이 없으면 중단
+	/*// 타겟이 없으면 중단
 	if (!TargetPlayer) return;
 
 	float CurrentTime = GetWorld()->GetTimeSeconds();
@@ -35,5 +35,18 @@ void ALoLMinion_Melee::PerformAttack()
 		LastAttackTime = CurrentTime;
 
 		// 여기서 나중에 "공격 애니메이션"을 실행
+	
+	}*/
+	
+	if (!TargetPlayer) return;
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastAttackTime < (1.0f / AttackSpeed)) return;
+
+	// 타입 상관없이 IDamageable 인터페이스 하나로 처리
+	if (IDamageable* DamageTarget = Cast<IDamageable>(TargetPlayer))
+	{
+		DamageTarget->ReceiveDamage(AttackDamage, EDamageType::Physical, this);
 	}
+
+	LastAttackTime = CurrentTime;
 }

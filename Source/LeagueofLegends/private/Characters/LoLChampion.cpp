@@ -103,6 +103,12 @@ void ALoLChampion::CreateSkillExecutor()
 // 스킬 활성화 → Executor 위임 
 void ALoLChampion::HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc)
 {
+	FVector direction = (TargetLoc - GetActorLocation()).GetSafeNormal2D();
+	if (!direction.IsNearlyZero())
+	{
+		SetActorRotation(direction.Rotation());
+	}
+		
 	if (!SkillExecutor) return;
 	SkillExecutor->Execute(Slot, TargetLoc);
 }
