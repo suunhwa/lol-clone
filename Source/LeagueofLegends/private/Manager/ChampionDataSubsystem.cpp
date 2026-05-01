@@ -50,7 +50,9 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		                                                "/Game/Data/ChampionStatDataTable_ChampionGrowth.ChampionStatDataTable_ChampionGrowth")));
 
 	if (!BaseTable || !StatTable || !GrowthTable)
+	{
 		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 스탯 DataTable 로드 실패. 경로 확인 필요"));
+	}
 }
 
 // DataAsset 조회 
