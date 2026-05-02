@@ -35,6 +35,7 @@ public:
 	FTile* GetTile(int32 X, int32 Y);
 	const FTile* GetTile(int32 X, int32 Y) const;
 	void SetTile(int32 X, int32 Y, const FTile& NewTile);
+	float GetTileSize() const { return TileSize; }
 	
 	bool IsValidRange(int32 X, int32 Y) const;
 	bool IsInMap(int32 X, int32 Y) const;

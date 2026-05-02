@@ -24,42 +24,36 @@ namespace SightProviderHelper
 		return Cast<ISightProvider>(Object);
 	}
 
+	/** UObject가 ISightProvider를 구현하는지 여부를 반환합니다. */
+	FORCEINLINE bool ImplementsSightProvider(const UObject* Object)
+	{
+		return TryGetProvider(Object) != nullptr;
+	}
+
 	// ─────────────────────────────────────────────
 	//  안전 래퍼 (null 이면 기본값 반환)
 	// ─────────────────────────────────────────────
 
 	/**
 	 * 시야 원점을 반환합니다.
-	 * @param Object  ISightProvider 구현 UObject
-	 * @param OutOrigin  결과 위치 (실패 시 FVector::ZeroVector)
-	 * @return 성공 여부
+	 * ISightProvider를 구현하지 않은 Object가 전달되면 ensure 발생 후 FIntPoint::ZeroValue 반환.
 	 */
-	inline bool TryGetSightOrigin(const UObject* Object, FVector& OutOrigin)
+	inline FVector GetSightOrigin(const UObject* Object)
 	{
-		if (const ISightProvider* Provider = TryGetProvider(Object))
-		{
-			OutOrigin = Provider->GetSightOrigin();
-			return true;
-		}
-		OutOrigin = FVector::ZeroVector;
-		return false;
+		const ISightProvider* Provider = TryGetProvider(Object);
+		ensureMsgf(Provider, TEXT("GetSightOrigin: Object does not implement ISightProvider"));
+		return Provider ? Provider->GetSightOrigin() : FVector::ZeroVector;
 	}
 
 	/**
 	 * 시야 범위를 반환합니다.
-	 * @param Object  ISightProvider 구현 UObject
-	 * @param OutRange  결과 범위 (실패 시 0.f)
-	 * @return 성공 여부
+	 * ISightProvider를 구현하지 않은 Object가 전달되면 ensure 발생 후 0.f 반환.
 	 */
-	inline bool TryGetSightRange(const UObject* Object, float& OutRange)
+	inline float GetSightRange(const UObject* Object)
 	{
-		if (const ISightProvider* Provider = TryGetProvider(Object))
-		{
-			OutRange = Provider->GetSightRange();
-			return true;
-		}
-		OutRange = 0.f;
-		return false;
+		const ISightProvider* Provider = TryGetProvider(Object);
+		ensureMsgf(Provider, TEXT("GetSightRange: Object does not implement ISightProvider"));
+		return Provider ? Provider->GetSightRange() : 0.f;
 	}
 
 	/**
@@ -77,19 +71,13 @@ namespace SightProviderHelper
 
 	/**
 	 * 팀을 반환합니다.
-	 * @param Object  ISightProvider 구현 UObject
-	 * @param OutTeam  결과 팀 (실패 시 ERiftTeam::None)
-	 * @return 성공 여부
+	 * ISightProvider를 구현하지 않은 Object가 전달되면 ensure 발생 후 ERiftTeam::None 반환.
 	 */
-	inline bool GetTeam(const UObject* Object, ERiftTeam& OutTeam)
+	inline ERiftTeam GetTeam(const UObject* Object)
 	{
-		if (const ISightProvider* Provider = TryGetProvider(Object))
-		{
-			OutTeam = Provider->GetTeam();
-			return true;
-		}
-		OutTeam = ERiftTeam::None;
-		return false;
+		const ISightProvider* Provider = TryGetProvider(Object);
+		ensureMsgf(Provider, TEXT("GetTeam: Object does not implement ISightProvider"));
+		return Provider ? Provider->GetTeam() : ERiftTeam::None;
 	}
 
 	// ─────────────────────────────────────────────
@@ -131,35 +119,37 @@ namespace SightProviderHelper
 	// ─────────────────────────────────────────────
 
 	/**
-	 * Observer의 시야 원점 기준으로 Target이 시야 범위 내에 있는지 확인합니다.
-	 * 거리 계산은 XY 평면(2D) 기준으로 수행합니다.
+	 * Observer의 시야 원점 기준으로 TargetTile이 시야 범위 내에 있는지 확인합니다.
+	 * 거리 계산은 타일 좌표(FIntPoint) 기준 XY 평면으로 수행합니다.
 	 * @param Observer  시야를 제공하는 UObject (ISightProvider)
-	 * @param TargetLocation  확인할 월드 위치
+	 * @param TargetTile  확인할 타일 좌표
 	 * @return 시야 범위 내이면 true, Observer가 유효하지 않으면 false
 	 */
-	inline bool IsInSightRange(const UObject* Observer, const FVector& TargetLocation)
+	inline bool IsInSightRange(const UObject* Observer, const FVector& TargetTile)
 	{
 		const ISightProvider* Provider = TryGetProvider(Observer);
 		if (!Provider)
 		{
 			return false;
 		}
+		const FVector Origin = Provider->GetSightOrigin();
+		const float DX = static_cast<float>(Origin.X - TargetTile.X);
+		const float DY = static_cast<float>(Origin.Y - TargetTile.Y);
 		const float RangeSq = FMath::Square(Provider->GetSightRange());
-		return FVector::DistSquared2D(Provider->GetSightOrigin(), TargetLocation) <= RangeSq;
+		return (DX * DX + DY * DY) <= RangeSq;
 	}
 
 	/**
 	 * Observer의 시야 원점 기준으로 Target UObject가 시야 범위 내에 있는지 확인합니다.
 	 * Target도 ISightProvider를 구현해야 합니다.
-	 * 거리 계산은 XY 평면(2D) 기준으로 수행합니다.
+	 * 거리 계산은 타일 좌표(FIntPoint) 기준 XY 평면으로 수행합니다.
 	 */
 	inline bool IsInSightRange(const UObject* Observer, const UObject* Target)
 	{
-		FVector TargetOrigin;
-		if (!GetSightOrigin(Target, TargetOrigin))
+		if (!ImplementsSightProvider(Target))
 		{
 			return false;
 		}
-		return IsInSightRange(Observer, TargetOrigin);
+		return IsInSightRange(Observer, GetSightOrigin(Target));
 	}
 } // namespace SightProviderHelper

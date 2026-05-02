@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "FOWManager.generated.h"
 
+enum class ERiftTeam : uint8;
+class ISightProvider;
 struct FTile;
 class AFOWTileMap;
 
@@ -121,14 +123,16 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
-public:
-	// 플레이어 위치를 원점으로 하는 시야 계산
-	UFUNCTION()
-	void ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap);
+	UFUNCTION(BlueprintCallable)
+	void UpdateFOV(AFOWTileMap* TileMap,  TArray<TScriptInterface<ISightProvider>>& SightProviders);
 	
 private:
+	// 플레이어 위치를 원점으로 하는 시야 계산
 	UFUNCTION()
-	void Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap);
+	void ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap, int32 MaxDepth);
+	
+	UFUNCTION()
+	void Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap, int32 MaxDepth);
 	
 	UFUNCTION()
 	bool IsWall(FIntPoint& Tile, const FQuadrant& Quadrant, AFOWTileMap* TileMap) const;
@@ -143,28 +147,31 @@ private:
 	bool IsSymmetric(FRow& Row, int32 Depth, int32 Col) const;
 	
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TileMap")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sight")
+	ERiftTeam LocalClientTeam;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sight|TileMap")
 	TObjectPtr<AFOWTileMap> RedTileMap;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TileMap")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sight|TileMap")
 	TObjectPtr<AFOWTileMap> BlueTileMap;
 	
 private:
 	// TODO: Acter 캐싱 대신 interface로 변경 (ISightProvider)
-	UPROPERTY()
-	TArray<AActor*> RedSightActor;
-	
-	UPROPERTY()
-	TArray<AActor*> BlueSightActor;
+	UPROPERTY(VisibleAnywhere, Category = "Sight|Provider")
+	TArray<TScriptInterface<ISightProvider>> RedSightProviders;
+
+	UPROPERTY(VisibleAnywhere, Category = "Sight|Provider")
+	TArray<TScriptInterface<ISightProvider>> BlueSightProviders;
 	
 #pragma region Test
-	// UPROPERTY(EditAnywhere)
-	// AActor* TestActor;  // 에디터에서 챔피언 하나 연결
-	//
-	// UPROPERTY(EditAnywhere)
-	// AFOWTileMap* TestTileMap;  // 에디터에서 TileMap 연결
-	//
-	// UPROPERTY(EditAnywhere)
-	// int32 SightRadius = 10;  // 테스트용 시야 반경
+	UPROPERTY(EditAnywhere)
+	AActor* TestActor;  // 에디터에서 챔피언 하나 연결
+	
+	UPROPERTY(EditAnywhere)
+	AFOWTileMap* TestTileMap;  // 에디터에서 TileMap 연결
+	
+	UPROPERTY(EditAnywhere)
+	int32 SightRadius = 10;  // 테스트용 시야 반경
 #pragma endregion
 };

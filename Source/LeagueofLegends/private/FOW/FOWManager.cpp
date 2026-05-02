@@ -2,10 +2,11 @@
 
 
 #include "FOW/FOWManager.h"
-
+#include "Interfaces/SightProviderHelper.h"
 #include "FOW/FOWTileMap.h"
 #include "Kismet/GameplayStatics.h"
 
+#define TEST 1
 
 // Sets default values
 AFOWManager::AFOWManager()
@@ -19,29 +20,61 @@ void AFOWManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// TestActor = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn(); // 플레이어의 Pawn을 가져와서 TestActor로 설정
+	// TODO: LocalPlayer의 팀을 가져와 세팅
+	LocalClientTeam = ERiftTeam::Red; // 임시로 Red 팀으로 설정
+	
+#if TEST
+	// 현재 playerPawn을 TestActor로 할당
+	TestActor = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+#endif
 }
 
 void AFOWManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (TestActor && TestTileMap)
-	{
-		// 1. 타일 가시성 초기화
-		TestTileMap->ResetTileVisibility();
-		
-		// 2. 플레이어 위치를 원점으로 FOV 계산 및 타일 가시성 업데이트
-		// TODO: Red, Blue 진영별로 분리 및 같은 팀 시야 합치기
-		FIntPoint Origin = TestTileMap->WorldToTile(TestActor->GetActorLocation());
-		ComputeFOV(Origin, TestTileMap);
-		
-		// 3. 텍스처 업데이트
-		TestTileMap->UpdateDebugTexture();
-	}
+#if TEST
+	UpdateFOV(TestTileMap, RedSightProviders); // 테스트용
+#else
+	UpdateFOV(RedTileMap, RedSightProviders);
+	UpdateFOV(BlueTileMap, BlueSightProviders);
+#endif
 }
 
-void AFOWManager::ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap)
+void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISightProvider>>& SightProviders)
+{
+	if (!TileMap) return;
+
+#if TEST
+	if (!TestActor) return;
+
+	TileMap->ResetTileVisibility();
+
+	FIntPoint Origin = TileMap->WorldToTile(TestActor->GetActorLocation());
+	int32 MaxDepth = FMath::FloorToInt(1000.f / TileMap->GetTileSize());
+	ComputeFOV(Origin, TileMap, MaxDepth);
+
+	TileMap->UpdateDebugTexture();
+#else
+	if (SightProviders.Num() == 0) return;
+
+	TileMap->ResetTileVisibility();
+
+	for (const TScriptInterface<ISightProvider>& Provider : SightProviders)
+	{
+		FVector Origin3D = SightProviderHelper::GetSightOrigin(Provider.GetObject());
+		FIntPoint Origin = TileMap->WorldToTile(Origin3D);
+
+		float SightRange = Provider->GetSightRange();
+		int32 MaxDepth = FMath::FloorToInt(SightRange / TileMap->GetTileSize());
+		ComputeFOV(Origin, TileMap, MaxDepth);
+	}
+
+	TileMap->UpdateDebugTexture();
+#endif
+}
+
+void AFOWManager::ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap, int32 MaxDepth)
 {
 	TileMap->SetTileVisibility(Origin.X, Origin.Y, true); // 플레이어 위치는 항상 보이도록 설정
 	
@@ -49,12 +82,17 @@ void AFOWManager::ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap)
 	for (int32 i = 0; i < 4; i++)
 	{
 		FQuadrant Quadrant{ static_cast<EQuadrantDirection>(i), Origin };
-		Scan(FRow(), Quadrant, TileMap);
+		Scan(FRow(), Quadrant, TileMap, MaxDepth);
 	}
 }
 
-void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap)
+void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap, int32 MaxDepth)
 {
+	if (Row.Depth > MaxDepth)
+	{
+		return;
+	}
+	
 	bool bHasPrev = false;
 	FIntPoint PrevTilePoint;
 	for (int32 Col = Row.GetMinCol(); Col <= Row.GetMaxCol(); Col++)
@@ -76,7 +114,7 @@ void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap
 			{
 				FRow NextRow = Row.Next();
 				NextRow.EndSlop = FFraction{ Col * 2 - 1, Row.Depth * 2 };
-				Scan(NextRow, Quadrant, TileMap);
+				Scan(NextRow, Quadrant, TileMap, MaxDepth);
 			}
 		}
 		
@@ -86,7 +124,7 @@ void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap
 	
 	if (IsFloor(PrevTilePoint, Quadrant, TileMap))
 	{
-		Scan(Row.Next(), Quadrant, TileMap);
+		Scan(Row.Next(), Quadrant, TileMap, MaxDepth);
 	}
 }
 
