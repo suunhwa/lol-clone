@@ -19,7 +19,7 @@ void AFOWManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	TestActor = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn(); // 플레이어의 Pawn을 가져와서 TestActor로 설정
+	// TestActor = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetPawn(); // 플레이어의 Pawn을 가져와서 TestActor로 설정
 }
 
 void AFOWManager::Tick(float DeltaTime)
@@ -28,10 +28,15 @@ void AFOWManager::Tick(float DeltaTime)
 	
 	if (TestActor && TestTileMap)
 	{
+		// 1. 타일 가시성 초기화
 		TestTileMap->ResetTileVisibility();
 		
+		// 2. 플레이어 위치를 원점으로 FOV 계산 및 타일 가시성 업데이트
+		// TODO: Red, Blue 진영별로 분리 및 같은 팀 시야 합치기
 		FIntPoint Origin = TestTileMap->WorldToTile(TestActor->GetActorLocation());
 		ComputeFOV(Origin, TestTileMap);
+		
+		// 3. 텍스처 업데이트
 		TestTileMap->UpdateDebugTexture();
 	}
 }

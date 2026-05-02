@@ -57,7 +57,7 @@ struct FFraction
 		// floor((2*Numerator + Denominator) / (2*Denominator))
 		int32 Num = 2 * Numerator + Denominator;
 		int32 Den = 2 * Denominator;
-		return FMath::FloorToInt((float)Num / Den);
+		return FMath::FloorToInt(static_cast<float>(Num) / Den);
 	}
 
 	int32 RoundTiesDown() const
@@ -65,7 +65,7 @@ struct FFraction
 		// ceil((2*Numerator - Denominator) / (2*Denominator))
 		int32 Num = 2 * Numerator - Denominator;
 		int32 Den = 2 * Denominator;
-		return FMath::CeilToInt((float)Num / Den);
+		return FMath::CeilToInt(static_cast<float>(Num) / Den);
 	}
 };
 
@@ -122,9 +122,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
+	// 플레이어 위치를 원점으로 하는 시야 계산
 	UFUNCTION()
 	void ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap);
 	
+private:
 	UFUNCTION()
 	void Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap);
 	
@@ -156,13 +158,13 @@ private:
 	TArray<AActor*> BlueSightActor;
 	
 #pragma region Test
-	UPROPERTY(EditAnywhere)
-	AActor* TestActor;  // 에디터에서 챔피언 하나 연결
-
-	UPROPERTY(EditAnywhere)
-	AFOWTileMap* TestTileMap;  // 에디터에서 TileMap 연결
-
-	UPROPERTY(EditAnywhere)
-	int32 SightRadius = 10;  // 테스트용 시야 반경
+	// UPROPERTY(EditAnywhere)
+	// AActor* TestActor;  // 에디터에서 챔피언 하나 연결
+	//
+	// UPROPERTY(EditAnywhere)
+	// AFOWTileMap* TestTileMap;  // 에디터에서 TileMap 연결
+	//
+	// UPROPERTY(EditAnywhere)
+	// int32 SightRadius = 10;  // 테스트용 시야 반경
 #pragma endregion
 };
