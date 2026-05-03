@@ -2,11 +2,14 @@
 
 
 #include "FOW/FOWManager.h"
+
+#include "LeagueofLegends.h"
 #include "Interfaces/SightProviderHelper.h"
 #include "FOW/FOWTileMap.h"
+#include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
 
-#define TEST 1
+#define TEST 0
 
 // Sets default values
 AFOWManager::AFOWManager()
@@ -15,13 +18,38 @@ AFOWManager::AFOWManager()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+void AFOWManager::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+	{
+		GS->SetFOWManager(this);
+	}
+}
+
 // Called when the game starts or when spawned
 void AFOWManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	// TODO: LocalPlayer의 팀을 가져와 세팅
-	LocalClientTeam = ERiftTeam::Red; // 임시로 Red 팀으로 설정
+	if (LocalClientTeam == ERiftSightTag::None)
+	{
+		LocalClientTeam = ERiftSightTag::Red; // 임시로 Red 팀으로 설정
+	}
+	
+	if (MapActor)
+	{
+		if (LocalClientTeam == ERiftSightTag::Red)
+		{
+			RedTileMap->Generate(MapActor);
+		}
+		else
+		{
+			BlueTileMap->Generate(MapActor);
+		}
+	}
 	
 #if TEST
 	// 현재 playerPawn을 TestActor로 할당
@@ -36,7 +64,7 @@ void AFOWManager::Tick(float DeltaTime)
 #if TEST
 	UpdateFOV(TestTileMap, RedSightProviders); // 테스트용
 #else
-	if (LocalClientTeam == ERiftTeam::Red)
+	if (LocalClientTeam == ERiftSightTag::Red)
 	{
 		UpdateFOV(RedTileMap, RedSightProviders);
 	}
@@ -71,13 +99,57 @@ void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISight
 		FVector Origin3D = SightProviderHelper::GetSightOrigin(Provider.GetObject());
 		FIntPoint Origin = TileMap->WorldToTile(Origin3D);
 
-		float SightRange = Provider->GetSightRange();
+		float SightRange = SightProviderHelper::GetSightRange(Provider.GetObject());
 		int32 MaxDepth = FMath::FloorToInt(SightRange / TileMap->GetTileSize());
 		ComputeFOV(Origin, TileMap, MaxDepth);
 	}
 
 	TileMap->UpdateFogTexture();
 #endif
+}
+
+void AFOWManager::RegisterSightProvider(UObject* SightObject)
+{
+	if (!SightObject || !SightProviderHelper::ImplementsSightProvider(SightObject))
+	{
+		PRINTLOG_TK(TEXT("RegisterSightProvider: Invalid SightObject"));
+		return;
+	}
+
+	TScriptInterface<ISightProvider> SightProvider;
+	SightProvider.SetObject(SightObject);
+	SightProvider.SetInterface(SightProviderHelper::TryGetProvider(SightObject));
+
+	if (SightProviderHelper::GetTeam(SightObject) == ERiftSightTag::Red)
+	{
+		RedSightProviders.Add(SightProvider);
+	}
+	else
+	{
+		BlueSightProviders.Add(SightProvider);
+	}
+}
+
+void AFOWManager::UnregisterSightProvider(UObject* SightObject)
+{
+	if (!SightObject || !SightProviderHelper::ImplementsSightProvider(SightObject))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UnregisterSightProvider: Invalid object"));
+		return;
+	}
+
+	TScriptInterface<ISightProvider> SightProvider;
+	SightProvider.SetObject(SightObject);
+	SightProvider.SetInterface(SightProviderHelper::TryGetProvider(SightObject));
+
+	if (SightProviderHelper::GetTeam(SightObject) == ERiftSightTag::Red)
+	{
+		RedSightProviders.Remove(SightProvider);
+	}
+	else
+	{
+		BlueSightProviders.Remove(SightProvider);
+	}
 }
 
 void AFOWManager::ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap, int32 MaxDepth)

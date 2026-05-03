@@ -7,7 +7,7 @@
 #include "SightProvider.generated.h"
 
 UENUM(BlueprintType)
-enum class ERiftTeam : uint8
+enum class ERiftSightTag : uint8
 {
 	None, Red, Blue
 };
@@ -38,5 +38,5 @@ public:
 	bool IsStatic() const;
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Sight")
-	ERiftTeam GetTeam() const;
+	ERiftSightTag GetSightTag() const;
 };

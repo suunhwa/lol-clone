@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/Damageable.h"
+#include "Interfaces/SightProvider.h"
 #include "Interfaces/Targetable.h"
 #include "LoLCharacterBase.generated.h"
 
@@ -18,7 +19,7 @@ class USkillComponent;
 class UTargetingComponent;
 
 UCLASS(Abstract)
-class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamageable, public ITargetable
+class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamageable, public ITargetable, public ISightProvider
 {
 	GENERATED_BODY()
 
@@ -37,7 +38,26 @@ public:
 	virtual bool IsTargetable() const override;
 	virtual FVector GetTargetLocation() const override;
 	virtual ETeam GetTeam() const override;
+	
+	// --- ISightProvider
+#pragma region SightProvider
+	virtual FVector GetSightOrigin_Implementation() const override;
+	virtual float GetSightRange_Implementation() const override;
+	virtual bool IsStatic_Implementation() const override;
+	virtual ERiftSightTag GetSightTag_Implementation() const override;
 
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Sight")
+	float SightRange = 1000.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Sight")
+	bool bStaticSight = false;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Sight")
+	ERiftSightTag SightTag = ERiftSightTag::None;
+#pragma endregion
+
+public:
 	// --- Components
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UStatComponent> StatComp;

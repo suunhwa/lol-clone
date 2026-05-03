@@ -11,6 +11,8 @@
 #include "Components/TargetingComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "FOW/FOWManager.h"
+#include "GameFramework/RiftGameState.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
@@ -42,6 +44,9 @@ void ALoLCharacterBase::BeginPlay()
 		TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
 	}
+	
+	auto* GS = GetWorld()->GetGameState<ARiftGameState>();
+	GS->GetFOWManager()->RegisterSightProvider(this);
 }
 
 void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
@@ -85,6 +90,26 @@ FVector ALoLCharacterBase::GetTargetLocation() const
 ETeam ALoLCharacterBase::GetTeam() const
 {
 	return TagComp->GetTeam();
+}
+
+FVector ALoLCharacterBase::GetSightOrigin_Implementation() const
+{
+	return GetActorLocation();
+}
+
+float ALoLCharacterBase::GetSightRange_Implementation() const
+{
+	return SightRange;
+}
+
+bool ALoLCharacterBase::IsStatic_Implementation() const
+{
+	return bStaticSight;
+}
+
+ERiftSightTag ALoLCharacterBase::GetSightTag_Implementation() const
+{
+	return SightTag;
 }
 
 void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)

@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "FOWManager.generated.h"
 
-enum class ERiftTeam : uint8;
+enum class ERiftSightTag : uint8;
 class ISightProvider;
 struct FTile;
 class AFOWTileMap;
@@ -117,6 +117,7 @@ class LEAGUEOFLEGENDS_API AFOWManager : public AActor
 public:
 	AFOWManager();
 
+	virtual void PostInitializeComponents() override;
 protected:
 	virtual void BeginPlay() override;
 	
@@ -125,6 +126,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void UpdateFOV(AFOWTileMap* TileMap,  TArray<TScriptInterface<ISightProvider>>& SightProviders);
+
+	UFUNCTION(BlueprintCallable)
+	void RegisterSightProvider(UObject* SightObject);
+	
+	UFUNCTION(BlueprintCallable)
+	void UnregisterSightProvider(UObject* SightProvider);
 	
 private:
 	// 플레이어 위치를 원점으로 하는 시야 계산
@@ -148,12 +155,12 @@ private:
 	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sight")
-	ERiftTeam LocalClientTeam;
+	ERiftSightTag LocalClientTeam;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sight|TileMap")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sight|TileMap")
 	TObjectPtr<AFOWTileMap> RedTileMap;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sight|TileMap")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sight|TileMap")
 	TObjectPtr<AFOWTileMap> BlueTileMap;
 	
 private:
@@ -163,6 +170,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Sight|Provider")
 	TArray<TScriptInterface<ISightProvider>> BlueSightProviders;
+	
+	UPROPERTY(EditAnywhere, Category = "Sight|Map")
+	TObjectPtr<AActor> MapActor;
 	
 #pragma region Test
 	UPROPERTY(EditAnywhere)

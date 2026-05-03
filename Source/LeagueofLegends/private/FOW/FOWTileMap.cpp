@@ -11,11 +11,17 @@ AFOWTileMap::AFOWTileMap()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+void AFOWTileMap::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	Tiles.SetNum(MapSize * MapSize); // 타일 배열 초기화
+}
+
 void AFOWTileMap::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Tiles.SetNum(MapSize * MapSize); // 타일 배열 초기화
 	// CreateDebugTexture();
 }
 
@@ -50,7 +56,7 @@ void AFOWTileMap::Generate(AActor* MapActor)
 	CreateFogTexture();
 	
 	// Debug용 Plane에 텍스처 연결
-	SetDebugPlane();
+	CreateDebugPlane();
 	
 	UpdateFogTexture();
 	CreateFOWPostProcess();
@@ -104,7 +110,7 @@ void AFOWTileMap::GenerateTileMap(AActor* MapActor)
 				// 타일이 지형과 충돌한 경우
 				// HitResult.Location을 사용하여 타일의 높이를 결정할 수 있음
 				// 예: SetTileHeight(i, j, HitResult.Location.Z);
-				if (HitResult.Location.Z < 150.f)
+				if (HitResult.Location.Z < 250.f)
 				{
 					CurTile.Type = ETileType::Floor; // 예시로 Floor 타입으로 설정
 				}
@@ -304,7 +310,7 @@ void AFOWTileMap::CreateFOWPostProcess()
 	}
 }
 
-void AFOWTileMap::SetDebugPlane()
+void AFOWTileMap::CreateDebugPlane()
 {
 	// MID 생성 후 텍스처 연결
 	if (DebugPlane && DebugMaterial)

@@ -16,6 +16,8 @@ class LEAGUEOFLEGENDS_API AFOWTileMap : public AActor
 public:
 	AFOWTileMap();
 
+	virtual void PostInitializeComponents() override;
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -61,7 +63,7 @@ private:
 	void CreateFogTexture();
 	void CreateFOWPostProcess();
 	
-	void SetDebugPlane();
+	void CreateDebugPlane();
 	
 public:
 	static constexpr int32 MapSize = 128;
