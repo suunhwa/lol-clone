@@ -32,6 +32,7 @@ void ARiftPlayerController::BeginPlay()
 
 	FInputModeGameAndUI InputMode;
 	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
 	SetInputMode(InputMode);
 
 	// A* 로직 완성되면
