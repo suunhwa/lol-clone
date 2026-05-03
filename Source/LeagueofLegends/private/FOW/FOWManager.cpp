@@ -36,8 +36,14 @@ void AFOWManager::Tick(float DeltaTime)
 #if TEST
 	UpdateFOV(TestTileMap, RedSightProviders); // 테스트용
 #else
-	UpdateFOV(RedTileMap, RedSightProviders);
-	UpdateFOV(BlueTileMap, BlueSightProviders);
+	if (LocalClientTeam == ERiftTeam::Red)
+	{
+		UpdateFOV(RedTileMap, RedSightProviders);
+	}
+	else
+	{
+		UpdateFOV(BlueTileMap, BlueSightProviders);
+	}
 #endif
 }
 
@@ -54,7 +60,7 @@ void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISight
 	int32 MaxDepth = FMath::FloorToInt(1000.f / TileMap->GetTileSize());
 	ComputeFOV(Origin, TileMap, MaxDepth);
 
-	TileMap->UpdateDebugTexture();
+	TileMap->UpdateFogTexture();
 #else
 	if (SightProviders.Num() == 0) return;
 
@@ -70,7 +76,7 @@ void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISight
 		ComputeFOV(Origin, TileMap, MaxDepth);
 	}
 
-	TileMap->UpdateDebugTexture();
+	TileMap->UpdateFogTexture();
 #endif
 }
 

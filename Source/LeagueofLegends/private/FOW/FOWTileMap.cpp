@@ -6,7 +6,6 @@
 #include "Engine/StaticMeshActor.h"
 #include "Kismet/GameplayStatics.h"
 
-
 AFOWTileMap::AFOWTileMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -45,7 +44,19 @@ void AFOWTileMap::Tick(float DeltaTime)
 	}
 }
 
-void AFOWTileMap::GenerateFromMap(AActor* MapActor)
+void AFOWTileMap::Generate(AActor* MapActor)
+{
+	GenerateTileMap(MapActor);
+	CreateFogTexture();
+	
+	// Debug용 Plane에 텍스처 연결
+	SetDebugPlane();
+	
+	UpdateFogTexture();
+	CreateFOWPostProcess();
+}
+
+void AFOWTileMap::GenerateTileMap(AActor* MapActor)
 {
 	if (!MapActor)
 	{
@@ -63,7 +74,7 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 
 	TileSize = FMath::Max(MapWidthLength, MapHeightLength) / MapSize;
 	float HalfTileSize = TileSize / 2.f;
-	float RayHeight = WorldMax.Z + 100.f; // Ray의 시작 높이
+	float RayHeight = WorldMax.Z + 1000.f; // Ray의 시작 높이
 
 	for (int i = 0; i < MapSize; i++)
 	{
@@ -73,7 +84,7 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 			float TileCenterY = WorldMin.Y + i * TileSize + HalfTileSize;
 
 			FVector RayStart(TileCenterX, TileCenterY, RayHeight);
-			FVector RayEnd(TileCenterX, TileCenterY, WorldMin.Z - 100.f);
+			FVector RayEnd(TileCenterX, TileCenterY, WorldMin.Z - 1000.f);
 
 			FHitResult HitResult;
 			FCollisionQueryParams Params;
@@ -102,7 +113,7 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 					CurTile.Type = ETileType::Wall; // 예시로 Wall 타입으로 설정
 				}
 
-				// DebugBox 그리기
+				// // DebugBox 그리기
 				// FVector BoxCenter(TileCenterX, TileCenterY, HitResult.Location.Z);
 				// FVector BoxExtent(HalfTileSize, HalfTileSize, 10.f);
 				//
@@ -118,9 +129,9 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 		}
 	}
 
-	CreateDebugTexture();
-	UpdateDebugTexture();
-	CreateFOWPostProcess();
+	// CreateFogTexture();
+	// UpdateDebugTexture();
+	// CreateFOWPostProcess();
 }
 
 FIntPoint AFOWTileMap::WorldToTile(const FVector& WorldLocation) const
@@ -204,23 +215,23 @@ void AFOWTileMap::SetTileVisibility(int32 X, int32 Y, bool bVisible)
 	GetTile(X, Y)->bIsVisible = bVisible;
 }
 
-void AFOWTileMap::CreateDebugTexture()
+void AFOWTileMap::CreateFogTexture()
 {
-	if (!DebugTexture)
+	if (!FogTexture)
 	{
-		DebugTexture = UTexture2D::CreateTransient(MapSize, MapSize, PF_G8);
-		if (!DebugTexture)
+		FogTexture = UTexture2D::CreateTransient(MapSize, MapSize, PF_G8);
+		if (!FogTexture)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create transient texture"));
 			return;
 		}
 
-		DebugTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
-		DebugTexture->CompressionSettings = TC_Grayscale;
-		DebugTexture->AddressX = TA_Clamp;
-		DebugTexture->AddressY = TA_Clamp;
-		DebugTexture->SRGB = false;
-		DebugTexture->UpdateResource();
+		FogTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
+		FogTexture->CompressionSettings = TC_Grayscale;
+		FogTexture->AddressX = TA_Clamp;
+		FogTexture->AddressY = TA_Clamp;
+		FogTexture->SRGB = false;
+		FogTexture->UpdateResource();
 		FlushRenderingCommands();
 	}
 
@@ -231,24 +242,6 @@ void AFOWTileMap::CreateDebugTexture()
 		PixelBuffer = new uint8[MapSize * MapSize];
 	}
 	FMemory::Memset(PixelBuffer, 0, PixelBufferSize); // 전부 검정으로 초기화
-
-	// MID 생성 후 텍스처 연결
-	if (DebugPlane && DebugMaterial)
-	{
-		if (!DebugMID)
-		{
-			DebugMID = UMaterialInstanceDynamic::Create(DebugMaterial, this);
-		}
-
-		if (!DebugMID)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create dynamic material instance"));
-			return;
-		}
-
-		DebugMID->SetTextureParameterValue(TEXT("DebugTex"), DebugTexture);
-		DebugPlane->GetStaticMeshComponent()->SetMaterial(0, DebugMID);
-	}
 }
 
 void AFOWTileMap::CreateFOWPostProcess()
@@ -270,15 +263,6 @@ void AFOWTileMap::CreateFOWPostProcess()
 		return;
 	}
 
-	// // FOW 텍스처 연결
-	// FOWPostProcessMID->SetTextureParameterValue(TEXT("FogTexture"), DebugTexture);
-	// // MapMin 전달
-	// FOWPostProcessMID->SetVectorParameterValue(TEXT("MapMin"),
-	//                                            FLinearColor(WorldMin.X, WorldMin.Y, 0, 0));
-	// // MapSize 전달
-	// FOWPostProcessMID->SetScalarParameterValue(TEXT("MapSize"),
-	//                                            TileSize * MapSize);
-
 	// VolumeExtentXY
 	FOWPostProcessMID->SetScalarParameterValue(
 		TEXT("VolumeExtentXY"), GetVolumeExtentXY());
@@ -298,7 +282,7 @@ void AFOWTileMap::CreateFOWPostProcess()
 
 	// FOWTexture
 	FOWPostProcessMID->SetTextureParameterValue(
-		TEXT("FogTexture"), DebugTexture
+		TEXT("FogTexture"), FogTexture
 	);
 
 	// FOWPostProcessMID->SetScalarParameterValue(
@@ -320,9 +304,30 @@ void AFOWTileMap::CreateFOWPostProcess()
 	}
 }
 
-void AFOWTileMap::UpdateDebugTexture()
+void AFOWTileMap::SetDebugPlane()
 {
-	if (!DebugTexture || !PixelBuffer)
+	// MID 생성 후 텍스처 연결
+	if (DebugPlane && DebugMaterial)
+	{
+		if (!DebugMID)
+		{
+			DebugMID = UMaterialInstanceDynamic::Create(DebugMaterial, this);
+		}
+
+		if (!DebugMID)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create dynamic material instance"));
+			return;
+		}
+
+		DebugMID->SetTextureParameterValue(TEXT("DebugTex"), FogTexture);
+		DebugPlane->GetStaticMeshComponent()->SetMaterial(0, DebugMID);
+	}
+}
+
+void AFOWTileMap::UpdateFogTexture()
+{
+	if (!FogTexture || !PixelBuffer)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UpdateDebugTexture: DebugTexture or PixelBuffer is null"));
 		return;
@@ -345,7 +350,7 @@ void AFOWTileMap::UpdateDebugTexture()
 	// UpdateResource() 타이밍 이슈 없이 렌더 스레드에 올바르게 전달됨
 	// SrcPitch = MapSize * 1byte(PF_G8), SrcBpp = 1byte
 	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize, MapSize);
-	DebugTexture->UpdateTextureRegions(
+	FogTexture->UpdateTextureRegions(
 		0, // MipIndex
 		1, // NumRegions
 		Region, // Regions
