@@ -50,7 +50,21 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		                                                "/Game/Data/ChampionStatDataTable_ChampionGrowth.ChampionStatDataTable_ChampionGrowth")));
 
 	if (!BaseTable || !StatTable || !GrowthTable)
+	{
 		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 스탯 DataTable 로드 실패. 경로 확인 필요"));
+	}
+
+	MasterSkillTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
+		TEXT("/Game/Data/ChampionSkillDataTable_MasterSkillCore.ChampionSkillDataTable_MasterSkillCore")));
+	DetailSkillStatsTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
+		TEXT("/Game/Data/ChampionSkillDataTable_DetailSkillStats.ChampionSkillDataTable_DetailSkillStats")));
+	MechanicsTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
+		TEXT("/Game/Data/ChampionSkillDataTable_SkillMechanics.ChampionSkillDataTable_SkillMechanics")));
+
+	if (!MasterSkillTable || !DetailSkillStatsTable || !MechanicsTable)
+	{
+		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 스킬 DataTable 로드 실패. 경로 확인 필요"));
+	}
 }
 
 // DataAsset 조회 
@@ -93,6 +107,51 @@ const FChampionStatRow* UChampionDataSubsystem::GetStatRow(FName ChampionID) con
 const FChampionGrowthRow* UChampionDataSubsystem::GetGrowthRow(FName ChampionID) const
 {
 	return FindRowByID<FChampionGrowthRow>(GrowthTable, ChampionID);
+}
+
+const FDetailSkillStatsRow* UChampionDataSubsystem::GetSkillStats(FName ChampionID, const FString& SkillKey, int32 Step) const
+{
+	if (!DetailSkillStatsTable) { return nullptr; }
+
+	const FString SearchStr = ChampionID.ToString() + TEXT("_") + SkillKey;
+
+	for (const FName& RowName : DetailSkillStatsTable->GetRowNames())
+	{
+		const FDetailSkillStatsRow* Row = DetailSkillStatsTable->FindRow<FDetailSkillStatsRow>(RowName, TEXT(""));
+		if (!Row) { continue; }
+
+		if (Row->Skill_ID.Contains(SearchStr, ESearchCase::IgnoreCase) && Row->Step == Step)
+		{
+			return Row;
+		}
+	}
+	return nullptr;
+}
+
+const FSkillMechanicsRow* UChampionDataSubsystem::GetSkillMechanics(FName ChampionID, const FString& SkillKey) const
+{
+	if (!MasterSkillTable || !MechanicsTable) { return nullptr; }
+
+	const FString SearchStr = ChampionID.ToString() + TEXT("_") + SkillKey;
+
+	// 1단계: MasterSkill에서 Effect_Tag 조회
+	FString EffectTag;
+	for (const FName& RowName : MasterSkillTable->GetRowNames())
+	{
+		const FMasterSkillCoreRow* Row = MasterSkillTable->FindRow<FMasterSkillCoreRow>(RowName, TEXT(""));
+		if (!Row) { continue; }
+
+		if (Row->Skill_ID.Contains(SearchStr, ESearchCase::IgnoreCase))
+		{
+			EffectTag = Row->Effect_Tag;
+			break;
+		}
+	}
+
+	if (EffectTag.IsEmpty()) { return nullptr; }
+
+	// 2단계: Mechanics 테이블에서 Effect_Tag로 Row 조회
+	return MechanicsTable->FindRow<FSkillMechanicsRow>(FName(*EffectTag), TEXT(""));
 }
 
 // 초기화

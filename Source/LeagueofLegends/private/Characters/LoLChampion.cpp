@@ -3,12 +3,14 @@
 #include "Characters/LoLChampion.h"
 
 #include "LeagueofLegends.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Characters/Data/ChampionData.h"
 #include "Champions/Projectile/ChampionSkillProjectile.h"
 #include "Components/CombatComponent.h"
 #include "Components/StatComponent.h"
 #include "Components/SkillComponent.h"
 #include "Components/SkillExecutorComponent.h"
+#include "Components/TargetingComponent.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
@@ -33,10 +35,10 @@ void ALoLChampion::BeginPlay()
 		SkillComp->AssignSkillPoint(ESkillSlot::R);
 	}
 
-	if (!ChampionData) return;
+	if (!ChampionData) { return; }
 
 	UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
-	if (!Sub) return;
+	if (!Sub) { return; }
 
 	Sub->ApplyVisuals(this, ChampionData);
 
@@ -63,13 +65,15 @@ void ALoLChampion::OnRep_ChampionData()
 {
 	UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
 	if (Sub && ChampionData)
+	{
 		Sub->ApplyVisuals(this, ChampionData);
+	}
 }
 
 // ChampionData 세팅 (런타임, 캐릭터 선택 후) 
 void ALoLChampion::SetChampionData(UChampionData* Data)
 {
-	if (!HasAuthority() || !Data) return;
+	if (!HasAuthority() || !Data) { return; }
 
 	ChampionData = Data;
 
@@ -86,10 +90,12 @@ void ALoLChampion::SetChampionData(UChampionData* Data)
 // SkillExecutor 동적 생성 
 void ALoLChampion::CreateSkillExecutor()
 {
-	if (!ChampionData || !ChampionData->SkillExecutorClass) return;
+	if (!ChampionData || !ChampionData->SkillExecutorClass) { return; }
 
 	if (SkillExecutor)
+	{
 		SkillExecutor->DestroyComponent();
+	}
 
 	SkillExecutor = NewObject<USkillExecutorComponent>(
 		this, ChampionData->SkillExecutorClass, TEXT("SkillExecutor"));
@@ -109,14 +115,93 @@ void ALoLChampion::HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc)
 		SetActorRotation(direction.Rotation());
 	}
 		
-	if (!SkillExecutor) return;
+	if (!SkillExecutor) { return; }
 	SkillExecutor->Execute(Slot, TargetLoc);
 }
 
-// 평타 
+void ALoLChampion::StartAttackLoop(AActor* Target)
+{
+	if (!HasAuthority() || !Target) { return; }
+
+	UTargetingComponent* TargetComp = Target->FindComponentByClass<UTargetingComponent>();
+	if (!TargetComp || !TargetComp->IsValidTarget(this)) { return; }
+
+	AttackTarget = Target;
+	GetWorldTimerManager().ClearTimer(AttackLoopTimer);
+	AttackLoopTick();
+}
+
+void ALoLChampion::StopAttackLoop()
+{
+	AttackTarget = nullptr;
+	GetWorldTimerManager().ClearTimer(AttackLoopTimer);
+	GetWorldTimerManager().ClearTimer(BasicAttackImpactTimer);
+}
+
+void ALoLChampion::AttackLoopTick()
+{
+	if (!AttackTarget.IsValid())
+	{
+		StopAttackLoop();
+		return;
+	}
+
+	AActor* Target = AttackTarget.Get();
+
+	UTargetingComponent* TargetComp = Target->FindComponentByClass<UTargetingComponent>();
+	if (!TargetComp || !TargetComp->IsValidTarget(this))
+	{
+		StopAttackLoop();
+		return;
+	}
+
+	const float Range = StatComp ? StatComp->GetAttackRange() : 150.f;
+	const float AttackSpeed = StatComp ? StatComp->GetAttackSpeed() : 0.65f;
+	const float Dist = FVector::Dist2D(GetActorLocation(), Target->GetActorLocation());
+
+	if (Dist > Range)
+	{
+		if (AController* Ctrl = GetController())
+		{
+			UAIBlueprintHelperLibrary::SimpleMoveToActor(Ctrl, Target);
+		}
+
+		GetWorldTimerManager().SetTimer(AttackLoopTimer, this, &ALoLChampion::AttackLoopTick, 0.1f, false);
+		return;
+	}
+
+	if (AController* Ctrl = GetController())
+	{
+		Ctrl->StopMovement();
+	}
+
+	FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+	if (!Dir.IsNearlyZero())
+	{
+		SetActorRotation(Dir.Rotation());
+	}
+
+	ExecuteBasicAttack(Target);
+
+	GetWorldTimerManager().SetTimer(AttackLoopTimer, this, &ALoLChampion::AttackLoopTick, 1.0f / AttackSpeed, false);
+}
+
+void ALoLChampion::OnDeath(AActor* DamageInstigator)
+{
+	StopAttackLoop();
+
+	if (ChampionData && ChampionData->DeathMontage)
+	{
+		Multicast_PlayMontage(ChampionData->DeathMontage);
+	}
+
+	Super::OnDeath(DamageInstigator);
+}
+
+// 평타
 void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 {
-	if (!HasAuthority() || !Target) return;
+	if (!HasAuthority() || !Target) { return; }
 
 	Multicast_PlayMontage(ChampionData ? ChampionData->BasicAttackMontage : nullptr);
 
@@ -140,7 +225,9 @@ void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 		[this, WeakTarget]()
 		{
 			if (WeakTarget.IsValid() && CombatComp)
+			{
 				CombatComp->PerformBasicAttack(WeakTarget.Get());
+			}
 		},
 		0.3f, false);
 }

@@ -48,17 +48,25 @@ public:
 	// 평타 실행 (서버에서 호출)
 	void ExecuteBasicAttack(AActor* Target);
 
+	// 공격 루프 (서버 전용)
+	void StartAttackLoop(AActor* Target);
+	void StopAttackLoop();
+
+protected:
+	virtual void OnDeath(AActor* DamageInstigator) override;
+
 private:
 	void CreateSkillExecutor();
 	void HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc);
+	void AttackLoopTick();
 
 	UFUNCTION()
 	void OnRep_ChampionData();
-	
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UStatModifierComponent> StatModifierComp;
-	
+
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UInventoryComponent> InventoryComp;
 
@@ -66,5 +74,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<USkillExecutorComponent> SkillExecutor;
 
+	TWeakObjectPtr<AActor> AttackTarget;
+	FTimerHandle AttackLoopTimer;
 	FTimerHandle BasicAttackImpactTimer;
 };

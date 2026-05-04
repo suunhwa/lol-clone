@@ -44,6 +44,9 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_RequestBasicAttack(ALoLCharacterBase* Target);
+
+	UFUNCTION(Server, Reliable)
+	void Server_MoveToLocation(FVector Loc);
 	
 public:
 	// ---------------------------------- Camera --------------------------------

@@ -11,6 +11,8 @@
 #include "Components/TargetingComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
+#include "UI/HPBarWidget.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
@@ -31,6 +33,12 @@ ALoLCharacterBase::ALoLCharacterBase()
 	CooldownComp = CreateDefaultSubobject<UCooldownComponent>(TEXT("CooldownComp"));
 	SkillComp = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComp"));
 	TargetingComp = CreateDefaultSubobject<UTargetingComponent>(TEXT("TargetingComp"));
+
+	HPBarWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPBarWidgetComp"));
+	HPBarWidgetComp->SetupAttachment(GetRootComponent());
+	HPBarWidgetComp->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
+	HPBarWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
+	HPBarWidgetComp->SetDrawSize(FVector2D(100.f, 12.f));
 }
 
 void ALoLCharacterBase::BeginPlay()
@@ -41,6 +49,11 @@ void ALoLCharacterBase::BeginPlay()
 	{
 		TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
+	}
+
+	if (UHPBarWidget* HPBar = Cast<UHPBarWidget>(HPBarWidgetComp->GetWidget()))
+	{
+		HPBar->InitWidget(StatComp);
 	}
 }
 

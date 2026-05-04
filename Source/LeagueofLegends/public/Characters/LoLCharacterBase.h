@@ -16,6 +16,7 @@ class UStatusEffectComponent;
 class UCooldownComponent;
 class USkillComponent;
 class UTargetingComponent;
+class UWidgetComponent;
 
 UCLASS(Abstract)
 class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamageable, public ITargetable
@@ -62,6 +63,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UTargetingComponent> TargetingComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UWidgetComponent> HPBarWidgetComp;
 
 	UPROPERTY(EditAnywhere, Category = "Team")
 	ETeam InitialTeam = ETeam::Blue;
