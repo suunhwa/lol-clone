@@ -32,5 +32,6 @@ private:
 	int32 BlueCount = 0;
 	int32 RedCount = 0;
 
-	static constexpr int32 PlayersPerTeam = 5;
+	UPROPERTY(EditDefaultsOnly, Category = "Game")
+	int32 PlayersPerTeam = 1; // 테스트: 1, 실제: 5
 };

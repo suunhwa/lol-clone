@@ -26,6 +26,7 @@ private:
 	void ExecuteQ(FVector TargetLoc);
 	void ExecuteW(FVector TargetLoc);
 	void ExecuteE(FVector TargetLoc);
+	void ExecuteR(FVector TargetLoc);
 	void FireESecondaryShot();
 
 	class UChampionDataSubsystem* GetDataSub() const;

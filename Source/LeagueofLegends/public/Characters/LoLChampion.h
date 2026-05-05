@@ -52,6 +52,13 @@ public:
 	void StartAttackLoop(AActor* Target);
 	void StopAttackLoop();
 
+	// 리스폰 (서버 전용)
+	void Respawn();
+
+	// 모든 클라에 리스폰 시각 처리
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_Respawn();
+
 protected:
 	virtual void OnDeath(AActor* DamageInstigator) override;
 
@@ -77,4 +84,9 @@ private:
 	TWeakObjectPtr<AActor> AttackTarget;
 	FTimerHandle AttackLoopTimer;
 	FTimerHandle BasicAttackImpactTimer;
+	FTimerHandle RespawnTimer;
+	int32 AttackSectionIndex = 0;
+
+	UPROPERTY(EditAnywhere, Category = "Respawn")
+	float RespawnDelay = 5.f;
 };

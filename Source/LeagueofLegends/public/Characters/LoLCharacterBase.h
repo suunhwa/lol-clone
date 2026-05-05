@@ -74,6 +74,10 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontage(UAnimMontage* Montage);
 
+	// 특정 섹션부터 몽타주 재생
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayMontageSection(UAnimMontage* Montage, FName SectionName);
+
 protected:
 	virtual void OnDeath(AActor* DamageInstigator);
 

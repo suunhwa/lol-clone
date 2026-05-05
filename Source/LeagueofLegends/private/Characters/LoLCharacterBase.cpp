@@ -18,8 +18,9 @@ ALoLCharacterBase::ALoLCharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
+	SetReplicateMovement(true);
 
-	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Champion"));
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn"));
 	
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -107,8 +108,17 @@ void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)
 
 void ALoLCharacterBase::Multicast_PlayMontage_Implementation(UAnimMontage* Montage)
 {
-	if (!Montage) return;
+	if (!Montage) { return; }
 	PlayAnimMontage(Montage);
+}
+
+void ALoLCharacterBase::Multicast_PlayMontageSection_Implementation(UAnimMontage* Montage, FName SectionName)
+{
+	if (!Montage) { return; }
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	if (!Anim) { return; }
+	Anim->Montage_Play(Montage);
+	Anim->Montage_JumpToSection(SectionName, Montage);
 }
 
 void ALoLCharacterBase::Multicast_OnDeath_Implementation()

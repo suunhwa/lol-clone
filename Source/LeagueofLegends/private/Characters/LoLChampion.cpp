@@ -8,6 +8,8 @@
 #include "Champions/Projectile/ChampionSkillProjectile.h"
 #include "Components/CombatComponent.h"
 #include "Components/StatComponent.h"
+#include "Components/StateComponent.h"
+#include "Components/TagComponent.h"
 #include "Components/SkillComponent.h"
 #include "Components/SkillExecutorComponent.h"
 #include "Components/TargetingComponent.h"
@@ -136,6 +138,11 @@ void ALoLChampion::StopAttackLoop()
 	AttackTarget = nullptr;
 	GetWorldTimerManager().ClearTimer(AttackLoopTimer);
 	GetWorldTimerManager().ClearTimer(BasicAttackImpactTimer);
+
+	if (StateComp && StateComp->GetCurrentState() == ECharacterState::BasicAttacking)
+	{
+		StateComp->TryChangeState(ECharacterState::Idle);
+	}
 }
 
 void ALoLChampion::AttackLoopTick()
@@ -161,6 +168,9 @@ void ALoLChampion::AttackLoopTick()
 
 	if (Dist > Range)
 	{
+		// 사거리 밖 → 이동
+		StateComp->TryChangeState(ECharacterState::Moving);
+
 		if (AController* Ctrl = GetController())
 		{
 			UAIBlueprintHelperLibrary::SimpleMoveToActor(Ctrl, Target);
@@ -170,10 +180,13 @@ void ALoLChampion::AttackLoopTick()
 		return;
 	}
 
+	// 사거리 안 → 공격
 	if (AController* Ctrl = GetController())
 	{
 		Ctrl->StopMovement();
 	}
+
+	StateComp->TryChangeState(ECharacterState::BasicAttacking);
 
 	FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
 	if (!Dir.IsNearlyZero())
@@ -196,6 +209,40 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 	}
 
 	Super::OnDeath(DamageInstigator);
+
+	// 서버에서만 리스폰 타이머 등록
+	if (HasAuthority())
+	{
+		GetWorldTimerManager().SetTimer(RespawnTimer, this, &ALoLChampion::Respawn, RespawnDelay, false);
+	}
+}
+
+void ALoLChampion::Respawn()
+{
+	if (!HasAuthority()) return;
+
+	// HP 회복
+	StatComp->ApplyHealthChange(StatComp->GetMaxHP());
+
+	// Dead/Untargetable 태그 제거
+	TagComp->RemoveTag(UnitTags::Dead);
+	TagComp->RemoveTag(UnitTags::Untargetable);
+
+	// 상태 Idle로 복귀
+	StateComp->TryChangeState(ECharacterState::Idle);
+
+	// 충돌 다시 활성화 (Multicast_OnDeath에서 껐으므로)
+	Multicast_Respawn();
+}
+
+void ALoLChampion::Multicast_Respawn_Implementation()
+{
+	// 충돌 복구
+	SetActorEnableCollision(true);
+
+	// 리스폰 위치로 이동 (BeginPlay 시 기록해둔 스폰 위치)
+	// 간단히 원래 위치 쓰거나, PlayerStart 위치 쓰면 됨
+	// 지금은 제자리 리스폰
 }
 
 // 평타
@@ -203,7 +250,8 @@ void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 {
 	if (!HasAuthority() || !Target) { return; }
 
-	Multicast_PlayMontage(ChampionData ? ChampionData->BasicAttackMontage : nullptr);
+	if (ChampionData && ChampionData->BasicAttackMontage)
+		Multicast_PlayMontage(ChampionData->BasicAttackMontage);
 
 	// 발사체로 평타 처리
 	if (SkillExecutor && SkillExecutor->ProjectileClass)

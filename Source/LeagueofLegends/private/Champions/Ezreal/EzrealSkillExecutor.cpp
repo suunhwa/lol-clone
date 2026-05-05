@@ -51,9 +51,9 @@ static float ComputeScaledDamage(const FDetailSkillStatsRow& Row, UStatComponent
 	auto Apply = [&](const FString& FactorStat, const FString& Coeff)
 	{
 		if (FactorStat.IsEmpty() || FactorStat.Equals(TEXT("None"), ESearchCase::IgnoreCase)) { return; }
-		
+
 		const float C = FCString::Atof(*Coeff);
-		
+
 		if (FactorStat.Equals(TEXT("AD"), ESearchCase::IgnoreCase))
 		{
 			Dmg += Stat->GetAD() * C;
@@ -79,7 +79,8 @@ void UEzrealSkillExecutor::Execute(ESkillSlot Slot, FVector TargetLoc)
 		break;
 	case ESkillSlot::E: ExecuteE(TargetLoc);
 		break;
-	case ESkillSlot::R: break; // TODO
+	case ESkillSlot::R: ExecuteR(TargetLoc);
+		break;
 	}
 }
 
@@ -87,7 +88,11 @@ void UEzrealSkillExecutor::Execute(ESkillSlot Slot, FVector TargetLoc)
 void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 {
 	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
-	PlayMontage(Data ? Data->QSkillMontage : nullptr);
+
+	if (Data && Data->QSkillMontage)
+	{
+		OwnerChar->Multicast_PlayMontage(Data->QSkillMontage);
+	}
 
 	UChampionDataSubsystem* Sub = GetDataSub();
 	const FDetailSkillStatsRow* Stats = Sub
@@ -97,25 +102,11 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 	const float ManaCost = Stats ? Stats->Cost : 28.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 5.5f;
 
-	if (Stats)
-	{
-		PRINTLOG_SH(
-			TEXT("[Q] 테이블 ─ Rank:%d Base:%.1f FactorStat1:%s Coeff1:%s FactorStat2:%s Coeff2:%s Cost:%.1f CD:%.2f"),
-			GetRank(ESkillSlot::Q),
-			Stats->Base_Value, *Stats->Factor_Stat1, *Stats->Coefficient1,
-			*Stats->Factor_Stat2, *Stats->Coefficient2,
-			Stats->Cost, Stats->CoolDown);
-	}
-	else
-	{
-		PRINTLOG_SH(TEXT("[Q] 테이블 로드 실패 — fallback 수치 사용"));
-	}
-
 	if (StatComp)
 	{
 		StatComp->ApplyManaCost(ManaCost);
 	}
-	
+
 	if (CooldownComp)
 	{
 		CooldownComp->StartCooldown(TEXT("Skill.Q"), Cooldown);
@@ -123,15 +114,24 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 
 	FDamageContext Ctx;
 	Ctx.RawDamage = Stats ? ComputeScaledDamage(*Stats, StatComp) : 20.f;
-
-	PRINTLOG_SH(TEXT("[Q] 계산 ─ AD:%.1f  최종데미지:%.1f  마나차감:%.1f  쿨타임:%.2f"),
-	            StatComp ? StatComp->GetAD() : 0.f, Ctx.RawDamage, ManaCost, Cooldown);
 	Ctx.DamageType = EDamageType::Physical;
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("Ezreal.Q");
 
 	SpawnProjectile((TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
 	                2000.f, 1100.f, Ctx, false, true, TEXT("Socket_Q"));
+
+	/* TODO: 몽타주에 ExitRun/ExitIdle 섹션 추가 후 활성화
+	bool bMoving = OwnerChar->GetVelocity().SizeSquared2D() > 100.f;
+	FName ExitSection = bMoving ? TEXT("ExitRun") : TEXT("ExitIdle");
+	FTimerHandle ExitTimer;
+	OwnerChar->GetWorldTimerManager().SetTimer(ExitTimer, [this, Data, ExitSection]()
+	{
+		if (!OwnerChar || !Data || !Data->QSkillMontage) { return; }
+		UAnimInstance* Anim = OwnerChar->GetMesh()->GetAnimInstance();
+		if (Anim) { Anim->Montage_JumpToSection(ExitSection, Data->QSkillMontage); }
+	}, 0.4f, false);
+	*/
 }
 
 // W
@@ -189,7 +189,26 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 {
 	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
-	PlayMontage(Data ? Data->ESkillMontage : nullptr);
+
+	/* TODO: 몽타주에 방향별 섹션(E_0/90/180/-90/-180) 추가 후 활성화
+	FVector Forward = OwnerChar->GetActorForwardVector();
+	FVector BlinkDir = (TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D();
+	float Dot = FVector::DotProduct(Forward, BlinkDir);
+	float Cross = Forward.X * BlinkDir.Y - Forward.Y * BlinkDir.X;
+	float Angle = FMath::RadiansToDegrees(FMath::Atan2(Cross, Dot));
+	float Abs = FMath::Abs(Angle);
+
+	FName Section;
+	if (Abs < 45.f) { Section = TEXT("E_0"); }
+	else if (Abs > 135.f) { Section = (Angle > 0.f) ? TEXT("E_180") : TEXT("E_-180"); }
+	else if (Angle > 0.f) { Section = TEXT("E_90"); }
+	else { Section = TEXT("E_-90"); }
+	*/
+
+	if (Data && Data->ESkillMontage)
+	{
+		OwnerChar->Multicast_PlayMontage(Data->ESkillMontage);
+	}
 
 	UChampionDataSubsystem* Sub = GetDataSub();
 	const FDetailSkillStatsRow* Stats = Sub
@@ -218,7 +237,7 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	{
 		StatComp->ApplyManaCost(ManaCost);
 	}
-	
+
 	if (CooldownComp)
 	{
 		CooldownComp->StartCooldown(TEXT("Skill.E"), Cooldown);
@@ -230,7 +249,67 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 
 	OwnerChar->TeleportTo(CurLoc + Dir2D * Dist, OwnerChar->GetActorRotation());
 
+	/* TODO: 몽타주에 ExitRun/ExitIdle 섹션 추가 후 활성화
+	bool bMoving = OwnerChar->GetVelocity().SizeSquared2D() > 100.f;
+	FName ExitSection = bMoving ? TEXT("ExitRun") : TEXT("ExitIdle");
+	FTimerHandle ExitTimer;
+	OwnerChar->GetWorldTimerManager().SetTimer(ExitTimer, [this, Data, ExitSection]()
+	{
+		if (!OwnerChar || !Data || !Data->ESkillMontage) { return; }
+		UAnimInstance* Anim = OwnerChar->GetMesh()->GetAnimInstance();
+		if (Anim) { Anim->Montage_JumpToSection(ExitSection, Data->ESkillMontage); }
+	}, 0.3f, false);
+	*/
+
 	// FireESecondaryShot(); // TODO: 나중에 활성화
+}
+
+// R
+void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
+{
+	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
+	PlayMontage(Data ? Data->RSkillMontage : nullptr);
+
+	UChampionDataSubsystem* Sub = GetDataSub();
+	const FDetailSkillStatsRow* Stats = Sub
+		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("R"), GetRank(ESkillSlot::R))
+		                                    : nullptr;
+
+	const float ManaCost = Stats ? Stats->Cost : 100.f;
+	const float Cooldown = Stats ? Stats->CoolDown : 120.f;
+
+	if (Stats)
+	{
+		PRINTLOG_SH(TEXT("[R] 테이블 ─ Rank:%d Base:%.1f Cost:%.1f CD:%.2f"),
+		            GetRank(ESkillSlot::R), Stats->Base_Value, Stats->Cost, Stats->CoolDown);
+	}
+	else
+	{
+		PRINTLOG_SH(TEXT("[R] 테이블 로드 실패 — fallback 수치 사용"));
+	}
+
+	if (StatComp)
+	{
+		StatComp->ApplyManaCost(ManaCost);
+	}
+
+	if (CooldownComp)
+	{
+		CooldownComp->StartCooldown(TEXT("Skill.R"), Cooldown);
+	}
+
+	FDamageContext Ctx;
+	Ctx.RawDamage = Stats ? ComputeScaledDamage(*Stats, StatComp) : 350.f;
+	Ctx.DamageType = EDamageType::Magical;
+	Ctx.DamageInstigator = GetOwner();
+	Ctx.SourceTag = TEXT("Ezreal.R");
+
+	PRINTLOG_SH(TEXT("[R] 발사 ─ 데미지:%.1f"), Ctx.RawDamage);
+
+	// 글로벌 사거리 관통 발사체 (bPiercing=true, 사거리 20000)
+	SpawnProjectile(
+		(TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
+		2000.f, 20000.f, Ctx, true, false, TEXT("Socket_Q"));
 }
 
 void UEzrealSkillExecutor::FireESecondaryShot()

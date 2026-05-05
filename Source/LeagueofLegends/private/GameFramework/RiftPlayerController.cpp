@@ -199,6 +199,12 @@ void ARiftPlayerController::OnMove()
 
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+
+	PRINTLOG_SH(TEXT("OnMove — bHit:%d Loc:%s Actor:%s"),
+		HitResult.bBlockingHit,
+		*HitResult.ImpactPoint.ToString(),
+		*GetNameSafe(HitResult.GetActor()));
+
 	if (!HitResult.bBlockingHit) { return; }
 
 	// 커서가 적 위에 있으면 이동 대신 공격
