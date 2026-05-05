@@ -76,7 +76,7 @@ struct FRow
 {
 	GENERATED_BODY()
 
-	FRow() : Depth(0), StartSlop(FFraction{-1, 1}), EndSlop(FFraction{1, 1})
+	FRow() : Depth(1), StartSlop(FFraction{-1, 1}), EndSlop(FFraction{1, 1})
 	{
 	}
 	
@@ -139,7 +139,7 @@ private:
 	void ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap, int32 MaxDepth);
 	
 	UFUNCTION()
-	void Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap, int32 MaxDepth);
+	void Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap, const FIntPoint& Origin, int32 MaxDepth);
 	
 	UFUNCTION()
 	bool IsWall(FIntPoint& Tile, const FQuadrant& Quadrant, AFOWTileMap* TileMap) const;
@@ -148,7 +148,7 @@ private:
 	bool IsFloor(FIntPoint& Tile, const FQuadrant& Quadrant, AFOWTileMap* TileMap) const;
 
 	UFUNCTION()
-	void Reveal(FIntPoint& Tile, const FQuadrant& Quadrant, AFOWTileMap* TileMap);
+	void Reveal(FIntPoint& Tile, const FQuadrant& Quadrant, AFOWTileMap* TileMap, const FIntPoint& Origin, int32 MaxDepth);
 	
 	UFUNCTION()
 	bool IsSymmetric(FRow& Row, int32 Depth, int32 Col) const;

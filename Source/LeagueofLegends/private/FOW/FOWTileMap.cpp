@@ -3,7 +3,9 @@
 
 #include "FOW/FOWTileMap.h"
 
+#include "LeagueofLegends.h"
 #include "Engine/StaticMeshActor.h"
+#include "Interfaces/SightProviderHelper.h"
 #include "Kismet/GameplayStatics.h"
 
 AFOWTileMap::AFOWTileMap()
@@ -33,6 +35,12 @@ void AFOWTileMap::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		PixelBuffer = nullptr;
 		PixelBufferSize = 0;
 	}
+	
+	if (SightDataBuffer)
+	{
+		delete[] SightDataBuffer;
+		SightDataBuffer = nullptr;
+	}
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -54,6 +62,7 @@ void AFOWTileMap::Generate(AActor* MapActor)
 {
 	GenerateTileMap(MapActor);
 	CreateFogTexture();
+	CreateSightDataTexture();
 	
 	// Debug용 Plane에 텍스처 연결
 	CreateDebugPlane();
@@ -222,32 +231,44 @@ void AFOWTileMap::SetTileVisibility(int32 X, int32 Y, bool bVisible)
 }
 
 void AFOWTileMap::CreateFogTexture()
-{
-	if (!FogTexture)
-	{
-		FogTexture = UTexture2D::CreateTransient(MapSize, MapSize, PF_G8);
-		if (!FogTexture)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create transient texture"));
-			return;
-		}
+ {
+ 	if (!FogTexture)
+ 	{
+ 		FogTexture = UTexture2D::CreateTransient(MapSize, MapSize, PF_G8);
+ 		if (!FogTexture)
+ 		{
+ 			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create transient texture"));
+ 			return;
+ 		}
+ 
+ 		// FogTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
+ 		FogTexture->Filter = TF_Bilinear; // 부드러운 경계
+ 		FogTexture->CompressionSettings = TC_Grayscale;
+ 		FogTexture->AddressX = TA_Clamp;
+ 		FogTexture->AddressY = TA_Clamp;
+ 		FogTexture->SRGB = false;
+ 		FogTexture->UpdateResource();
+ 		// FlushRenderingCommands();
+ 	}
+ 
+ 	// uint8 버퍼 동적 할당
+ 	PixelBufferSize = MapSize * MapSize * sizeof(uint8);
+ 	if (!PixelBuffer)
+ 	{
+ 		PixelBuffer = new uint8[MapSize * MapSize];
+ 	}
+ 	FMemory::Memzero(PixelBuffer, PixelBufferSize);// 전부 검정으로 초6기화
+ }
 
-		FogTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
-		FogTexture->CompressionSettings = TC_Grayscale;
-		FogTexture->AddressX = TA_Clamp;
-		FogTexture->AddressY = TA_Clamp;
-		FogTexture->SRGB = false;
-		FogTexture->UpdateResource();
-		FlushRenderingCommands();
-	}
+void AFOWTileMap::CreateSightDataTexture()
+{	
+	SightDataTexture = UTexture2D::CreateTransient(MaxSightProviders, 1, PF_A32B32G32R32F);
+	SightDataTexture->Filter = TF_Nearest;
+	SightDataTexture->SRGB = false;
+	SightDataTexture->UpdateResource();
 
-	// uint8 버퍼 동적 할당
-	PixelBufferSize = MapSize * MapSize * sizeof(uint8);
-	if (!PixelBuffer)
-	{
-		PixelBuffer = new uint8[MapSize * MapSize];
-	}
-	FMemory::Memset(PixelBuffer, 0, PixelBufferSize); // 전부 검정으로 초기화
+	SightDataBuffer = new FLinearColor[MaxSightProviders];
+	FMemory::Memzero(SightDataBuffer, MaxSightProviders * sizeof(FLinearColor));
 }
 
 void AFOWTileMap::CreateFOWPostProcess()
@@ -286,15 +307,15 @@ void AFOWTileMap::CreateFOWPostProcess()
 			0, 0)
 	);
 
-	// FOWTexture
+	// FogTexture
 	FOWPostProcessMID->SetTextureParameterValue(
 		TEXT("FogTexture"), FogTexture
 	);
-
-	// FOWPostProcessMID->SetScalarParameterValue(
-	// 	TEXT("SightRadius"),
-	// 	10
-	// );
+	
+	// SightDataTexture
+	FOWPostProcessMID->SetTextureParameterValue(
+		TEXT("SightDataTexture"), SightDataTexture
+	);
 
 	// PostProcessVolume 찾아서 MID 적용
 	APostProcessVolume* PPV = Cast<APostProcessVolume>(
@@ -368,6 +389,51 @@ void AFOWTileMap::UpdateFogTexture()
 			delete InRegion; // Region 힙 해제
 		}
 	);
+}
+
+void AFOWTileMap::UpdateSightDataTexture(const TArray<TScriptInterface<ISightProvider>>& SightProviders)
+{
+	if (!SightDataTexture || !SightDataBuffer) return;
+
+	const int32 ActiveCount = SightProviders.Num();
+	
+	FMemory::Memzero(SightDataBuffer, MaxSightProviders * sizeof(FLinearColor));
+
+	// 활성 슬롯 채우기
+	for (int32 i = 0; i < ActiveCount; i++)
+	{
+		UObject* Obj = SightProviders[i].GetObject();
+		FVector Origin = SightProviderHelper::GetSightOrigin(Obj);
+		float Range = SightProviderHelper::GetSightRange(Obj);
+
+		SightDataBuffer[i] = FLinearColor(Origin.X, Origin.Y, Range, 1.f);
+		
+		// 디버깅
+		PRINTLOG_TK(TEXT("SightProvider %d: Origin=(%.1f, %.1f), Range=%.1f"), i, Origin.X, Origin.Y, Range);
+	}
+	
+	PRINTLOG_TK(TEXT("Updating SightDataTexture with %d active sight providers"), ActiveCount);
+
+	// FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(
+	// 	0, 0, 0, 0, ActiveCount, 1);
+
+	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(
+		0, 0, 0, 0, MaxSightProviders, 1);
+	
+	SightDataTexture->UpdateTextureRegions(
+		0,
+		1,
+		Region,
+		MaxSightProviders * sizeof(FLinearColor),
+		sizeof(FLinearColor),
+		(uint8*)SightDataBuffer,
+		[](uint8*, const FUpdateTextureRegion2D* R) { delete R; }
+	);
+	
+	if (FOWPostProcessMID)
+	{
+		FOWPostProcessMID->SetScalarParameterValue(TEXT("SightCount"), ActiveCount);
+	}
 }
 
 void AFOWTileMap::ResetTileVisibility()

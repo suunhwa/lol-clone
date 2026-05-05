@@ -36,6 +36,9 @@ public:
 	void UpdateFogTexture();
 	
 	UFUNCTION(BlueprintCallable)
+	void UpdateSightDataTexture(const TArray<TScriptInterface<ISightProvider>>& SightProviders);
+	
+	UFUNCTION(BlueprintCallable)
 	void ResetTileVisibility();
 	
 	FIntPoint WorldToTile(const FVector& WorldLocation) const;
@@ -61,6 +64,7 @@ public:
 	
 private:
 	void CreateFogTexture();
+	void CreateSightDataTexture();
 	void CreateFOWPostProcess();
 	
 	void CreateDebugPlane();
@@ -78,8 +82,15 @@ protected:
 	UPROPERTY()
 	TArray<FTile> Tiles;
 	
+#pragma region Texture (Create in runtime)
 	UPROPERTY()
 	TObjectPtr<UTexture2D> FogTexture;
+	
+	UPROPERTY()
+	TObjectPtr<UTexture2D> SightDataTexture;
+	
+	static constexpr int32 MaxSightProviders = 128;
+#pragma endregion
 	
 #pragma region PostProcess
 	UPROPERTY(EditAnywhere)
@@ -102,4 +113,6 @@ protected:
 	
 	uint8* PixelBuffer = nullptr;
 	uint32 PixelBufferSize = 0;
+	
+	FLinearColor* SightDataBuffer = nullptr;
 };

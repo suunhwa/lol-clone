@@ -101,10 +101,12 @@ void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISight
 
 		float SightRange = SightProviderHelper::GetSightRange(Provider.GetObject());
 		int32 MaxDepth = FMath::FloorToInt(SightRange / TileMap->GetTileSize());
+		// MaxDepth = FMath::FloorToInt(MaxDepth * 1.2f);
 		ComputeFOV(Origin, TileMap, MaxDepth);
 	}
 
 	TileMap->UpdateFogTexture();
+	TileMap->UpdateSightDataTexture(SightProviders);
 #endif
 }
 
@@ -160,11 +162,11 @@ void AFOWManager::ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap, int3
 	for (int32 i = 0; i < 4; i++)
 	{
 		FQuadrant Quadrant{ static_cast<EQuadrantDirection>(i), Origin };
-		Scan(FRow(), Quadrant, TileMap, MaxDepth);
+		Scan(FRow(), Quadrant, TileMap, Origin, MaxDepth);
 	}
 }
 
-void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap, int32 MaxDepth)
+void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap, const FIntPoint& Origin, int32 MaxDepth)
 {
 	if (Row.Depth > MaxDepth)
 	{
@@ -179,7 +181,7 @@ void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap
 		if (IsWall(CurTilePoint, Quadrant, TileMap) ||
 			IsSymmetric(Row, Row.Depth, Col))
 		{
-			Reveal(CurTilePoint, Quadrant, TileMap);
+			Reveal(CurTilePoint, Quadrant, TileMap, Origin, MaxDepth);
 		}
 		
 		if (bHasPrev)
@@ -192,7 +194,7 @@ void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap
 			{
 				FRow NextRow = Row.Next();
 				NextRow.EndSlop = FFraction{ Col * 2 - 1, Row.Depth * 2 };
-				Scan(NextRow, Quadrant, TileMap, MaxDepth);
+				Scan(NextRow, Quadrant, TileMap, Origin, MaxDepth);
 			}
 		}
 		
@@ -202,7 +204,7 @@ void AFOWManager::Scan(FRow Row, const FQuadrant& Quadrant, AFOWTileMap* TileMap
 	
 	if (IsFloor(PrevTilePoint, Quadrant, TileMap))
 	{
-		Scan(Row.Next(), Quadrant, TileMap, MaxDepth);
+		Scan(Row.Next(), Quadrant, TileMap, Origin, MaxDepth);
 	}
 }
 
@@ -222,10 +224,15 @@ bool AFOWManager::IsFloor(FIntPoint& Tile, const FQuadrant& Quadrant, AFOWTileMa
 	return FTilePtr->Type == ETileType::Floor;
 }
 
-void AFOWManager::Reveal(FIntPoint& Tile, const FQuadrant& Quadrant, AFOWTileMap* TileMap)
+void AFOWManager::Reveal(FIntPoint& Tile, const FQuadrant& Quadrant, AFOWTileMap* TileMap, const FIntPoint& Origin, int32 MaxDepth)
 {
 	const FIntPoint T = Quadrant.Transform(Tile.X, Tile.Y);
 	if (!TileMap->IsInMap(T.X, T.Y)) return;
+	
+	const int32 DX = T.X - Origin.X;
+	const int32 DY = T.Y - Origin.Y;
+	if (DX * DX + DY * DY > MaxDepth * MaxDepth) return;
+	
 	TileMap->SetTileVisibility(T.X, T.Y, true);
 }
 
