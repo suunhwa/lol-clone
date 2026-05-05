@@ -101,7 +101,6 @@ void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISight
 
 		float SightRange = SightProviderHelper::GetSightRange(Provider.GetObject());
 		int32 MaxDepth = FMath::FloorToInt(SightRange / TileMap->GetTileSize());
-		// MaxDepth = FMath::FloorToInt(MaxDepth * 1.2f);
 		ComputeFOV(Origin, TileMap, MaxDepth);
 	}
 

@@ -13,6 +13,8 @@ AFOWTileMap::AFOWTileMap()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+AFOWTileMap::~AFOWTileMap() = default;
+
 void AFOWTileMap::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -234,7 +236,19 @@ void AFOWTileMap::CreateFogTexture()
  {
  	if (!FogTexture)
  	{
- 		FogTexture = UTexture2D::CreateTransient(MapSize, MapSize, PF_G8);
+ 		int32 TextureSize;
+ 		
+ 		if (bUseUpscaler)
+ 		{
+ 			Upscaler = MakeUnique<FFOWUpscaler>(MapSize);
+ 			TextureSize = Upscaler->GetUpscaledSize();
+ 		}
+ 		else
+ 		{
+ 			TextureSize = MapSize;
+ 		}
+ 		
+ 		FogTexture = UTexture2D::CreateTransient(TextureSize, TextureSize, PF_G8);
  		if (!FogTexture)
  		{
  			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create transient texture"));
@@ -372,18 +386,36 @@ void AFOWTileMap::UpdateFogTexture()
 			PixelBuffer[Y * MapSize + X] = (Tile && Tile->bIsVisible) ? 255 : 0;
 		}
 	}
+	
+	uint8* SourceData;
+	int32 TextureSize;
+
+	if (bUseUpscaler && Upscaler)
+	{
+		// Marching Squares 업스케일: 128x128 → 512x512
+		Upscaler->Upscale(this);
+		SourceData = Upscaler->GetBuffer();
+		TextureSize = Upscaler->GetUpscaledSize();
+	}
+	else
+	{
+		SourceData = PixelBuffer;
+		TextureSize = MapSize;
+	}
 
 	// UpdateTextureRegions: LockTexture2D 방식보다 안전하고
 	// UpdateResource() 타이밍 이슈 없이 렌더 스레드에 올바르게 전달됨
 	// SrcPitch = MapSize * 1byte(PF_G8), SrcBpp = 1byte
-	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize, MapSize);
+	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(
+		0, 0, 0, 0, TextureSize, TextureSize);
+	
 	FogTexture->UpdateTextureRegions(
 		0, // MipIndex
 		1, // NumRegions
 		Region, // Regions
-		static_cast<uint32>(MapSize), // SrcPitch (행당 바이트 수: MapSize * 1)
+		static_cast<uint32>(TextureSize), // SrcPitch (행당 바이트 수: MapSize * 1)
 		sizeof(uint8), // SrcBpp (픽셀당 바이트 수: 1)
-		PixelBuffer, // SrcData
+		SourceData, // SrcData
 		[](uint8* /*SrcData*/, const FUpdateTextureRegion2D* InRegion)
 		{
 			delete InRegion; // Region 힙 해제

@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "TileData.h"
+#include "FOW/FOWUpscaler.h"
 #include "FOWTileMap.generated.h"
 
+class FFOWUpscaler;
 
 UCLASS()
 class LEAGUEOFLEGENDS_API AFOWTileMap : public AActor
@@ -15,6 +17,7 @@ class LEAGUEOFLEGENDS_API AFOWTileMap : public AActor
 
 public:
 	AFOWTileMap();
+	virtual ~AFOWTileMap();
 
 	virtual void PostInitializeComponents() override;
 	
@@ -115,4 +118,9 @@ protected:
 	uint32 PixelBufferSize = 0;
 	
 	FLinearColor* SightDataBuffer = nullptr;
+	
+	UPROPERTY(EditAnywhere, Category = "FOW|Debug")
+	bool bUseUpscaler = true;
+	
+	TUniquePtr<FFOWUpscaler> Upscaler;
 };
