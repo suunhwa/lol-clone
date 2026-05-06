@@ -22,7 +22,7 @@ ALoLCharacterBase::ALoLCharacterBase()
 	bReplicates = true;
 	SetReplicateMovement(true);
 
-	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn"));
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Champion"));
 	
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
