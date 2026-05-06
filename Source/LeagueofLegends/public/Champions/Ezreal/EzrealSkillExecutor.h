@@ -26,7 +26,12 @@ private:
 	void ExecuteQ(FVector TargetLoc);
 	void ExecuteW(FVector TargetLoc);
 	void ExecuteE(FVector TargetLoc);
+	void ExecuteR(FVector TargetLoc);
 	void FireESecondaryShot();
+
+	class UChampionDataSubsystem* GetDataSub() const;
+	FName GetChampionID() const;
+	int32 GetRank(ESkillSlot Slot) const;
 
 	// ChampionData 몽타주 접근용 (OwnerChar보다 구체적인 타입)
 	UPROPERTY()

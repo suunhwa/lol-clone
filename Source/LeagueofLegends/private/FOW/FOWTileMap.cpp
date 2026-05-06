@@ -3,20 +3,29 @@
 
 #include "FOW/FOWTileMap.h"
 
+#include "LeagueofLegends.h"
 #include "Engine/StaticMeshActor.h"
+#include "Interfaces/SightProviderHelper.h"
 #include "Kismet/GameplayStatics.h"
-
 
 AFOWTileMap::AFOWTileMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+AFOWTileMap::~AFOWTileMap() = default;
+
+void AFOWTileMap::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	Tiles.SetNum(MapSize * MapSize); // 타일 배열 초기화
+}
+
 void AFOWTileMap::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Tiles.SetNum(MapSize * MapSize); // 타일 배열 초기화
 	// CreateDebugTexture();
 }
 
@@ -27,6 +36,12 @@ void AFOWTileMap::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		delete[] PixelBuffer;
 		PixelBuffer = nullptr;
 		PixelBufferSize = 0;
+	}
+	
+	if (SightDataBuffer)
+	{
+		delete[] SightDataBuffer;
+		SightDataBuffer = nullptr;
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -45,7 +60,20 @@ void AFOWTileMap::Tick(float DeltaTime)
 	}
 }
 
-void AFOWTileMap::GenerateFromMap(AActor* MapActor)
+void AFOWTileMap::Generate(AActor* MapActor)
+{
+	GenerateTileMap(MapActor);
+	CreateFogTexture();
+	CreateSightDataTexture();
+	
+	// Debug용 Plane에 텍스처 연결
+	CreateDebugPlane();
+	
+	UpdateFogTexture();
+	CreateFOWPostProcess();
+}
+
+void AFOWTileMap::GenerateTileMap(AActor* MapActor)
 {
 	if (!MapActor)
 	{
@@ -63,7 +91,7 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 
 	TileSize = FMath::Max(MapWidthLength, MapHeightLength) / MapSize;
 	float HalfTileSize = TileSize / 2.f;
-	float RayHeight = WorldMax.Z + 100.f; // Ray의 시작 높이
+	float RayHeight = WorldMax.Z + 1000.f; // Ray의 시작 높이
 
 	for (int i = 0; i < MapSize; i++)
 	{
@@ -73,7 +101,7 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 			float TileCenterY = WorldMin.Y + i * TileSize + HalfTileSize;
 
 			FVector RayStart(TileCenterX, TileCenterY, RayHeight);
-			FVector RayEnd(TileCenterX, TileCenterY, WorldMin.Z - 100.f);
+			FVector RayEnd(TileCenterX, TileCenterY, WorldMin.Z - 1000.f);
 
 			FHitResult HitResult;
 			FCollisionQueryParams Params;
@@ -93,7 +121,7 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 				// 타일이 지형과 충돌한 경우
 				// HitResult.Location을 사용하여 타일의 높이를 결정할 수 있음
 				// 예: SetTileHeight(i, j, HitResult.Location.Z);
-				if (HitResult.Location.Z < 150.f)
+				if (HitResult.Location.Z < 10.f)
 				{
 					CurTile.Type = ETileType::Floor; // 예시로 Floor 타입으로 설정
 				}
@@ -102,7 +130,7 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 					CurTile.Type = ETileType::Wall; // 예시로 Wall 타입으로 설정
 				}
 
-				// DebugBox 그리기
+				// // DebugBox 그리기
 				// FVector BoxCenter(TileCenterX, TileCenterY, HitResult.Location.Z);
 				// FVector BoxExtent(HalfTileSize, HalfTileSize, 10.f);
 				//
@@ -118,9 +146,9 @@ void AFOWTileMap::GenerateFromMap(AActor* MapActor)
 		}
 	}
 
-	CreateDebugTexture();
-	UpdateDebugTexture();
-	CreateFOWPostProcess();
+	// CreateFogTexture();
+	// UpdateDebugTexture();
+	// CreateFOWPostProcess();
 }
 
 FIntPoint AFOWTileMap::WorldToTile(const FVector& WorldLocation) const
@@ -204,51 +232,57 @@ void AFOWTileMap::SetTileVisibility(int32 X, int32 Y, bool bVisible)
 	GetTile(X, Y)->bIsVisible = bVisible;
 }
 
-void AFOWTileMap::CreateDebugTexture()
-{
-	if (!DebugTexture)
-	{
-		DebugTexture = UTexture2D::CreateTransient(MapSize, MapSize, PF_G8);
-		if (!DebugTexture)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create transient texture"));
-			return;
-		}
+void AFOWTileMap::CreateFogTexture()
+ {
+ 	if (!FogTexture)
+ 	{
+ 		int32 TextureSize;
+ 		
+ 		if (bUseUpscaler)
+ 		{
+ 			Upscaler = MakeUnique<FFOWUpscaler>(MapSize);
+ 			TextureSize = Upscaler->GetUpscaledSize();
+ 		}
+ 		else
+ 		{
+ 			TextureSize = MapSize;
+ 		}
+ 		
+ 		FogTexture = UTexture2D::CreateTransient(TextureSize, TextureSize, PF_G8);
+ 		if (!FogTexture)
+ 		{
+ 			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create transient texture"));
+ 			return;
+ 		}
+ 
+ 		// FogTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
+ 		FogTexture->Filter = TF_Bilinear; // 부드러운 경계
+ 		FogTexture->CompressionSettings = TC_Grayscale;
+ 		FogTexture->AddressX = TA_Clamp;
+ 		FogTexture->AddressY = TA_Clamp;
+ 		FogTexture->SRGB = false;
+ 		FogTexture->UpdateResource();
+ 		// FlushRenderingCommands();
+ 	}
+ 
+ 	// uint8 버퍼 동적 할당
+ 	PixelBufferSize = MapSize * MapSize * sizeof(uint8);
+ 	if (!PixelBuffer)
+ 	{
+ 		PixelBuffer = new uint8[MapSize * MapSize];
+ 	}
+ 	FMemory::Memzero(PixelBuffer, PixelBufferSize);// 전부 검정으로 초6기화
+ }
 
-		DebugTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
-		DebugTexture->CompressionSettings = TC_Grayscale;
-		DebugTexture->AddressX = TA_Clamp;
-		DebugTexture->AddressY = TA_Clamp;
-		DebugTexture->SRGB = false;
-		DebugTexture->UpdateResource();
-		FlushRenderingCommands();
-	}
+void AFOWTileMap::CreateSightDataTexture()
+{	
+	SightDataTexture = UTexture2D::CreateTransient(MaxSightProviders, 1, PF_A32B32G32R32F);
+	SightDataTexture->Filter = TF_Nearest;
+	SightDataTexture->SRGB = false;
+	SightDataTexture->UpdateResource();
 
-	// uint8 버퍼 동적 할당
-	PixelBufferSize = MapSize * MapSize * sizeof(uint8);
-	if (!PixelBuffer)
-	{
-		PixelBuffer = new uint8[MapSize * MapSize];
-	}
-	FMemory::Memset(PixelBuffer, 0, PixelBufferSize); // 전부 검정으로 초기화
-
-	// MID 생성 후 텍스처 연결
-	if (DebugPlane && DebugMaterial)
-	{
-		if (!DebugMID)
-		{
-			DebugMID = UMaterialInstanceDynamic::Create(DebugMaterial, this);
-		}
-
-		if (!DebugMID)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create dynamic material instance"));
-			return;
-		}
-
-		DebugMID->SetTextureParameterValue(TEXT("DebugTex"), DebugTexture);
-		DebugPlane->GetStaticMeshComponent()->SetMaterial(0, DebugMID);
-	}
+	SightDataBuffer = new FLinearColor[MaxSightProviders];
+	FMemory::Memzero(SightDataBuffer, MaxSightProviders * sizeof(FLinearColor));
 }
 
 void AFOWTileMap::CreateFOWPostProcess()
@@ -270,15 +304,6 @@ void AFOWTileMap::CreateFOWPostProcess()
 		return;
 	}
 
-	// // FOW 텍스처 연결
-	// FOWPostProcessMID->SetTextureParameterValue(TEXT("FogTexture"), DebugTexture);
-	// // MapMin 전달
-	// FOWPostProcessMID->SetVectorParameterValue(TEXT("MapMin"),
-	//                                            FLinearColor(WorldMin.X, WorldMin.Y, 0, 0));
-	// // MapSize 전달
-	// FOWPostProcessMID->SetScalarParameterValue(TEXT("MapSize"),
-	//                                            TileSize * MapSize);
-
 	// VolumeExtentXY
 	FOWPostProcessMID->SetScalarParameterValue(
 		TEXT("VolumeExtentXY"), GetVolumeExtentXY());
@@ -296,15 +321,15 @@ void AFOWTileMap::CreateFOWPostProcess()
 			0, 0)
 	);
 
-	// FOWTexture
+	// FogTexture
 	FOWPostProcessMID->SetTextureParameterValue(
-		TEXT("FogTexture"), DebugTexture
+		TEXT("FogTexture"), FogTexture
 	);
-
-	// FOWPostProcessMID->SetScalarParameterValue(
-	// 	TEXT("SightRadius"),
-	// 	10
-	// );
+	
+	// SightDataTexture
+	FOWPostProcessMID->SetTextureParameterValue(
+		TEXT("SightDataTexture"), SightDataTexture
+	);
 
 	// PostProcessVolume 찾아서 MID 적용
 	APostProcessVolume* PPV = Cast<APostProcessVolume>(
@@ -320,9 +345,30 @@ void AFOWTileMap::CreateFOWPostProcess()
 	}
 }
 
-void AFOWTileMap::UpdateDebugTexture()
+void AFOWTileMap::CreateDebugPlane()
 {
-	if (!DebugTexture || !PixelBuffer)
+	// MID 생성 후 텍스처 연결
+	if (DebugPlane && DebugMaterial)
+	{
+		if (!DebugMID)
+		{
+			DebugMID = UMaterialInstanceDynamic::Create(DebugMaterial, this);
+		}
+
+		if (!DebugMID)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create dynamic material instance"));
+			return;
+		}
+
+		DebugMID->SetTextureParameterValue(TEXT("DebugTex"), FogTexture);
+		DebugPlane->GetStaticMeshComponent()->SetMaterial(0, DebugMID);
+	}
+}
+
+void AFOWTileMap::UpdateFogTexture()
+{
+	if (!FogTexture || !PixelBuffer)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UpdateDebugTexture: DebugTexture or PixelBuffer is null"));
 		return;
@@ -340,23 +386,86 @@ void AFOWTileMap::UpdateDebugTexture()
 			PixelBuffer[Y * MapSize + X] = (Tile && Tile->bIsVisible) ? 255 : 0;
 		}
 	}
+	
+	uint8* SourceData;
+	int32 TextureSize;
+
+	if (bUseUpscaler && Upscaler)
+	{
+		// Marching Squares 업스케일: 128x128 → 512x512
+		Upscaler->Upscale(this);
+		SourceData = Upscaler->GetBuffer();
+		TextureSize = Upscaler->GetUpscaledSize();
+	}
+	else
+	{
+		SourceData = PixelBuffer;
+		TextureSize = MapSize;
+	}
 
 	// UpdateTextureRegions: LockTexture2D 방식보다 안전하고
 	// UpdateResource() 타이밍 이슈 없이 렌더 스레드에 올바르게 전달됨
 	// SrcPitch = MapSize * 1byte(PF_G8), SrcBpp = 1byte
-	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize, MapSize);
-	DebugTexture->UpdateTextureRegions(
+	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(
+		0, 0, 0, 0, TextureSize, TextureSize);
+	
+	FogTexture->UpdateTextureRegions(
 		0, // MipIndex
 		1, // NumRegions
 		Region, // Regions
-		static_cast<uint32>(MapSize), // SrcPitch (행당 바이트 수: MapSize * 1)
+		static_cast<uint32>(TextureSize), // SrcPitch (행당 바이트 수: MapSize * 1)
 		sizeof(uint8), // SrcBpp (픽셀당 바이트 수: 1)
-		PixelBuffer, // SrcData
+		SourceData, // SrcData
 		[](uint8* /*SrcData*/, const FUpdateTextureRegion2D* InRegion)
 		{
 			delete InRegion; // Region 힙 해제
 		}
 	);
+}
+
+void AFOWTileMap::UpdateSightDataTexture(const TArray<TScriptInterface<ISightProvider>>& SightProviders)
+{
+	if (!SightDataTexture || !SightDataBuffer) return;
+
+	const int32 ActiveCount = SightProviders.Num();
+	
+	FMemory::Memzero(SightDataBuffer, MaxSightProviders * sizeof(FLinearColor));
+
+	// 활성 슬롯 채우기
+	for (int32 i = 0; i < ActiveCount; i++)
+	{
+		UObject* Obj = SightProviders[i].GetObject();
+		FVector Origin = SightProviderHelper::GetSightOrigin(Obj);
+		float Range = SightProviderHelper::GetSightRange(Obj);
+
+		SightDataBuffer[i] = FLinearColor(Origin.X, Origin.Y, Range, 1.f);
+		
+		// 디버깅
+		PRINTLOG_TK(TEXT("SightProvider %d: Origin=(%.1f, %.1f), Range=%.1f"), i, Origin.X, Origin.Y, Range);
+	}
+	
+	PRINTLOG_TK(TEXT("Updating SightDataTexture with %d active sight providers"), ActiveCount);
+
+	// FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(
+	// 	0, 0, 0, 0, ActiveCount, 1);
+
+	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(
+		0, 0, 0, 0, MaxSightProviders, 1);
+	
+	SightDataTexture->UpdateTextureRegions(
+		0,
+		1,
+		Region,
+		MaxSightProviders * sizeof(FLinearColor),
+		sizeof(FLinearColor),
+		(uint8*)SightDataBuffer,
+		[](uint8*, const FUpdateTextureRegion2D* R) { delete R; }
+	);
+	
+	if (FOWPostProcessMID)
+	{
+		FOWPostProcessMID->SetScalarParameterValue(TEXT("SightCount"), ActiveCount);
+	}
 }
 
 void AFOWTileMap::ResetTileVisibility()

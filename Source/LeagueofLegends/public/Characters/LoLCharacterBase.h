@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/Damageable.h"
+#include "Interfaces/SightProvider.h"
 #include "Interfaces/Targetable.h"
 #include "LoLCharacterBase.generated.h"
 
@@ -16,9 +17,10 @@ class UStatusEffectComponent;
 class UCooldownComponent;
 class USkillComponent;
 class UTargetingComponent;
+class UWidgetComponent;
 
 UCLASS(Abstract)
-class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamageable, public ITargetable
+class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamageable, public ITargetable, public ISightProvider
 {
 	GENERATED_BODY()
 
@@ -37,7 +39,26 @@ public:
 	virtual bool IsTargetable() const override;
 	virtual FVector GetTargetLocation() const override;
 	virtual ETeam GetTeam() const override;
+	
+	// --- ISightProvider
+#pragma region SightProvider
+	virtual FVector GetSightOrigin_Implementation() const override;
+	virtual float GetSightRange_Implementation() const override;
+	virtual bool IsStatic_Implementation() const override;
+	virtual ERiftSightTag GetSightTag_Implementation() const override;
 
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Sight")
+	float SightRange = 1000.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Sight")
+	bool bStaticSight = false;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Sight")
+	ERiftSightTag SightTag = ERiftSightTag::None;
+#pragma endregion
+
+public:
 	// --- Components
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UStatComponent> StatComp;
@@ -63,12 +84,19 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UTargetingComponent> TargetingComp;
 
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UWidgetComponent> HPBarWidgetComp;
+
 	UPROPERTY(EditAnywhere, Category = "Team")
 	ETeam InitialTeam = ETeam::Blue;
 
 	// 모든 클라이언트에 몽타주 재생 (서버에서 호출)
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontage(UAnimMontage* Montage);
+
+	// 특정 섹션부터 몽타주 재생
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayMontageSection(UAnimMontage* Montage, FName SectionName);
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator);

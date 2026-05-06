@@ -5,6 +5,8 @@
 #include "GameFramework/RiftTypes.h"
 #include "RiftGameState.generated.h"
 
+class AFOWManager;
+
 UCLASS()
 class LEAGUEOFLEGENDS_API ARiftGameState : public AGameStateBase
 {
@@ -29,6 +31,11 @@ public:
 	int32 GetElapsedSeconds() const { return ElapsedSeconds; }
 	int32 GetTeamKills(ETeam Team) const;
 	int32 GetTeamGold(ETeam Team) const;
+	
+	UFUNCTION(BlueprintCallable)
+	AFOWManager* GetFOWManager() const { return FOWManager; }
+	UFUNCTION(BlueprintCallable)
+	void SetFOWManager(AFOWManager* Manager) { FOWManager = Manager; }
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentPhase)
@@ -72,4 +79,8 @@ private:
 	void HandlePhaseChanged();
 
 	void IncrementTimer();
+	
+private:
+	UPROPERTY()
+	TObjectPtr<AFOWManager> FOWManager;
 };
