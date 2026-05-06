@@ -121,7 +121,7 @@ void AFOWTileMap::GenerateTileMap(AActor* MapActor)
 				// 타일이 지형과 충돌한 경우
 				// HitResult.Location을 사용하여 타일의 높이를 결정할 수 있음
 				// 예: SetTileHeight(i, j, HitResult.Location.Z);
-				if (HitResult.Location.Z < 250.f)
+				if (HitResult.Location.Z < 10.f)
 				{
 					CurTile.Type = ETileType::Floor; // 예시로 Floor 타입으로 설정
 				}
