@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Struct/ChampionStatStruct.h"
+#include "Struct/ChampionSkillStruct.h"
 #include "ChampionDataSubsystem.generated.h"
 
 class ALoLCharacterBase;
@@ -27,10 +28,15 @@ public:
 	// 챔피언 스탯 초기화. 서버 전용
 	void ApplyStats(ALoLCharacterBase* Target, UChampionData* Data) const;
 
-	// --- 개별 스탯 Row 조회 ---
+	// --- 챔피언 스탯 Row 조회 ---
 	const FChampionBaseRow*   GetBaseRow(FName ChampionID)   const;
 	const FChampionStatRow*   GetStatRow(FName ChampionID)   const;
 	const FChampionGrowthRow* GetGrowthRow(FName ChampionID) const;
+
+	// --- 스킬 데이터 조회 ---
+	// SkillKey: "Q", "W", "E", "R"  /  Step: 스킬 랭크 (1~5)
+	const FDetailSkillStatsRow* GetSkillStats(FName ChampionID, const FString& SkillKey, int32 Step) const;
+	const FSkillMechanicsRow*   GetSkillMechanics(FName ChampionID, const FString& SkillKey) const;
 
 private:
 	template <typename T>
@@ -40,7 +46,7 @@ private:
 	UPROPERTY()
 	TMap<FName, TObjectPtr<UChampionData>> ChampionDataMap;
 
-	// 공용 스탯 DataTable
+	// 챔피언 스탯 DataTable
 	UPROPERTY()
 	TObjectPtr<UDataTable> BaseTable;
 
@@ -49,4 +55,14 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UDataTable> GrowthTable;
+
+	// 스킬 DataTable
+	UPROPERTY()
+	TObjectPtr<UDataTable> MasterSkillTable;
+
+	UPROPERTY()
+	TObjectPtr<UDataTable> DetailSkillStatsTable;
+
+	UPROPERTY()
+	TObjectPtr<UDataTable> MechanicsTable;
 };

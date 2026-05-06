@@ -13,13 +13,16 @@
 #include "Components/CapsuleComponent.h"
 #include "FOW/FOWManager.h"
 #include "GameFramework/RiftGameState.h"
+#include "Components/WidgetComponent.h"
+#include "UI/HPBarWidget.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
+	SetReplicateMovement(true);
 
-	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Champion"));
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn"));
 	
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -33,6 +36,12 @@ ALoLCharacterBase::ALoLCharacterBase()
 	CooldownComp = CreateDefaultSubobject<UCooldownComponent>(TEXT("CooldownComp"));
 	SkillComp = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComp"));
 	TargetingComp = CreateDefaultSubobject<UTargetingComponent>(TEXT("TargetingComp"));
+
+	HPBarWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPBarWidgetComp"));
+	HPBarWidgetComp->SetupAttachment(GetRootComponent());
+	HPBarWidgetComp->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
+	HPBarWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
+	HPBarWidgetComp->SetDrawSize(FVector2D(100.f, 12.f));
 }
 
 void ALoLCharacterBase::BeginPlay()
@@ -47,6 +56,11 @@ void ALoLCharacterBase::BeginPlay()
 	
 	auto* GS = GetWorld()->GetGameState<ARiftGameState>();
 	GS->GetFOWManager()->RegisterSightProvider(this);
+
+	if (UHPBarWidget* HPBar = Cast<UHPBarWidget>(HPBarWidgetComp->GetWidget()))
+	{
+		HPBar->InitWidget(StatComp);
+	}
 }
 
 void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
@@ -119,8 +133,17 @@ void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)
 
 void ALoLCharacterBase::Multicast_PlayMontage_Implementation(UAnimMontage* Montage)
 {
-	if (!Montage) return;
+	if (!Montage) { return; }
 	PlayAnimMontage(Montage);
+}
+
+void ALoLCharacterBase::Multicast_PlayMontageSection_Implementation(UAnimMontage* Montage, FName SectionName)
+{
+	if (!Montage) { return; }
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	if (!Anim) { return; }
+	Anim->Montage_Play(Montage);
+	Anim->Montage_JumpToSection(SectionName, Montage);
 }
 
 void ALoLCharacterBase::Multicast_OnDeath_Implementation()
