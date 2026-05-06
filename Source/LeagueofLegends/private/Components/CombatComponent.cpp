@@ -15,29 +15,35 @@ UCombatComponent::UCombatComponent()
 
 void UCombatComponent::DealDamage(AActor* Target, FDamageContext Ctx)
 {
-	if (!GetOwner()->HasAuthority() || !Target) return;
+	if (!GetOwner()->HasAuthority() || !Target) { return; }
 
 	UStatComponent* TargetStat = Target->FindComponentByClass<UStatComponent>();
-	if (!TargetStat || TargetStat->IsDead()) return;
+	if (!TargetStat || TargetStat->IsDead()) { return; }
 
 	float FinalDamage = CalculateFinalDamage(Ctx, Target);
 
 	PRINTLOG_SH(TEXT("DealDamage — Target:%s 데미지:%.1f HP:%.1f→%.1f"),
-		*GetNameSafe(Target), FinalDamage,
-		TargetStat->GetCurrentHP(), TargetStat->GetCurrentHP() - FinalDamage);
+	            *GetNameSafe(Target),
+	            FinalDamage,
+	            TargetStat->GetCurrentHP(),
+	            TargetStat->GetCurrentHP() - FinalDamage);
 
 	TargetStat->ApplyHealthChange(-FinalDamage);
 
 	UStateComponent* TargetState = Target->FindComponentByClass<UStateComponent>();
 	if (TargetState)
+	{
 		TargetState->TryChangeState(ECharacterState::Hit);
+	}
 
 	// 흡혈
 	if (Ctx.LifeStealRatio > 0.f)
 	{
 		UStatComponent* OwnerStat = GetOwner()->FindComponentByClass<UStatComponent>();
 		if (OwnerStat)
+		{
 			OwnerStat->ApplyHealthChange(FinalDamage * Ctx.LifeStealRatio);
+		}
 	}
 
 	OnDamageDealt.Broadcast(Target, FinalDamage);
@@ -45,7 +51,9 @@ void UCombatComponent::DealDamage(AActor* Target, FDamageContext Ctx)
 	if (TargetStat->IsDead())
 	{
 		if (TargetState)
+		{
 			TargetState->TryChangeState(ECharacterState::Dead);
+		}
 
 		UTagComponent* TargetTag = Target->FindComponentByClass<UTagComponent>();
 		if (TargetTag)
@@ -56,14 +64,16 @@ void UCombatComponent::DealDamage(AActor* Target, FDamageContext Ctx)
 
 		UCombatComponent* TargetCombat = Target->FindComponentByClass<UCombatComponent>();
 		if (TargetCombat)
+		{
 			TargetCombat->OnDeath.Broadcast(Ctx.DamageInstigator);
+		}
 	}
 }
 
 void UCombatComponent::PerformBasicAttack(AActor* Target)
 {
 	UStatComponent* OwnerStat = GetOwner()->FindComponentByClass<UStatComponent>();
-	if (!OwnerStat) return;
+	if (!OwnerStat) { return; }
 
 	FDamageContext Ctx;
 	Ctx.RawDamage = OwnerStat->GetAD();
@@ -76,10 +86,10 @@ void UCombatComponent::PerformBasicAttack(AActor* Target)
 
 float UCombatComponent::CalculateFinalDamage(const FDamageContext& Ctx, AActor* Target) const
 {
-	if (Ctx.DamageType == EDamageType::TrueDamage) return Ctx.RawDamage;
+	if (Ctx.DamageType == EDamageType::TrueDamage) { return Ctx.RawDamage; }
 
 	UStatComponent* TargetStat = Target->FindComponentByClass<UStatComponent>();
-	if (!TargetStat) return Ctx.RawDamage;
+	if (!TargetStat) { return Ctx.RawDamage; }
 
 	float Resistance = (Ctx.DamageType == EDamageType::Physical)
 		                   ? TargetStat->GetArmor() * Ctx.ArmorPenRatio - Ctx.ArmorPenFlat
@@ -94,7 +104,10 @@ float UCombatComponent::CalculateFinalDamage(const FDamageContext& Ctx, AActor* 
 	if (Ctx.bIsCritical)
 	{
 		UStatComponent* OwnerStat = GetOwner()->FindComponentByClass<UStatComponent>();
-		if (OwnerStat) Reduced *= OwnerStat->GetCritMultiplier();
+		if (OwnerStat)
+		{
+			Reduced *= OwnerStat->GetCritMultiplier();
+		}
 	}
 
 	return Reduced;

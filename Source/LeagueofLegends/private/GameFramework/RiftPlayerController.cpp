@@ -200,10 +200,10 @@ void ARiftPlayerController::OnMove()
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
 
-	PRINTLOG_SH(TEXT("OnMove — bHit:%d Loc:%s Actor:%s"),
+	/*PRINTLOG_SH(TEXT("OnMove — bHit:%d Loc:%s Actor:%s"),
 		HitResult.bBlockingHit,
 		*HitResult.ImpactPoint.ToString(),
-		*GetNameSafe(HitResult.GetActor()));
+		*GetNameSafe(HitResult.GetActor()));*/
 
 	if (!HitResult.bBlockingHit) { return; }
 
@@ -395,6 +395,10 @@ void ARiftPlayerController::Server_RequestSkill_Implementation(ESkillSlot Slot, 
 
 void ARiftPlayerController::Server_RequestBasicAttack_Implementation(ALoLCharacterBase* Target)
 {
+	/*ALoLChampion* Champ = Cast<ALoLChampion>(GetPawn());
+	if (!Champ || !Target) { return; }
+	Champ->StartAttackLoop(Target);*/
+	
 	if (!OwnedChamp || !Target) { return; }
 	OwnedChamp->StartAttackLoop(Target);
 }
