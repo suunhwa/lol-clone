@@ -5,15 +5,11 @@
 #include "DataTableEditorUtils.h"
 #include "FileHelpers.h"
 #include "HttpModule.h"
+#include "SheetSyncSettings.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Engine/DataTable.h"
-
-UGoogleSheetsSyncer::UGoogleSheetsSyncer()
-{
-    PrimaryComponentTick.bCanEverTick = false;
-}
 
 bool UGoogleSheetsSyncer::ParseURL(const FString& URL, FString& OutSpreadsheetId, FString& OutGid)
 {
@@ -48,15 +44,41 @@ bool UGoogleSheetsSyncer::ParseURL(const FString& URL, FString& OutSpreadsheetId
 
 void UGoogleSheetsSyncer::SyncAll()
 {
-    for (int32 i = 0; i < SyncEntries.Num(); i++)
+    const USheetSyncSettings* Settings = USheetSyncSettings::Get();
+    if (Settings->Categories.Num() == 0)
     {
-        RequestCSV(i);
+        UE_LOG(LogTemp, Warning, TEXT("[SheetSync] Categories가 비어있습니다."));
+        return;
+    }
+    
+    for (int32 i = 0; i < Settings->Categories.Num(); i++)
+    {
+        SyncCategory(i);
     }
 }
 
-void UGoogleSheetsSyncer::RequestCSV(int32 Index)
+void UGoogleSheetsSyncer::SyncCategory(int32 CategoryIndex)
 {
-    const FSheetSyncEntry& Entry = SyncEntries[Index];
+    const USheetSyncSettings* Settings = USheetSyncSettings::Get();
+    if (!Settings->Categories.IsValidIndex(CategoryIndex))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[SheetSync] 유효하지 않은 CategoryIndex: %d"), CategoryIndex);
+        return;
+    }
+
+    const FSheetSyncCategory& Category = Settings->Categories[CategoryIndex];
+    UE_LOG(LogTemp, Log, TEXT("[SheetSync] [%s] 동기화 시작"), *Category.CategoryName);
+
+    for (int32 i = 0; i < Category.Entries.Num(); i++)
+    {
+        RequestCSV(CategoryIndex, i);
+    }
+}
+
+void UGoogleSheetsSyncer::RequestCSV(int32 CategoryIndex, int32 EntryIndex)
+{
+    const USheetSyncSettings* Settings = USheetSyncSettings::Get();
+    const FSheetSyncEntry& Entry = Settings->Categories[CategoryIndex].Entries[EntryIndex];
 
     FString SpreadsheetId, Gid;
     if (!ParseURL(Entry.SheetURL, SpreadsheetId, Gid))
@@ -73,28 +95,32 @@ void UGoogleSheetsSyncer::RequestCSV(int32 Index)
     Request->SetURL(URL);
     Request->SetVerb(TEXT("GET"));
     Request->OnProcessRequestComplete().BindLambda(
-        [this, Index](FHttpRequestPtr Req, FHttpResponsePtr Res, bool bSuccess)
+        [CategoryIndex, EntryIndex](FHttpRequestPtr Req, FHttpResponsePtr Res, bool bSuccess)
         {
             if (!bSuccess || !Res.IsValid())
             {
                 UE_LOG(LogTemp, Error,
-                    TEXT("[SheetSync] 요청 실패 Index: %d"), Index);
+                    TEXT("[SheetSync] 요청 실패 Category: %d, Entry: %d"), CategoryIndex, EntryIndex);
                 return;
             }
 
-            OnCSVReceived(Index, Res->GetContentAsString());
+            OnCSVReceived(CategoryIndex, EntryIndex, Res->GetContentAsString());
         });
-
     Request->ProcessRequest();
 }
 
-void UGoogleSheetsSyncer::OnCSVReceived(int32 Index, const FString& CSVText)
+void UGoogleSheetsSyncer::OnCSVReceived(int32 CategoryIndex, int32 EntryIndex, const FString& CSVText)
 {
-    UDataTable* DataTable = SyncEntries[Index].TargetDataTable;
+    const USheetSyncSettings* Settings = USheetSyncSettings::Get();
+    const FSheetSyncCategory& Category = Settings->Categories[CategoryIndex];
+    UDataTable* DataTable = Category.Entries[EntryIndex].TargetDataTable.LoadSynchronous();
+    
+
     if (!IsValid(DataTable))
     {
         UE_LOG(LogTemp, Error,
-            TEXT("[SheetSync] DataTable이 유효하지 않습니다. Index: %d"), Index);
+            TEXT("[SheetSync] [%s] DataTable이 유효하지 않습니다. Entry: %d"),
+            *Category.CategoryName, EntryIndex);
         return;
     }
 
@@ -109,26 +135,24 @@ void UGoogleSheetsSyncer::OnCSVReceived(int32 Index, const FString& CSVText)
     }
 
     UE_LOG(LogTemp, Log,
-        TEXT("[SheetSync] 동기화 완료 Index: %d"), Index);
-    
-    // 에셋 변경 사항 즉시 반영
+        TEXT("[SheetSync] [%s] 동기화 완료 Entry: %d"), *Category.CategoryName, EntryIndex);
+
     if (DataTable->MarkPackageDirty())
     {
         UE_LOG(LogTemp, Log,
-            TEXT("[SheetSync] DataTable 업데이트 완료 Index: %d"), Index);
+            TEXT("[SheetSync] [%s] DataTable 업데이트 완료 Entry: %d"), *Category.CategoryName, EntryIndex);
     }
     else
     {
         UE_LOG(LogTemp, Warning,
-            TEXT("[SheetSync] DataTable 업데이트 실패 Index: %d"), Index);
+            TEXT("[SheetSync] [%s] DataTable 업데이트 실패 Entry: %d"), *Category.CategoryName, EntryIndex);
     }
     
     // 변경
     FDataTableEditorUtils::BroadcastPostChange(DataTable, FDataTableEditorUtils::EDataTableChangeInfo::RowList);
-    UE_LOG(LogTemp, Log, TEXT("[SheetSync] DataTable 뷰 갱신 완료 Index: %d"), Index);
     
     // 에셋 저장
     UEditorLoadingAndSavingUtils::SavePackages({ DataTable->GetOutermost() }, false);
 
-    UE_LOG(LogTemp, Log, TEXT("[SheetSync] DataTable 저장 완료 Index: %d"), Index);
+    UE_LOG(LogTemp, Log, TEXT("[SheetSync] [%s] DataTable 저장 완료 Entry: %d"), *Category.CategoryName, EntryIndex);
 }

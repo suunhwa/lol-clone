@@ -17,7 +17,7 @@ public class LeagueofLegends : ModuleRules
 			"RHI",
 			"AIModule",
 			"NavigationSystem",
-			"UMG"
+			"UMG",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

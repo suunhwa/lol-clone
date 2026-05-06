@@ -4,36 +4,22 @@
 #include "UObject/NoExportTypes.h"
 #include "GoogleSheetsSyncer.generated.h"
 
-USTRUCT(BlueprintType)
-struct FSheetSyncEntry
-{
-	GENERATED_BODY()
-
-	// 구글 시트 URL 전체 붙여넣기
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SheetSync")
-	FString SheetURL;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SheetSync")
-	UDataTable* TargetDataTable = nullptr;
-};
+struct FSheetSyncEntry;
 
 UCLASS(ClassGroup=(SheetSync), meta=(BlueprintSpawnableComponent))
-class SHEETSYNC_API UGoogleSheetsSyncer : public UActorComponent
+class SHEETSYNC_API UGoogleSheetsSyncer : public UObject
 {
 	GENERATED_BODY()
 
 public:
-	UGoogleSheetsSyncer();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SheetSync")
-	TArray<FSheetSyncEntry> SyncEntries;
-
-	// 전체 동기화 해보자잇
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "SheetSync")
-	void SyncAll();
+	static void SyncAll();
+	
+	UFUNCTION(BlueprintCallable, Category = "SheetSync")
+	static void SyncCategory(int32 CategoryIndex);
 
 private:
-	bool ParseURL(const FString& URL, FString& OutSpreadsheetId, FString& OutGid);
-	void RequestCSV(int32 Index);
-	void OnCSVReceived(int32 Index, const FString& CSVText);
+	static bool ParseURL(const FString& URL, FString& OutSpreadsheetId, FString& OutGid);
+	static void RequestCSV(int32 CategoryIndex, int32 EntryIndex);
+	static void OnCSVReceived(int32 CategoryIndex, int32 EntryIndex, const FString& CSVText);
 };

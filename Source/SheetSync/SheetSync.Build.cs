@@ -28,7 +28,8 @@ public class SheetSync : ModuleRules
                 "Json",
                 "DataTableEditor",
                 "Slate",
-                "SlateCore"
+                "SlateCore",
+                "PropertyEditor"
             }
         );
     }

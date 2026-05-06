@@ -12,7 +12,10 @@
 		{
 			"Name": "SheetSync",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"DeveloperSettings"
+			]
 		}
 	],
 	"Plugins": [
