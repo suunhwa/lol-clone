@@ -91,6 +91,33 @@ namespace SightProviderHelper
 		return ISightProvider::Execute_GetSightTag(Object);
 	}
 
+	/**
+	 * 비가시 영역에서 숨겨져야 하는지 여부를 반환합니다.
+	 * Object가 nullptr이거나 인터페이스 미구현이면 false를 반환합니다.
+	 * @note true: 챔피언, 미니언 / false: 타워 등 항상 보이는 오브젝트
+	 */
+	inline bool IsHideable(const UObject* Object)
+	{
+		if (!ImplementsSightProvider(Object)) return false;
+		return ISightProvider::Execute_IsHideable(Object);
+	}
+	
+	/**
+	 * 가시성 여부에 따라 Actor를 숨기거나 표시합니다.
+	 * ISightProvider를 구현하지 않았거나 IsHideableByFOW가 false면 아무것도 하지 않습니다.
+	 * @param Object    대상 UObject (ISightProvider + AActor)
+	 * @param bVisible  true면 표시, false면 숨김
+	 */
+	inline void ApplyFOWVisibility(UObject* Object, bool bVisible)
+	{
+		if (!IsHideable(Object)) return;
+
+		if (AActor* Actor = Cast<AActor>(Object))
+		{
+			Actor->SetActorHiddenInGame(!bVisible);
+		}
+	}
+
 	// ─────────────────────────────────────────────
 	//  팀 비교 헬퍼
 	// ─────────────────────────────────────────────

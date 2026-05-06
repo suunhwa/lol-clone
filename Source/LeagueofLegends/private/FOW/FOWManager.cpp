@@ -67,10 +67,12 @@ void AFOWManager::Tick(float DeltaTime)
 	if (LocalClientTeam == ERiftSightTag::Red)
 	{
 		UpdateFOV(RedTileMap, RedSightProviders);
+		UpdateEnemyVisibility(RedTileMap, BlueSightProviders);
 	}
 	else
 	{
 		UpdateFOV(BlueTileMap, BlueSightProviders);
+		UpdateEnemyVisibility(BlueTileMap, RedSightProviders);
 	}
 #endif
 }
@@ -245,5 +247,29 @@ bool AFOWManager::IsSymmetric(FRow& Row, int32 Depth, int32 Col) const
 	bool bBelowEnd = Col * Row.EndSlop.Denominator <= Depth * Row.EndSlop.Numerator;
     
 	return bAboveStart && bBelowEnd;
+}
+
+void AFOWManager::UpdateEnemyVisibility(AFOWTileMap* MyTileMap, TArray<TScriptInterface<ISightProvider>>& EnemyProviders)
+{
+	if (!MyTileMap)
+	{
+		return;
+	}
+	
+	for (const TScriptInterface<ISightProvider>& Provider : EnemyProviders)
+	{
+		UObject* Obj = Provider.GetObject();
+		
+		if (!SightProviderHelper::IsHideable(Obj))
+		{
+			continue;
+		}
+		
+		FVector Location = SightProviderHelper::GetSightOrigin(Obj);
+		FIntPoint TilePoint = MyTileMap->WorldToTile(Location);
+		bool bVisible = MyTileMap->IsVisibleTile(TilePoint.X, TilePoint.Y);
+		
+		SightProviderHelper::ApplyFOWVisibility(Obj, bVisible);
+	}
 }
 
