@@ -125,7 +125,7 @@ void ALoLChampion::StartAttackLoop(AActor* Target)
 {
 	if (!HasAuthority() || !Target) { return; }
 
-	UTargetingComponent* TargetComp = Target->FindComponentByClass<UTargetingComponent>();
+	UTargetingComponent* TargetComp = Cast<ALoLChampion>(Target)->FindComponentByClass<UTargetingComponent>();
 	if (!TargetComp || !TargetComp->IsValidTarget(this)) { return; }
 
 	AttackTarget = Target;
