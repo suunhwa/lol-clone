@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Characters/LoLCharacterBase.h"
+
+#include "LeagueofLegends.h"
 #include "Components/StatComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/TagComponent.h"
@@ -54,8 +56,24 @@ void ALoLCharacterBase::BeginPlay()
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
 	}
 
-	auto* GS = GetWorld()->GetGameState<ARiftGameState>();
-	GS->GetFOWManager()->RegisterSightProvider(this);
+	/*auto* GS = GetWorld()->GetGameState<ARiftGameState>();                                                                                  
+	GS->GetFOWManager()->RegisterSightProvider(this);    */
+	
+	if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+	{
+		if (AFOWManager* FOWManager = GS->GetFOWManager())
+		{
+			FOWManager->RegisterSightProvider(this);
+		}
+		else
+		{
+			PRINTLOG_SH(TEXT("RegisterSightProvider failed: FOWManager is null for %s"), *GetName());
+		}
+	}
+	else
+	{
+		PRINTLOG_SH(TEXT("RegisterSightProvider failed: GameState is null for %s"), *GetName());
+	}
 
 	if (UHPBarWidget* HPBar = Cast<UHPBarWidget>(HPBarWidgetComp->GetWidget()))
 	{
