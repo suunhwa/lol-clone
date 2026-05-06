@@ -2,13 +2,17 @@
 
 
 #include "Manager/ItemDataSubsystem.h"
-
+#include "Item/ItemEffectRegistry.h"
 #include "LeagueofLegends.h"
+#include "Item/ItemPassiveEffectBase.h"
+#include "Item/ItemSettings.h"
 
 void UItemDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	
 	LoadDataTables();
+	LoadRegistry();
 	BuildItemDataAssets();
 }
 
@@ -135,6 +139,29 @@ void UItemDataSubsystem::LoadDataTables()
 	PRINTLOG_TK(TEXT("DT_ItemStatType : %s"), DT_ItemStatType ? TEXT("OK") : TEXT("FAILED"));
 }
 
+void UItemDataSubsystem::LoadRegistry()
+{
+	const UItemSettings* Settings = GetDefault<UItemSettings>();
+	if (Settings && Settings->ItemEffectRegistry.IsValid())
+	{
+		UItemEffectRegistry* Registry = Settings->ItemEffectRegistry.LoadSynchronous();
+		if (Registry)
+		{
+			PRINTLOG_TK(TEXT("ItemEffectRegistry loaded successfully"));
+			// 필요한 경우 Registry 데이터를 캐싱하거나 초기화할 수 있음
+			EffectRegistry = Registry;
+		}
+		else
+		{
+			PRINTLOG_TK(TEXT("Failed to load ItemEffectRegistry"));
+		}
+	}
+	else
+	{
+		PRINTLOG_TK(TEXT("Invalid ItemSettings or ItemEffectRegistry reference"));
+	}
+}
+
 void UItemDataSubsystem::BuildItemDataAssets()
 {
 	if (!DT_ItemBase)
@@ -206,11 +233,26 @@ UItemDataAsset* UItemDataSubsystem::BuildSingleItem(const FItemBaseRow* BaseRow)
 	TArray<const FItemEffectRow*> EffectRows = GetItemEffect(BaseRow->Effect_ID_R);
 	for (const FItemEffectRow* EffectRow : EffectRows)
 	{
-		FItemEffectData EffectData;
+		FItemPassiveEffectData EffectData;
 		EffectData.EffectName = EffectRow->Effect_Name;
 		EffectData.Value01 = EffectRow->Value01;
 		EffectData.Value02 = EffectRow->Value02;
 		EffectData.Description = EffectRow->Description;
+		
+		// Registry에서 클래스 바인딩
+		if (EffectRegistry)
+		{
+			EffectData.PassiveClass = EffectRegistry->FindPassiveClass(EffectData.EffectName);
+			if (!EffectData.PassiveClass)
+			{
+				PRINTLOG_TK(TEXT("PassiveClass not found for: %s"), *EffectData.EffectName.ToString());
+			}
+		}
+		else
+		{
+			PRINTLOG_TK(TEXT("EffectRegistry is null — skipping class binding"));
+		}
+
 
 		Asset->Effects.Add(EffectData);
 	}

@@ -80,7 +80,7 @@ struct FItemEffectRow : public FTableRowBase
 	
 	// DataTable Yellow Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Effect")
-	FString Effect_Name;
+	FName Effect_Name;
 	
 	// DataTable Red Section
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Effect")

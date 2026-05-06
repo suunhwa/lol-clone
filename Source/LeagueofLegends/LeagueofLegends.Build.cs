@@ -18,6 +18,7 @@ public class LeagueofLegends : ModuleRules
 			"AIModule",
 			"NavigationSystem",
 			"UMG",
+			"DeveloperSettings"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

@@ -4,6 +4,7 @@
 #include "Item/ItemInstance.h"
 #include "Components/StatModifierComponent.h"
 #include "LeagueofLegends.h"
+#include "Item/ItemPassiveEffectBase.h"
 
 void UItemInstance::Initialize(UItemDataAsset* InDataAsset, AActor* InOwner)
 {
@@ -26,20 +27,28 @@ void UItemInstance::OnEquipped()
 	}
 	
 	UStatModifierComponent* StatModifierComp = OwnerChampion->FindComponentByClass<UStatModifierComponent>();
-	if (!StatModifierComp)
+	if (StatModifierComp)
 	{
-		PRINTLOG_TK(TEXT("OnEquipped Failed: StatModifierComponent not found"));
-		return;
+		const TArray<FStatModifier>& Modifiers = ItemDataAsset->Stats;
+		for (const FStatModifier& Mod : Modifiers)
+		{
+			FStatModifierHandle Handle = StatModifierComp->AddModifier(Mod);
+			RegisteredHandles.Add(Handle);
+		}
+		PRINTLOG_TK(TEXT("[%s] OnEquipped: %d Modifiers registered"), *ItemDataAsset->NameKR, RegisteredHandles.Num());
 	}
 	
-	const TArray<FStatModifier>& Modifiers = ItemDataAsset->Stats;
-	for (const FStatModifier& Mod : Modifiers)
+	for (const FItemPassiveEffectData& EffectData : ItemDataAsset->Effects)
 	{
-		FStatModifierHandle Handle = StatModifierComp->AddModifier(Mod);
-		RegisteredHandles.Add(Handle);
+		if (!EffectData.PassiveClass) continue;
+
+		UItemPassiveEffectBase* Passive = NewObject<UItemPassiveEffectBase>(this, EffectData.PassiveClass);
+		Passive->InitializeEffect(OwnerChampion.Get(), EffectData);
+		Passive->OnEquipped();
+
+		ActivePassives.Add(Passive);
 	}
-	
-	PRINTLOG_TK(TEXT("[%s] OnEquipped: %d Modifiers registered"), *ItemDataAsset->NameKR, RegisteredHandles.Num());
+	PRINTLOG_TK(TEXT("[%s] OnEquipped: Passives activated: %d"), *ItemDataAsset->NameKR, ActivePassives.Num());
 }
 
 void UItemInstance::OnUnequipped()
@@ -57,6 +66,7 @@ void UItemInstance::OnUnequipped()
 		return;
 	}
 	
+	// 스탯 모디파이어 제거
 	for (const FStatModifierHandle& Handle : RegisteredHandles)
 	{
 		StatModifierComp->RemoveModifier(Handle);
@@ -65,4 +75,17 @@ void UItemInstance::OnUnequipped()
 	PRINTLOG_TK(TEXT("[%s] OnUnequipped: %d Modifiers removed"), *ItemDataAsset->NameKR, RegisteredHandles.Num());
 
 	RegisteredHandles.Empty();
+	
+	// 패시브 비활성화
+	for (UItemPassiveEffectBase* Passive : ActivePassives)
+	{
+		if (Passive)
+		{
+			Passive->OnUnequipped();
+		}
+	}
+	
+	PRINTLOG_TK(TEXT("[%s] OnUnequipped: Passives deactivated: %d"), *ItemDataAsset->NameKR, ActivePassives.Num());
+
+	ActivePassives.Empty();
 }

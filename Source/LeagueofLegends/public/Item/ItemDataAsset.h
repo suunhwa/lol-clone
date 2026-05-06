@@ -7,13 +7,15 @@
 #include "Type/StatModifierTypes.h"
 #include "ItemDataAsset.generated.h"
 
+class UItemPassiveEffectBase;
+
 USTRUCT(BlueprintType)
-struct FItemEffectData
+struct FItemPassiveEffectData
 {
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere)
-	FString EffectName;
+	FName EffectName;
 
 	UPROPERTY(VisibleAnywhere)
 	float Value01 = 0.f;
@@ -23,6 +25,9 @@ struct FItemEffectData
 
 	UPROPERTY(VisibleAnywhere)
 	FString Description;
+	
+	UPROPERTY(VisibleAnywhere)
+	TSubclassOf<UItemPassiveEffectBase> PassiveClass;
 };
 
 UCLASS(BlueprintType)
@@ -69,5 +74,5 @@ public:
 
 	// ===== Effects =====
 	UPROPERTY(VisibleAnywhere, Category = "Effects")
-	TArray<FItemEffectData> Effects;
+	TArray<FItemPassiveEffectData> Effects;
 };

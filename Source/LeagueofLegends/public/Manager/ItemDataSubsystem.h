@@ -8,6 +8,7 @@
 #include "Item/ItemDataAsset.h"
 #include "ItemDataSubsystem.generated.h"
 
+class UItemEffectRegistry;
 /**
  * 
  */
@@ -31,10 +32,10 @@ public:
 	
 private:
 	void LoadDataTables();
+	void LoadRegistry();
 	
 	// RowData를 바탕으로 DataAsset 조립
 	void BuildItemDataAssets();
-	
 	UItemDataAsset* BuildSingleItem(const FItemBaseRow* BaseRow);
 	
 	// StatType 문자열 → ELolStatType 변환
@@ -44,6 +45,9 @@ private:
 private:
 	UPROPERTY()
 	TMap<int32, TObjectPtr<UItemDataAsset>> ItemAssetMap;
+	
+	UPROPERTY()
+	TObjectPtr<UItemEffectRegistry> EffectRegistry;
 	
 	UPROPERTY()
 	TObjectPtr<UDataTable> DT_ItemBase;

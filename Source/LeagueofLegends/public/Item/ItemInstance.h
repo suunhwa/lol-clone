@@ -32,4 +32,7 @@ private:
 	TWeakObjectPtr<AActor> OwnerChampion;
 	
 	TArray<FStatModifierHandle> RegisteredHandles;
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UItemPassiveEffectBase>> ActivePassives;
 };
