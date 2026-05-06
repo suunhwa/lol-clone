@@ -28,9 +28,6 @@ class LEAGUEOFLEGENDS_API ISightProvider
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	/*UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Sight")
-	bool*/
-	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Sight")
 	FVector GetSightOrigin() const;
 	
@@ -42,4 +39,7 @@ public:
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Sight")
 	ERiftSightTag GetSightTag() const;
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Sight")
+	bool IsHidable() const;
 };

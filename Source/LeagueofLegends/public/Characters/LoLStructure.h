@@ -30,6 +30,17 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UTagComponent> TagComp;
 
+/*public:
+    // --- IDamageable Interface ---
+    virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
+    virtual bool IsDead_Implementation() const override { return bIsDestroyed; }
+
+    // --- ITargetable Interface ---
+    virtual bool IsTargetable_Implementation() const override { return !bIsDestroyed; }
+    virtual FVector GetTargetLocation_Implementation() const override { return GetActorLocation(); }
+    virtual ETeam GetTeam_Implementation() const override { return Team; }
+*/
+
     UPROPERTY(EditAnywhere, Category = "Config")
     int32 ObjectID;
 

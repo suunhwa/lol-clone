@@ -43,6 +43,30 @@ private:
     
 	TWeakObjectPtr<AActor> CurrentTarget;
     
+
 	float PathUpdateTimer = 0.f;
 	const float PathUpdateInterval = 0.5f; // A* 계산 최적화 주기
 };
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
+	FString Name_KR;
+    
+	// --- [GrowthTable 관련 변수 - 실시간 계산용] ---
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Stats")
+	float HP; // 현재/최대 체력
+
+	UPROPERTY(VisibleAnywhere, Category = "Minion|Stats")
+	float AttackDamage;
+
+	float LastAttackTime = 0.0f;
+	
+/*public:
+	// 부모의 ReceiveDamage를 오버라이드하여 미니언 전용 HP 로직과 연결
+	virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
+
+	// 포탑이 팀을 확인할 때 사용할 인터페이스 함수 오버라이드
+	virtual ETeam GetTeam_Implementation() const override;
+	*/
+};
+
+

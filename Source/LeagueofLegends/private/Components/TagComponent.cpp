@@ -19,27 +19,27 @@ void UTagComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 bool UTagComponent::IsEnemy(const UTagComponent* Other) const
 {
-	if (!Other) return false;
+	if (!Other) { return false; }
 	if (Team == ETeam::None || Other->Team == ETeam::None) return false;
 	return Team != Other->Team;
 }
 
 bool UTagComponent::IsAlly(const UTagComponent* Other) const
 {
-	if (!Other) return false;
+	if (!Other) { return false; }
 	return Team == Other->Team;
 }
 
 void UTagComponent::AddTag(FName Tag)
 {
-	if (Tags.Contains(Tag)) return;
+	if (Tags.Contains(Tag)) { return; }
 	Tags.Add(Tag);
 	OnTagChanged.Broadcast(Tag, true);
 }
 
 void UTagComponent::RemoveTag(FName Tag)
 {
-	if (!Tags.Contains(Tag)) return;
+	if (!Tags.Contains(Tag)) { return; }
 	Tags.Remove(Tag);
 	OnTagChanged.Broadcast(Tag, false);
 }

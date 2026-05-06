@@ -202,3 +202,19 @@ int32 ALoLMinion::GetTargetPriority(AActor* PotentialTarget)
     // 미니언 우선순위 가이드라인에 따른 정수 반환 (낮을수록 우선)
     return 7; 
 }
+
+/*// 포탑이 호출하는 ReceiveDamage를 미니언의 HP 로직으로 연결
+void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
+{
+	// 부모 클래스의 HasAuthority() 체크를 우회하여 즉시 대미지 적용
+	// 미니언 클래스에 이미 만들어둔 TakeDamageSimple 함수를 호출합니다.
+	TakeDamageSimple(Amount);
+}
+
+// 태그를 기반으로 정확한 팀 정보를 반환
+ETeam ALoLMinion::GetTeam_Implementation() const
+{
+	if (Tags.Contains(TEXT("RedTeam"))) return ETeam::Red;
+	if (Tags.Contains(TEXT("BlueTeam"))) return ETeam::Blue;
+	return ETeam::None;
+}*/

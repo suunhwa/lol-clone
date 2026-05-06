@@ -22,6 +22,9 @@ class LEAGUEOFLEGENDS_API IDamageable
 	GENERATED_BODY()
 
 public:
-	virtual void ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator) = 0;
-	virtual bool IsDead() const = 0;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+	void ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+	bool IsDead() const;
 };
