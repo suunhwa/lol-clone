@@ -1,46 +1,35 @@
 ﻿#include "Characters/Minion/LoLMinion_Ranged.h"
 #include "Characters/Minion/Ranged_Projectile.h"
-#include "Kismet/GameplayStatics.h"
+#include "Components/MinionStatComponent.h"
+#include "Components/TagComponent.h"
 
 ALoLMinion_Ranged::ALoLMinion_Ranged()
 {
-	MinionDataID = TEXT("3002");
+	MinionID = 3002;
 }
 
-void ALoLMinion_Ranged::PerformAttack()
+void ALoLMinion_Ranged::ExecuteRangedAttack(AActor* Target)
 {
-	if (!TargetPlayer || !ProjectileClass) return;
+	if (!HasAuthority() || !Target || !ProjectileClass) return;
 
-	float CurrentTime = GetWorld()->GetTimeSeconds();
+	UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp);
+	if (!MinionStat) return;
 
-	if (CurrentTime - LastAttackTime >= (1.0f / AttackSpeed))
+	// 스폰 위치 (필요 시 이 오프셋도 테이블화 가능)
+	FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 50.f;
+	FRotator SpawnRotation = (Target->GetActorLocation() - GetActorLocation()).Rotation();
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.Instigator = GetInstigator();
+
+	if (ALoLRanged_Projectile* Projectile = GetWorld()->SpawnActor<ALoLRanged_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, Params))
 	{
-		// 1. 발사 위치 계산 (오프셋)
-		FVector SpawnLocation = GetActorLocation() 
-						  + (GetActorForwardVector() * ProjectileOffset.X)
-						  + (GetActorUpVector() * ProjectileOffset.Z);
-        
-		// 2. 타겟을 향한 회전값 (바라보는 방향으로 발사)
-		FRotator SpawnRotation = (TargetPlayer->GetActorLocation() - SpawnLocation).Rotation();
+		// 하드코딩 완전 제거: StatComp에 정의된 수치만 사용
+		float AD = MinionStat->GetAD();
+		float Speed = MinionStat->GetAttackRange(); // 보통 발사 속도는 사거리/이동속도 등과 연계되거나 별도 변수 활용
+		ETeam MyTeam = TagComp->GetTeam();
 
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = GetInstigator();
-
-		// 3. 투사체 스폰
-		ALoLRanged_Projectile* Projectile = GetWorld()->SpawnActor<ALoLRanged_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-
-		if (Projectile)
-		{
-			// 내 팀 태그 찾기
-			FName MyTeamTag = (Tags.Num() > 0) ? Tags[0] : NAME_None;
-
-			// 4. 발사! (테이블 값 ProjSpeed 사용)
-			Projectile->Launch(ProjSpeed, AttackDamage, MyTeamTag);
-            
-			UE_LOG(LogTemp, Log, TEXT("[%s] 투사체(%s) 발사! 속도: %.1f"), *Name_KR, *Projectile->GetName(), ProjSpeed);
-		}
-
-		LastAttackTime = CurrentTime;
+		Projectile->Launch(Target, Speed, AD, MyTeam);
 	}
 }

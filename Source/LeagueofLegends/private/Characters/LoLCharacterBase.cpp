@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Characters/LoLCharacterBase.h"
+
+#include "LeagueofLegends.h"
 #include "Components/StatComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/TagComponent.h"
@@ -55,7 +57,14 @@ void ALoLCharacterBase::BeginPlay()
 	}
 	
 	auto* GS = GetWorld()->GetGameState<ARiftGameState>();
-	GS->GetFOWManager()->RegisterSightProvider(this);
+	if (GS && GS->GetFOWManager()) // 두 단계 모두 체크
+	{
+		GS->GetFOWManager()->RegisterSightProvider(this);
+	}
+	else
+	{
+		PRINTLOG_HJ(LogTemp, Warning, TEXT("GameState or FOWManager is not ready for %s"), *GetName());
+	}
 
 	if (UHPBarWidget* HPBar = Cast<UHPBarWidget>(HPBarWidgetComp->GetWidget()))
 	{

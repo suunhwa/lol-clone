@@ -1,17 +1,13 @@
 ﻿#pragma once
-
-#include "CoreMinimal.h"
 #include "Characters/LoLStructure.h"
-#include "LolNexus.generated.h"
+#include "LoLNexus.generated.h"
 
 UCLASS()
-class LEAGUEOFLEGENDS_API ALolNexus : public ALoLStructure
+class LEAGUEOFLEGENDS_API ALoLNexus : public ALoLStructure
 {
 	GENERATED_BODY()
-
 public:
-	ALolNexus();
-
+	ALoLNexus();
 protected:
 	virtual void OnDestroyed() override;
 };

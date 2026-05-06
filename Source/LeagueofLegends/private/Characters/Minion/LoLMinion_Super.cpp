@@ -1,32 +1,25 @@
 ﻿#include "Characters/Minion/LoLMinion_Super.h"
-#include "Characters/Nexus/Nexus.h"
+#include "Components/MinionStatComponent.h"
+#include "Components/CapsuleComponent.h"
 
 ALoLMinion_Super::ALoLMinion_Super()
 {
-	MinionDataID = TEXT("3004"); // 슈퍼 미니언 ID
+	MinionID = 3004;
+
+	// 캡슐 컴포넌트의 크기 설정
+	GetCapsuleComponent()->InitCapsuleSize(60.f, 100.f);
 }
 
-void ALoLMinion_Super::PerformAttack()
+void ALoLMinion_Super::BeginPlay()
 {
-	if (!TargetPlayer) return;
-
-	float CurrentTime = GetWorld()->GetTimeSeconds();
-
-	if (CurrentTime - LastAttackTime >= (1.0f / AttackSpeed))
+	Super::BeginPlay();
+	
+	if (UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp))
 	{
-		// 내 팀 태그 확인
-		FName MyTeamTag = (Tags.Num() > 0) ? Tags[0] : NAME_None;
-
-		if (ALoLMinion* Enemy = Cast<ALoLMinion>(TargetPlayer))
+		if (MinionStat->IsSuperMinion())
 		{
-			Enemy->TakeDamageSimple(AttackDamage);
+			UE_LOG(LogTemp, Log, TEXT("Super Minion Stats Initialized: HP %.f, AD %.f"), 
+				MinionStat->GetCurrentHP(), MinionStat->GetAD());
 		}
-		else if (class ANexus* Nexus = Cast<ANexus>(TargetPlayer))
-		{
-			Nexus->ReceiveDamage(AttackDamage);
-		}
-
-		LastAttackTime = CurrentTime;
-		UE_LOG(LogTemp, Log, TEXT("[%s] 슈퍼 미니언 강력 타격!"), *Name_KR);
 	}
 }

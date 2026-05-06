@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "LeagueofLegends.h" // ETeam 정의가 포함된 헤더
 #include "Ranged_Projectile.generated.h"
 
 UCLASS()
@@ -12,13 +13,11 @@ class LEAGUEOFLEGENDS_API ALoLRanged_Projectile : public AActor
 public:
 	ALoLRanged_Projectile();
 
-	// 발사 시 초기화 함수
-	void Launch(float InSpeed, float InDamage, FName InTeamTag);
+	// 발사 설정 (OwnerTeam 추가)
+	void Launch(AActor* InTarget, float InSpeed, float InDamage, ETeam InOwnerTeam);
 
 protected:
-	// 무언가에 부딪혔을 때 호출될 함수
-	UFUNCTION()
-	void OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	class USphereComponent* CollisionComp;
@@ -31,5 +30,6 @@ protected:
 
 private:
 	float Damage;
-	FName OwnerTeamTag;
+	ETeam OwnerTeam; // 팀 정보 저장
+	TWeakObjectPtr<AActor> TargetActor;
 };
