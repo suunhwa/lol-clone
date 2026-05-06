@@ -22,7 +22,12 @@ class LEAGUEOFLEGENDS_API ITargetable
 	GENERATED_BODY()
 
 public:
-	virtual bool IsTargetable() const = 0;
-	virtual FVector GetTargetLocation() const = 0;
-	virtual ETeam GetTeam() const = 0;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
+	bool IsTargetable() const;
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
+	FVector GetTargetLocation() const;
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
+	ETeam GetTeam() const;
 };

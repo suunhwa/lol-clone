@@ -45,11 +45,11 @@ void AChampionSkillProjectile::Launch(FDamageContext InCtx, float Speed, float M
 void AChampionSkillProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* Other,
 	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (!HasAuthority() || !Other || Other == GetOwner()) return;
+	if (!HasAuthority() || !Other || Other == GetOwner()) { return; }
 
 	ALoLCharacterBase* OtherChar = Cast<ALoLCharacterBase>(Other);
 	ALoLCharacterBase* Caster = Cast<ALoLCharacterBase>(GetOwner());
-	if (!OtherChar || !Caster || OtherChar->GetTeam() == Caster->GetTeam()) return;
+	if (!OtherChar || !Caster || ITargetable::Execute_GetTeam(OtherChar) == ITargetable::Execute_GetTeam(Caster)) { return; }
 
 	ApplyHit(Other);
 	Destroy();
@@ -58,12 +58,12 @@ void AChampionSkillProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* Other
 void AChampionSkillProjectile::OnBeginOverlap(UPrimitiveComponent* Overlapped, AActor* Other,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!HasAuthority() || !Other || Other == GetOwner()) return;
-	if (HitActors.Contains(Other)) return;
+	if (!HasAuthority() || !Other || Other == GetOwner()) { return; }
+	if (HitActors.Contains(Other)) { return; }
 
 	ALoLCharacterBase* OtherChar = Cast<ALoLCharacterBase>(Other);
 	ALoLCharacterBase* Caster = Cast<ALoLCharacterBase>(GetOwner());
-	if (!OtherChar || !Caster || OtherChar->GetTeam() == Caster->GetTeam()) return;
+	if (!OtherChar || !Caster || ITargetable::Execute_GetTeam(OtherChar) == ITargetable::Execute_GetTeam(Caster)) { return; }
 
 	HitActors.Add(Other);
 	ApplyHit(Other);
@@ -72,10 +72,12 @@ void AChampionSkillProjectile::OnBeginOverlap(UPrimitiveComponent* Overlapped, A
 void AChampionSkillProjectile::ApplyHit(AActor* Target)
 {
 	ALoLCharacterBase* Caster = Cast<ALoLCharacterBase>(GetOwner());
-	if (!Caster || !Caster->CombatComp) return;
+	if (!Caster || !Caster->CombatComp) { return; }
 
 	Caster->CombatComp->DealDamage(Target, DamageCtx);
 
 	if (bCooldownOnHit && Caster->CooldownComp)
+	{
 		Caster->CooldownComp->ReduceAllCooldowns(1.5f);
+	}
 }

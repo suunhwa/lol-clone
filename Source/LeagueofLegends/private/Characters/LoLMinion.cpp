@@ -317,7 +317,7 @@ void ALoLMinion::MoveAlongPath(float DeltaTime)
 }
 
 // 포탑이 호출하는 ReceiveDamage를 미니언의 HP 로직으로 연결
-void ALoLMinion::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
+void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
 {
 	// 부모 클래스의 HasAuthority() 체크를 우회하여 즉시 대미지 적용
 	// 미니언 클래스에 이미 만들어둔 TakeDamageSimple 함수를 호출합니다.
@@ -325,7 +325,7 @@ void ALoLMinion::ReceiveDamage(float Amount, EDamageType DamageType, AActor* Dam
 }
 
 // 태그를 기반으로 정확한 팀 정보를 반환
-ETeam ALoLMinion::GetTeam() const
+ETeam ALoLMinion::GetTeam_Implementation() const
 {
 	if (Tags.Contains(TEXT("RedTeam"))) return ETeam::Red;
 	if (Tags.Contains(TEXT("BlueTeam"))) return ETeam::Blue;

@@ -63,7 +63,7 @@ void ALoLCharacterBase::BeginPlay()
 	}
 }
 
-void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
+void ALoLCharacterBase::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
 {
 	if (!HasAuthority()) { return; }
 
@@ -86,22 +86,22 @@ void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AAct
 	StatComp->ApplyHealthChange(-Amount);
 }
 
-bool ALoLCharacterBase::IsDead() const
+bool ALoLCharacterBase::IsDead_Implementation() const
 {
 	return StatComp->IsDead();
 }
 
-bool ALoLCharacterBase::IsTargetable() const
+bool ALoLCharacterBase::IsTargetable_Implementation() const
 {
 	return !IsDead() && !TagComp->HasTag(UnitTags::Untargetable);
 }
 
-FVector ALoLCharacterBase::GetTargetLocation() const
+FVector ALoLCharacterBase::GetTargetLocation_Implementation() const
 {
 	return GetActorLocation();
 }
 
-ETeam ALoLCharacterBase::GetTeam() const
+ETeam ALoLCharacterBase::GetTeam_Implementation() const
 {
 	return TagComp->GetTeam();
 }

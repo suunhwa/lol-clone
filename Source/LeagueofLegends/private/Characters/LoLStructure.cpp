@@ -75,7 +75,7 @@ void ALoLStructure::InitializeStructureData()
     }
 }
 
-void ALoLStructure::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
+void ALoLStructure::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
 {
     if (bIsDestroyed) return;
 
