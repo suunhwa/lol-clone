@@ -18,8 +18,8 @@ void UStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 bool UStateComponent::TryChangeState(ECharacterState NewState)
 {
-	if (CurrentState == NewState) return false;
-	if (!CanTransitionTo(NewState)) return false;
+	if (CurrentState == NewState) { return false; }
+	if (!CanTransitionTo(NewState)) { return false; }
 
 	PreviousState = CurrentState;
 	CurrentState = NewState;
@@ -29,15 +29,21 @@ bool UStateComponent::TryChangeState(ECharacterState NewState)
 
 bool UStateComponent::CanTransitionTo(ECharacterState NewState) const
 {
-	if (CurrentState == ECharacterState::Dead) return false;
-	if (NewState == ECharacterState::Dead) return true;
-	if (NewState == ECharacterState::Hit) return true;
+	// Dead → Idle만 허용 (리스폰)
+	if (CurrentState == ECharacterState::Dead)
+	{
+		return NewState == ECharacterState::Idle;
+	}
 
-	if (CurrentState == ECharacterState::CastingSkill && NewState == ECharacterState::BasicAttacking) return false;
-	if (CurrentState == ECharacterState::BasicAttacking && NewState == ECharacterState::CastingSkill) return false;
+
+	if (NewState == ECharacterState::Dead) { return true; }
+	if (NewState == ECharacterState::Hit) { return true; }
+
+	if (CurrentState == ECharacterState::CastingSkill && NewState == ECharacterState::BasicAttacking) { return false; }
+	if (CurrentState == ECharacterState::BasicAttacking && NewState == ECharacterState::CastingSkill) { return false; }
 
 	UTagComponent* TagComp = GetOwner()->FindComponentByClass<UTagComponent>();
-	if (!TagComp) return true;
+	if (!TagComp) { return true; }
 
 	switch (NewState)
 	{

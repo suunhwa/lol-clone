@@ -16,6 +16,7 @@ class UStatusEffectComponent;
 class UCooldownComponent;
 class USkillComponent;
 class UTargetingComponent;
+class UWidgetComponent;
 
 UCLASS(Abstract)
 class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamageable, public ITargetable
@@ -63,12 +64,19 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UTargetingComponent> TargetingComp;
 
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UWidgetComponent> HPBarWidgetComp;
+
 	UPROPERTY(EditAnywhere, Category = "Team")
 	ETeam InitialTeam = ETeam::Blue;
 
 	// 모든 클라이언트에 몽타주 재생 (서버에서 호출)
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontage(UAnimMontage* Montage);
+
+	// 특정 섹션부터 몽타주 재생
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayMontageSection(UAnimMontage* Montage, FName SectionName);
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator);

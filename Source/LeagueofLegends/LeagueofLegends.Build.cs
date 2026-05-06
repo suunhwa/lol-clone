@@ -16,7 +16,8 @@ public class LeagueofLegends : ModuleRules
 			"RenderCore",  // 추가
 			"RHI",
 			"AIModule",
-			"NavigationSystem"
+			"NavigationSystem",
+			"UMG"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
