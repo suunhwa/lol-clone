@@ -125,7 +125,7 @@ void ALoLChampion::StartAttackLoop(AActor* Target)
 {
 	if (!HasAuthority() || !Target) { return; }
 
-	UTargetingComponent* TargetComp = Target->FindComponentByClass<UTargetingComponent>();
+	UTargetingComponent* TargetComp = Cast<ALoLChampion>(Target)->FindComponentByClass<UTargetingComponent>();
 	if (!TargetComp || !TargetComp->IsValidTarget(this)) { return; }
 
 	AttackTarget = Target;
@@ -251,7 +251,9 @@ void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 	if (!HasAuthority() || !Target) { return; }
 
 	if (ChampionData && ChampionData->BasicAttackMontage)
+	{
 		Multicast_PlayMontage(ChampionData->BasicAttackMontage);
+	}
 
 	// 발사체로 평타 처리
 	if (SkillExecutor && SkillExecutor->ProjectileClass)

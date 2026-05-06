@@ -23,7 +23,7 @@ ALoLCharacterBase::ALoLCharacterBase()
 	SetReplicateMovement(true);
 
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Champion"));
-	
+
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
@@ -53,7 +53,7 @@ void ALoLCharacterBase::BeginPlay()
 		TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
 	}
-	
+
 	auto* GS = GetWorld()->GetGameState<ARiftGameState>();
 	GS->GetFOWManager()->RegisterSightProvider(this);
 
@@ -65,7 +65,7 @@ void ALoLCharacterBase::BeginPlay()
 
 void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
 {
-	if (!HasAuthority()) return;
+	if (!HasAuthority()) { return; }
 
 	FDamageContext Ctx;
 	Ctx.RawDamage = Amount;

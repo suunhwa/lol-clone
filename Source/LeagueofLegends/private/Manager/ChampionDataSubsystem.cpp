@@ -26,7 +26,9 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		for (UChampionData* Data : Registry->AllChampions)
 		{
 			if (Data && !Data->ChampionID.IsNone())
+			{
 				ChampionDataMap.Add(Data->ChampionID, Data);
+			}
 		}
 		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 챔피언 %d종 로드 완료"), ChampionDataMap.Num());
 	}
@@ -39,27 +41,33 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	BaseTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
 	                                              nullptr,
 	                                              TEXT(
-		                                              "/Game/Data/ChampionStatDataTable_ChampionBase.ChampionStatDataTable_ChampionBase")));
+		                                              "/Game/DataTables/ChampionStatDataTable_ChampionBase.ChampionStatDataTable_ChampionBase")));
 	StatTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
 	                                              nullptr,
 	                                              TEXT(
-		                                              "/Game/Data/ChampionStatDataTable_ChampionStatValues.ChampionStatDataTable_ChampionStatValues")));
+		                                              "/Game/DataTables/ChampionStatDataTable_ChampionStatValues.ChampionStatDataTable_ChampionStatValues")));
 	GrowthTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
 	                                                nullptr,
 	                                                TEXT(
-		                                                "/Game/Data/ChampionStatDataTable_ChampionGrowth.ChampionStatDataTable_ChampionGrowth")));
+		                                                "/Game/DataTables/ChampionStatDataTable_ChampionGrowth.ChampionStatDataTable_ChampionGrowth")));
 
 	if (!BaseTable || !StatTable || !GrowthTable)
 	{
 		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 스탯 DataTable 로드 실패. 경로 확인 필요"));
 	}
 
-	MasterSkillTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
-		TEXT("/Game/Data/ChampionSkillDataTable_MasterSkillCore.ChampionSkillDataTable_MasterSkillCore")));
-	DetailSkillStatsTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
-		TEXT("/Game/Data/ChampionSkillDataTable_DetailSkillStats.ChampionSkillDataTable_DetailSkillStats")));
-	MechanicsTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr,
-		TEXT("/Game/Data/ChampionSkillDataTable_SkillMechanics.ChampionSkillDataTable_SkillMechanics")));
+	MasterSkillTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+	                                                     nullptr,
+	                                                     TEXT(
+		                                                     "/Game/DataTables/ChampionSkillDataTable_MasterSkillCore.ChampionSkillDataTable_MasterSkillCore")));
+	DetailSkillStatsTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+	                                                          nullptr,
+	                                                          TEXT(
+		                                                          "/Game/DataTables/ChampionSkillDataTable_DetailSkillStats.ChampionSkillDataTable_DetailSkillStats")));
+	MechanicsTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+	                                                   nullptr,
+	                                                   TEXT(
+		                                                   "/Game/DataTables/ChampionSkillDataTable_SkillMechanics.ChampionSkillDataTable_SkillMechanics")));
 
 	if (!MasterSkillTable || !DetailSkillStatsTable || !MechanicsTable)
 	{
@@ -83,13 +91,15 @@ UChampionData* UChampionDataSubsystem::GetChampionData(FName ChampionID) const
 template <typename T>
 const T* UChampionDataSubsystem::FindRowByID(UDataTable* Table, const FName& ID)
 {
-	if (!Table) return nullptr;
+	if (!Table) { return nullptr; }
 
 	const FString IDStr = ID.ToString();
 	for (const FName& RowName : Table->GetRowNames())
 	{
 		if (RowName.ToString().Contains(IDStr, ESearchCase::IgnoreCase))
+		{
 			return Table->FindRow<T>(RowName, TEXT(""));
+		}
 	}
 	return nullptr;
 }
@@ -109,7 +119,9 @@ const FChampionGrowthRow* UChampionDataSubsystem::GetGrowthRow(FName ChampionID)
 	return FindRowByID<FChampionGrowthRow>(GrowthTable, ChampionID);
 }
 
-const FDetailSkillStatsRow* UChampionDataSubsystem::GetSkillStats(FName ChampionID, const FString& SkillKey, int32 Step) const
+const FDetailSkillStatsRow* UChampionDataSubsystem::GetSkillStats(FName ChampionID,
+                                                                  const FString& SkillKey,
+                                                                  int32 Step) const
 {
 	if (!DetailSkillStatsTable) { return nullptr; }
 
@@ -157,7 +169,7 @@ const FSkillMechanicsRow* UChampionDataSubsystem::GetSkillMechanics(FName Champi
 // 초기화
 void UChampionDataSubsystem::ApplyVisuals(ALoLCharacterBase* Target, UChampionData* Data) const
 {
-	if (!Target || !Data) return;
+	if (!Target || !Data) { return; }
 
 	if (Data->Mesh)
 	{
@@ -167,12 +179,14 @@ void UChampionDataSubsystem::ApplyVisuals(ALoLCharacterBase* Target, UChampionDa
 	}
 
 	if (Data->AnimBP)
+	{
 		Target->GetMesh()->SetAnimInstanceClass(Data->AnimBP);
+	}
 }
 
 void UChampionDataSubsystem::ApplyStats(ALoLCharacterBase* Target, UChampionData* Data) const
 {
-	if (!Target || !Data || !Target->StatComp) return;
+	if (!Target || !Data || !Target->StatComp) { return; }
 
 	const FChampionBaseRow* BaseRow = GetBaseRow(Data->ChampionID);
 	const FChampionStatRow* StatRow = GetStatRow(Data->ChampionID);
