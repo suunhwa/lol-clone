@@ -121,7 +121,7 @@ void AFOWTileMap::GenerateTileMap(AActor* MapActor)
 				// 타일이 지형과 충돌한 경우
 				// HitResult.Location을 사용하여 타일의 높이를 결정할 수 있음
 				// 예: SetTileHeight(i, j, HitResult.Location.Z);
-				if (HitResult.Location.Z < 10.f)
+				if (HitResult.Location.Z < 200.f)
 				{
 					CurTile.Type = ETileType::Floor; // 예시로 Floor 타입으로 설정
 				}
@@ -130,12 +130,15 @@ void AFOWTileMap::GenerateTileMap(AActor* MapActor)
 					CurTile.Type = ETileType::Wall; // 예시로 Wall 타입으로 설정
 				}
 
-				// // DebugBox 그리기
-				// FVector BoxCenter(TileCenterX, TileCenterY, HitResult.Location.Z);
-				// FVector BoxExtent(HalfTileSize, HalfTileSize, 10.f);
-				//
-				// FColor BoxColor = BoxCenter.Z < 150.f ? FColor::Green : FColor::Red;
-				// DrawDebugBox(GetWorld(), BoxCenter, BoxExtent, BoxColor, true, -1.f);
+				// DebugBox 그리기
+				if (bDrawTileBox)
+				{
+					FVector BoxCenter(TileCenterX, TileCenterY, HitResult.Location.Z);
+					FVector BoxExtent(HalfTileSize, HalfTileSize, 10.f);
+					
+					FColor BoxColor = BoxCenter.Z < 150.f ? FColor::Green : FColor::Red;
+					DrawDebugBox(GetWorld(), BoxCenter, BoxExtent, BoxColor, true, -1.f);
+				}
 			}
 			else
 			{

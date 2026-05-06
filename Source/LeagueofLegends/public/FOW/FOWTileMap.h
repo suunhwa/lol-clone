@@ -120,6 +120,9 @@ protected:
 	FLinearColor* SightDataBuffer = nullptr;
 	
 	UPROPERTY(EditAnywhere, Category = "FOW|Debug")
+	bool bDrawTileBox = false;
+	
+	UPROPERTY(EditAnywhere, Category = "FOW|Debug")
 	bool bUseUpscaler = true;
 	
 	TUniquePtr<FFOWUpscaler> Upscaler;
