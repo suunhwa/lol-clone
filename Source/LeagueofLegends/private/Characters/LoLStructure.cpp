@@ -48,6 +48,11 @@ bool ALoLStructure::IsDead_Implementation() const { return ObjectStatComp->IsDea
 
 ETeam ALoLStructure::GetTeam_Implementation() const { return TagComp->GetTeam(); }
 
+EUnitType ALoLStructure::GetUnitType_Implementation() const
+{
+    return TagComp->GetUnitType();
+}
+
 void ALoLStructure::OnDestroyed()
 {
     if (bIsDestroyed) return;

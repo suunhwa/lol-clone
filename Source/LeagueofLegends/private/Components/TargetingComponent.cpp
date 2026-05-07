@@ -44,3 +44,13 @@ int32 UTargetingComponent::GetPriority(AActor* Attacker) const
 	default: return 0;
 	}
 }
+
+AActor* UTargetingComponent::GetCurrentTarget() const
+{
+	return CurrentAttackTarget.Get();
+}
+
+void UTargetingComponent::SetCurrentTarget(AActor* NewTarget)
+{
+	CurrentAttackTarget = NewTarget;
+}

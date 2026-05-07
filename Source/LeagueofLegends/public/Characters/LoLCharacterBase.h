@@ -39,6 +39,8 @@ public:
 	virtual bool IsTargetable_Implementation() const override;
 	virtual FVector GetTargetLocation_Implementation() const override;
 	virtual ETeam GetTeam_Implementation() const override;
+	virtual EUnitType GetUnitType_Implementation() const override;
+	virtual AActor* GetCurrentCombatTarget_Implementation() const override;
 	
 	// --- ISightProvider
 #pragma region SightProvider

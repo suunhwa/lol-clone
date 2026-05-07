@@ -21,4 +21,12 @@ public:
 	// 해당 유닛의 공격 우선순위
 	// 높을수록 먼저 공격
 	int32 GetPriority(AActor* Attacker) const;
+	
+	// 이 유닛이 현재 공격 중인 타겟 (미니언 우선순위 판단할 때)
+	AActor* GetCurrentTarget() const;
+	void SetCurrentTarget(AActor* NewTarget);
+	
+protected:
+	UPROPERTY()
+	TWeakObjectPtr<AActor> CurrentAttackTarget;
 };

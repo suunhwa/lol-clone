@@ -63,4 +63,7 @@ public:
     virtual bool IsTargetable_Implementation() const override { return !IsDead(); }
     virtual ETeam GetTeam_Implementation() const override;
     virtual FVector GetTargetLocation_Implementation() const override { return GetActorLocation(); }
+    virtual EUnitType GetUnitType_Implementation() const override;
+    virtual AActor* GetCurrentCombatTarget_Implementation() const override { return nullptr; }
+    
 };
