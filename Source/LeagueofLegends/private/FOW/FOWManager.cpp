@@ -39,15 +39,15 @@ void AFOWManager::BeginPlay()
 		LocalClientTeam = ERiftSightTag::Red; // 임시로 Red 팀으로 설정
 	}
 	
-	if (MapActor)
+	if (FOWVolume)
 	{
 		if (LocalClientTeam == ERiftSightTag::Red)
 		{
-			RedTileMap->Generate(MapActor);
+			RedTileMap->Generate(FOWVolume);
 		}
 		else
 		{
-			BlueTileMap->Generate(MapActor);
+			BlueTileMap->Generate(FOWVolume);
 		}
 	}
 	

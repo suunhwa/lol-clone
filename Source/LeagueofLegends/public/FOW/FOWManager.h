@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "FOWManager.generated.h"
 
+class AFOWVolume;
 enum class ERiftSightTag : uint8;
 class ISightProvider;
 struct FTile;
@@ -177,7 +178,7 @@ private:
 	TArray<TScriptInterface<ISightProvider>> BlueSightProviders;
 
 	UPROPERTY(EditAnywhere, Category = "Sight|Map")
-	TObjectPtr<AActor> MapActor;
+	TObjectPtr<AFOWVolume> FOWVolume;
 
 #pragma region Test
 	UPROPERTY(EditAnywhere)

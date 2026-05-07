@@ -8,6 +8,8 @@
 #include "FOW/FOWUpscaler.h"
 #include "FOWTileMap.generated.h"
 
+class ISightProvider;
+class AFOWVolume;
 class FFOWUpscaler;
 
 UCLASS()
@@ -30,10 +32,10 @@ public:
 	
 public:
 	UFUNCTION(BlueprintCallable)
-	void Generate(AActor* MapActor);
+	void Generate(AFOWVolume* FOWVolume);
 	
 	UFUNCTION(BlueprintCallable)
-	void GenerateTileMap(AActor* MapActor);
+	void GenerateTileMap(AFOWVolume* FOWVolume);
 	
 	UFUNCTION(BlueprintCallable)
 	void UpdateFogTexture();

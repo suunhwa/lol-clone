@@ -3,6 +3,7 @@
 
 #include "FOW/FOWTileMap.h"
 
+#include "FOW/FOWVolume.h"
 #include "LeagueofLegends.h"
 #include "Engine/StaticMeshActor.h"
 #include "Interfaces/SightProviderHelper.h"
@@ -60,9 +61,9 @@ void AFOWTileMap::Tick(float DeltaTime)
 	}
 }
 
-void AFOWTileMap::Generate(AActor* MapActor)
+void AFOWTileMap::Generate(AFOWVolume* FOWVolume)
 {
-	GenerateTileMap(MapActor);
+	GenerateTileMap(FOWVolume);
 	CreateFogTexture();
 	CreateSightDataTexture();
 	
@@ -73,16 +74,16 @@ void AFOWTileMap::Generate(AActor* MapActor)
 	CreateFOWPostProcess();
 }
 
-void AFOWTileMap::GenerateTileMap(AActor* MapActor)
+void AFOWTileMap::GenerateTileMap(AFOWVolume* FOWVolume)
 {
-	if (!MapActor)
+	if (!FOWVolume)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GenerateFromMap: MapActor is null"));
 		return;
 	}
 
 	// Map의 BoundingBox를 가져와서 TileMap의 크기를 결정
-	FBox Bounds = MapActor->GetComponentsBoundingBox();
+	FBox Bounds = FOWVolume->GetFOWBounds();
 	WorldMin = Bounds.Min;
 	FVector WorldMax = Bounds.Max;
 
@@ -121,7 +122,10 @@ void AFOWTileMap::GenerateTileMap(AActor* MapActor)
 				// 타일이 지형과 충돌한 경우
 				// HitResult.Location을 사용하여 타일의 높이를 결정할 수 있음
 				// 예: SetTileHeight(i, j, HitResult.Location.Z);
-				if (HitResult.Location.Z < 200.f)
+				float Diff = 8600.f - HitResult.Location.Z;
+				bool bIsFloor = FMath::Abs(Diff) < 50.f;
+				if (bIsFloor)
+				// if (HitResult.Location.Z < 200.f)
 				{
 					CurTile.Type = ETileType::Floor; // 예시로 Floor 타입으로 설정
 				}
@@ -136,7 +140,7 @@ void AFOWTileMap::GenerateTileMap(AActor* MapActor)
 					FVector BoxCenter(TileCenterX, TileCenterY, HitResult.Location.Z);
 					FVector BoxExtent(HalfTileSize, HalfTileSize, 10.f);
 					
-					FColor BoxColor = BoxCenter.Z < 150.f ? FColor::Green : FColor::Red;
+					FColor BoxColor = bIsFloor ? FColor::Green : FColor::Red;
 					DrawDebugBox(GetWorld(), BoxCenter, BoxExtent, BoxColor, true, -1.f);
 				}
 			}
