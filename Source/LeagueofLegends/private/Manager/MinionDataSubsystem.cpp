@@ -7,9 +7,9 @@ void UMinionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 
 	// 에셋 경로 직접 지정, 자동 로드
-	BaseTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/Data/MinionStatDataTable_MinionBase.MinionStatDataTable_MinionBase")));
-	GrowthTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/Data/MinionStatDataTable_MinionGrowth.MinionStatDataTable_MinionGrowth")));
-	WaveTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/Data/MinionStatDataTable_MinionWave.MinionStatDataTable_MinionWave")));
+	BaseTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/DataTables/MinionStatDataTable_MinionBase.MinionStatDataTable_MinionBase")));
+	GrowthTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/DataTables/MinionStatDataTable_MinionGrowth.MinionStatDataTable_MinionGrowth")));
+	WaveTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/DataTables/MinionStatDataTable_MinionWave.MinionStatDataTable_MinionWave")));
 	if (!BaseTable || !GrowthTable)
 	{
 		UE_LOG(LogTemp, Error, TEXT("서브시스템: 데이터 테이블 로드 실패! 경로를 확인하세요."));
