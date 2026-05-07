@@ -17,8 +17,7 @@ void ALoLTower::BeginPlay()
 
 void ALoLTower::CheckAndAttack()
 {
-    if (IsDead()) return;
-    
+    if (ObjectStatComp->IsDead()) return;
     
     if (IsValid(CurrentTarget)) Fire();
     else ObjectStatComp->ResetHeatingStack();

@@ -180,7 +180,7 @@ AActor* ALoLMinion::ScanForBestTarget()
     // ITargetable이 아니라 UTargetable을 넣어야 합니다.
     UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UTargetable::StaticClass(), FoundActors);
     
-    //UE_LOG(LogTemp, Log, TEXT("[%s] ITargetable 감지된 액터 수: %d"), *GetName(), FoundActors.Num());
+    // UE_LOG(LogTemp, Log, TEXT("[%s] ITargetable 감지된 액터 수: %d"), *GetName(), FoundActors.Num());
     AActor* ClosestEnemy = nullptr;
     float CurrentClosestDist = MAX_FLT;
 
@@ -188,8 +188,8 @@ AActor* ALoLMinion::ScanForBestTarget()
     {
         if (Actor == this) continue;
         
-        ITargetable* TargetInterface = Cast<ITargetable>(Actor);
-        if (TargetInterface && TargetInterface->GetTeam() != this->GetTeam())
+        // ITargetable* TargetInterface = Cast<ITargetable>(Actor);
+        if (Actor->Implements<UTargetable>() && ITargetable::Execute_GetTeam(Actor) != this->TagComp->GetTeam())
         {
             float Dist = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
             
