@@ -7,7 +7,6 @@
 #include "Item/ItemDataAsset.h"
 #include "ItemInstance.generated.h"
 
-class ALoLChampion;
 /**
  * 아이템 하나당 1개의 Instance가 존재한다. (예: 체력 물약 3개를 들고 있으면, ItemDataAsset은 하나지만 ItemInstance는 3개)
  */
