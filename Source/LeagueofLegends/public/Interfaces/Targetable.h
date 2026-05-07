@@ -30,4 +30,13 @@ public:
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
 	ETeam GetTeam() const;
+	
+	// 유닛 타입 반환 (Champion / Minion / Tower / Nexus)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
+	EUnitType GetUnitType() const;
+
+	// 이 유닛이 현재 공격 중인 타겟 반환 (없으면 nullptr)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Targetable")
+	AActor* GetCurrentCombatTarget() const;
+
 };

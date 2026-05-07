@@ -125,6 +125,16 @@ ETeam ALoLCharacterBase::GetTeam_Implementation() const
 	return TagComp->GetTeam();
 }
 
+EUnitType ALoLCharacterBase::GetUnitType_Implementation() const
+{
+	return TagComp->GetUnitType();
+}
+
+AActor* ALoLCharacterBase::GetCurrentCombatTarget_Implementation() const
+{
+	return TargetingComp ? TargetingComp->GetCurrentTarget() : nullptr;
+}
+
 FVector ALoLCharacterBase::GetSightOrigin_Implementation() const
 {
 	return GetActorLocation();
