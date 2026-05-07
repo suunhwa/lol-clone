@@ -29,6 +29,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f) override;
 
 public:
 	// --- IDamageable
@@ -99,6 +101,13 @@ public:
 	// 특정 섹션부터 몽타주 재생
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontageSection(UAnimMontage* Montage, FName SectionName);
+
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_FacingRotation)
+	FRotator FacingRotation;
+
+	UFUNCTION()
+	void OnRep_FacingRotation() { SetActorRotation(FacingRotation); }
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator);
