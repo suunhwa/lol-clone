@@ -1,4 +1,6 @@
 #include "Characters/LoLMinion.h"
+
+#include "LeagueofLegends.h"
 #include "Manager/MinionDataSubsystem.h"
 #include "Components/MinionStatComponent.h"
 #include "Components/TagComponent.h"
@@ -9,6 +11,8 @@
 ALoLMinion::ALoLMinion()
 {
     PrimaryActorTick.bCanEverTick = true;
+    
+    AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void ALoLMinion::BeginPlay()
@@ -20,9 +24,10 @@ void ALoLMinion::BeginPlay()
     // 1. AStar 매니저 찾기
     GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
 
-    // 2. 서브시스템을 통한 데이터 초기화 (하드코딩 제거)
+    // 2. 서브시스템을 통한 데이터 초기화
     UMinionDataSubsystem* DataSub = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>();
     UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp);
+    // UStatComponent* MinionStat = StatComp;
 
     if (DataSub && MinionStat)
     {
@@ -38,11 +43,11 @@ void ALoLMinion::BeginPlay()
             }
 
             // 컴포넌트 내의 초기화 함수 호출 (성장치 반영)
-            MinionStat->InitMinionStats(*BaseRow, *GrowthRow, GameMinutes);
-            
+            // MinionStat->InitMinionStats(*BaseRow, *GrowthRow, GameMinutes);
             
             // 캐싱
             CachedAttackRange = MinionStat->GetAttackRange();
+            // CachedAttackRange = BaseRow->AtkRange;
             CachedAttackSpeed = MinionStat->GetAttackSpeed();
             
             if (MinionStat) 
@@ -57,8 +62,15 @@ void ALoLMinion::BeginPlay()
     if (TagComp)
     {
         TagComp->SetUnitType(EUnitType::Minion);
-        TagComp->SetTeam(InitialTeam);
+        // 이미 팀이 설정되어 있다면(스포너가 넣어줬다면) 덮어쓰지 않음
+        if (TagComp->GetTeam() == ETeam::None)
+        {
+            TagComp->SetTeam(InitialTeam);
+        }
     }
+    
+    // 틱 강제 활성화
+    SetActorTickEnabled(true);
 }
 
 void ALoLMinion::Tick(float DeltaTime)
@@ -82,7 +94,6 @@ void ALoLMinion::Tick(float DeltaTime)
             CurrentPath.Empty();
             // [로그 추가] 공격 범위 진입 확인
             UE_LOG(LogTemp, Log, TEXT("[%s] 공격 사거리 도달!"), *GetName());
-            
         }
         else
         {
@@ -94,7 +105,7 @@ void ALoLMinion::Tick(float DeltaTime)
                 PathUpdateTimer = 0.f;
                 
                 // [로그 추가] 경로 생성 확인
-                UE_LOG(LogTemp, Log, TEXT("[%s] 새 경로 요청. 남은 웨이포인트: %d"), *GetName(), CurrentPath.Num());
+                //UE_LOG(LogTemp, Log, TEXT("[%s] 새 경로 요청. 남은 웨이포인트: %d"), *GetName(), CurrentPath.Num());
             }
             MoveAlongPath(DeltaTime);
         }
@@ -113,11 +124,13 @@ void ALoLMinion::RequestNewPath(FVector Destination)
 
 void ALoLMinion::MoveAlongPath(float DeltaTime)
 {
-    if (CurrentPath.Num() == 0 || CurrentPathIndex >= CurrentPath.Num()) return;
-
+    if (CurrentPath.Num() == 0 || CurrentPathIndex >= CurrentPath.Num())
+    {
+        return;
+    }
+    
     FVector TargetPoint = CurrentPath[CurrentPathIndex];
     FVector Direction = (TargetPoint - GetActorLocation()).GetSafeNormal2D();
-
     // 부모의 CharacterMovementComponent를 이용한 이동
     AddMovementInput(Direction, 1.0f);
 
@@ -136,7 +149,7 @@ void ALoLMinion::MoveAlongPath(float DeltaTime)
 
 void ALoLMinion::UpdateAggro()
 {
-    UE_LOG(LogTemp, Log, TEXT("[%s] UpdateAggro 틱 도는 중..."), *GetName());
+    //UE_LOG(LogTemp, Log, TEXT("[%s] UpdateAggro 틱 도는 중..."), *GetName());
 
     AActor* Best = ScanForBestTarget();
     
@@ -167,30 +180,24 @@ AActor* ALoLMinion::ScanForBestTarget()
     // ITargetable이 아니라 UTargetable을 넣어야 합니다.
     UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UTargetable::StaticClass(), FoundActors);
     
-    UE_LOG(LogTemp, Log, TEXT("[%s] ITargetable 감지된 액터 수: %d"), *GetName(), FoundActors.Num());
+    //UE_LOG(LogTemp, Log, TEXT("[%s] ITargetable 감지된 액터 수: %d"), *GetName(), FoundActors.Num());
     AActor* ClosestEnemy = nullptr;
-    float MinDist = 1500.f;
+    float CurrentClosestDist = MAX_FLT;
 
     for (AActor* Actor : FoundActors)
     {
         if (Actor == this) continue;
         
-        // 실제 로직 사용 시에는 다시 ITargetable로 형변환해서 기능을 씁니다.
         ITargetable* TargetInterface = Cast<ITargetable>(Actor);
-        
-        if (TargetInterface)
+        if (TargetInterface && TargetInterface->GetTeam() != this->GetTeam())
         {
-            // [로그 추가] 찾은 대상의 팀과 내 팀을 비교
-            UE_LOG(LogTemp, Log, TEXT("[%s] 대상: %s, 내 팀: %d, 대상 팀: %d"), 
-                *GetName(), *Actor->GetName(), (int32)GetTeam(), (int32)TargetInterface->GetTeam());
-            if (TargetInterface->GetTeam() != this->GetTeam())
+            float Dist = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
+            
+            // 거리 제한 없이, 그저 가장 가까운 적을 찾음
+            if (Dist < CurrentClosestDist)
             {
-                float Dist = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
-                if (Dist < MinDist)
-                {
-                    MinDist = Dist;
-                    ClosestEnemy = Actor;
-                }
+                CurrentClosestDist = Dist;
+                ClosestEnemy = Actor;
             }
         }
     }
