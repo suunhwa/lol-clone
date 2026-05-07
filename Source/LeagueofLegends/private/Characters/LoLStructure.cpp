@@ -44,9 +44,9 @@ void ALoLStructure::ReceiveDamage_Implementation(float Amount, EDamageType Damag
     if (ObjectStatComp->IsDead()) OnDestroyed();
 }
 
-bool ALoLStructure::IsDead() const { return ObjectStatComp->IsDead(); }
+bool ALoLStructure::IsDead_Implementation() const { return ObjectStatComp->IsDead(); }
 
-ETeam ALoLStructure::GetTeam() const { return TagComp->GetTeam(); }
+ETeam ALoLStructure::GetTeam_Implementation() const { return TagComp->GetTeam(); }
 
 void ALoLStructure::OnDestroyed()
 {

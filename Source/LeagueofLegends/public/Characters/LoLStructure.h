@@ -58,9 +58,9 @@ protected:
     TObjectPtr<USkeletalMeshComponent> MeshComp;
     
 public:
-    virtual void ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
-    virtual bool IsDead() const override;
-    virtual bool IsTargetable() const override { return !IsDead(); }
-    virtual ETeam GetTeam() const override;
-    virtual FVector GetTargetLocation() const override { return GetActorLocation(); }
+    virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
+    virtual bool IsDead_Implementation() const override;
+    virtual bool IsTargetable_Implementation() const override { return !IsDead(); }
+    virtual ETeam GetTeam_Implementation() const override;
+    virtual FVector GetTargetLocation_Implementation() const override { return GetActorLocation(); }
 };
