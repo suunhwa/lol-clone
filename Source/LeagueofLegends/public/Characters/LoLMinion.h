@@ -20,7 +20,7 @@ protected:
 
 	// --- 데이터 및 스탯 ---
 	UPROPERTY(EditAnywhere, Category = "Minion | Data")
-	int32 MinionID; // 테이블 상의 ID (전사=1, 원거리=2 등)
+	int32 MinionID; 
 
 	float CachedAttackRange = 0.f;
 	float CachedAttackSpeed = 1.0f;

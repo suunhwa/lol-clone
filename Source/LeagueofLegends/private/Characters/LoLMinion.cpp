@@ -21,10 +21,10 @@ void ALoLMinion::BeginPlay()
 
     if (!HasAuthority()) return;
 
-    // 1. AStar 매니저 찾기
+    // AStar 매니저 찾기
     GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
 
-    // 2. 서브시스템을 통한 데이터 초기화
+    // 서브시스템을 통한 데이터 초기화
     UMinionDataSubsystem* DataSub = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>();
     UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp);
     // UStatComponent* MinionStat = StatComp;
@@ -43,7 +43,7 @@ void ALoLMinion::BeginPlay()
             }
 
             // 컴포넌트 내의 초기화 함수 호출 (성장치 반영)
-            // MinionStat->InitMinionStats(*BaseRow, *GrowthRow, GameMinutes);
+            MinionStat->InitMinionStats(*BaseRow, *GrowthRow, GameMinutes);
             
             // 캐싱
             CachedAttackRange = MinionStat->GetAttackRange();
@@ -52,13 +52,13 @@ void ALoLMinion::BeginPlay()
             
             if (MinionStat) 
             {
-                UE_LOG(LogTemp, Warning, TEXT("[%s] 데이터 로드 확인 - 사거리: %f"), *GetName(), CachedAttackRange);
+                PRINTLOG_HJ(LogTemp, Warning, TEXT("[%s] 데이터 로드 확인 - 사거리: %f"), *GetName(), CachedAttackRange);
             }
             
         }
     }
 
-    // 3. 태그 기본 설정
+    // 태그 기본 설정
     if (TagComp)
     {
         TagComp->SetUnitType(EUnitType::Minion);
@@ -93,7 +93,7 @@ void ALoLMinion::Tick(float DeltaTime)
             // 공격 범위 안이면 길찾기 중단 및 공격 (공격 로직은 CombatComp에 위임)
             CurrentPath.Empty();
             // [로그 추가] 공격 범위 진입 확인
-            UE_LOG(LogTemp, Log, TEXT("[%s] 공격 사거리 도달!"), *GetName());
+            PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 공격 사거리 도달!"), *GetName());
         }
         else
         {
@@ -105,7 +105,7 @@ void ALoLMinion::Tick(float DeltaTime)
                 PathUpdateTimer = 0.f;
                 
                 // [로그 추가] 경로 생성 확인
-                //UE_LOG(LogTemp, Log, TEXT("[%s] 새 경로 요청. 남은 웨이포인트: %d"), *GetName(), CurrentPath.Num());
+                //PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 새 경로 요청. 남은 웨이포인트: %d"), *GetName(), CurrentPath.Num());
             }
             MoveAlongPath(DeltaTime);
         }
@@ -140,7 +140,7 @@ void ALoLMinion::MoveAlongPath(float DeltaTime)
         SetActorRotation(Direction.Rotation());
     }
 
-    // 웨이포인트 도달 체크 (그리드 크기 고려하여 약 50cm 내외)
+    // 웨이포인트 도달 체크 [그리드 크기 고려하여 약 50cm 내외]
     if (FVector::Dist2D(GetActorLocation(), TargetPoint) < 50.f)
     {
         CurrentPathIndex++;
@@ -149,7 +149,7 @@ void ALoLMinion::MoveAlongPath(float DeltaTime)
 
 void ALoLMinion::UpdateAggro()
 {
-    //UE_LOG(LogTemp, Log, TEXT("[%s] UpdateAggro 틱 도는 중..."), *GetName());
+    //PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] UpdateAggro 틱 도는 중..."), *GetName());
 
     AActor* Best = ScanForBestTarget();
     
@@ -158,7 +158,7 @@ void ALoLMinion::UpdateAggro()
         // 타겟이 바뀌었을 때만 출력
         if (CurrentTarget != Best)
         {
-            UE_LOG(LogTemp, Warning, TEXT("[%s] 새 타겟 발견: %s"), *GetName(), *Best->GetName());
+            PRINTLOG_HJ(LogTemp, Warning, TEXT("[%s] 새 타겟 발견: %s"), *GetName(), *Best->GetName());
             CurrentTarget = Best;
         }
     }
@@ -168,7 +168,7 @@ void ALoLMinion::UpdateAggro()
         static int32 LogCounter = 0;
         if (++LogCounter % 100 == 0) 
         {
-            UE_LOG(LogTemp, Error, TEXT("[%s] 주변에 적이 없음 (nullptr)"), *GetName());
+            PRINTLOG_HJ(LogTemp, Error, TEXT("[%s] 주변에 적이 없음 (nullptr)"), *GetName());
         }
     }
 }
@@ -177,10 +177,9 @@ AActor* ALoLMinion::ScanForBestTarget()
 {
     TArray<AActor*> FoundActors;
     
-    // ITargetable이 아니라 UTargetable을 넣어야 합니다.
     UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UTargetable::StaticClass(), FoundActors);
     
-    // UE_LOG(LogTemp, Log, TEXT("[%s] ITargetable 감지된 액터 수: %d"), *GetName(), FoundActors.Num());
+    // PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] ITargetable 감지된 액터 수: %d"), *GetName(), FoundActors.Num());
     AActor* ClosestEnemy = nullptr;
     float CurrentClosestDist = MAX_FLT;
 
