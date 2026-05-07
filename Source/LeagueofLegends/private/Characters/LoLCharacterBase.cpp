@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Characters/LoLCharacterBase.h"
+
+#include "LeagueofLegends.h"
 #include "Components/StatComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/TagComponent.h"
@@ -22,8 +24,8 @@ ALoLCharacterBase::ALoLCharacterBase()
 	bReplicates = true;
 	SetReplicateMovement(true);
 
-	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn"));
-	
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Champion"));
+
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
@@ -53,9 +55,26 @@ void ALoLCharacterBase::BeginPlay()
 		TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
 	}
+
+	/*auto* GS = GetWorld()->GetGameState<ARiftGameState>();                                                                                  
+	GS->GetFOWManager()->RegisterSightProvider(this);    */
 	
-	auto* GS = GetWorld()->GetGameState<ARiftGameState>();
-	GS->GetFOWManager()->RegisterSightProvider(this);
+
+	if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+	{
+		if (AFOWManager* FOWManager = GS->GetFOWManager())
+		{
+			FOWManager->RegisterSightProvider(this);
+		}
+		else
+		{
+			PRINTLOG_SH(TEXT("RegisterSightProvider failed: FOWManager is null for %s"), *GetName());
+		}
+	}
+	else
+	{
+		PRINTLOG_SH(TEXT("RegisterSightProvider failed: GameState is null for %s"), *GetName());
+	}
 
 	if (UHPBarWidget* HPBar = Cast<UHPBarWidget>(HPBarWidgetComp->GetWidget()))
 	{
@@ -63,9 +82,9 @@ void ALoLCharacterBase::BeginPlay()
 	}
 }
 
-void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator)
+void ALoLCharacterBase::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
 {
-	if (!HasAuthority()) return;
+	if (!HasAuthority()) { return; }
 
 	FDamageContext Ctx;
 	Ctx.RawDamage = Amount;
@@ -86,22 +105,22 @@ void ALoLCharacterBase::ReceiveDamage(float Amount, EDamageType DamageType, AAct
 	StatComp->ApplyHealthChange(-Amount);
 }
 
-bool ALoLCharacterBase::IsDead() const
+bool ALoLCharacterBase::IsDead_Implementation() const
 {
 	return StatComp->IsDead();
 }
 
-bool ALoLCharacterBase::IsTargetable() const
+bool ALoLCharacterBase::IsTargetable_Implementation() const
 {
 	return !IsDead() && !TagComp->HasTag(UnitTags::Untargetable);
 }
 
-FVector ALoLCharacterBase::GetTargetLocation() const
+FVector ALoLCharacterBase::GetTargetLocation_Implementation() const
 {
 	return GetActorLocation();
 }
 
-ETeam ALoLCharacterBase::GetTeam() const
+ETeam ALoLCharacterBase::GetTeam_Implementation() const
 {
 	return TagComp->GetTeam();
 }

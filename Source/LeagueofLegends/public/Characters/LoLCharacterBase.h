@@ -32,13 +32,13 @@ protected:
 
 public:
 	// --- IDamageable
-	virtual void ReceiveDamage(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
-	virtual bool IsDead() const override;
+	virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
+	virtual bool IsDead_Implementation() const override;
 
 	// --- ITargetable
-	virtual bool IsTargetable() const override;
-	virtual FVector GetTargetLocation() const override;
-	virtual ETeam GetTeam() const override;
+	virtual bool IsTargetable_Implementation() const override;
+	virtual FVector GetTargetLocation_Implementation() const override;
+	virtual ETeam GetTeam_Implementation() const override;
 	
 	// --- ISightProvider
 #pragma region SightProvider

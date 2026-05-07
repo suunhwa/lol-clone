@@ -1,40 +1,34 @@
 ﻿#include "Characters/Minion/LoLMinion_Siege.h"
 #include "Characters/Minion/Ranged_Projectile.h"
+#include "Components/MinionStatComponent.h"
+#include "Components/TagComponent.h"
 
 ALoLMinion_Siege::ALoLMinion_Siege()
 {
-	MinionDataID = TEXT("3003"); // 공성 미니언 ID
+	MinionID = 3003;
 }
 
-void ALoLMinion_Siege::PerformAttack()
+void ALoLMinion_Siege::ExecuteRangedAttack(AActor* Target)
 {
-	if (!TargetPlayer || !ProjectileClass) return;
+	if (!HasAuthority() || !Target || !ProjectileClass) return;
 
-	float CurrentTime = GetWorld()->GetTimeSeconds();
+	UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp);
+	if (!MinionStat) return;
 
-	if (CurrentTime - LastAttackTime >= (1.0f / AttackSpeed))
+	FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 80.f + FVector(0.f, 0.f, 40.f);
+	FRotator SpawnRotation = (Target->GetActorLocation() - GetActorLocation()).Rotation();
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.Instigator = GetInstigator();
+
+	if (ALoLRanged_Projectile* Projectile = GetWorld()->SpawnActor<ALoLRanged_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, Params))
 	{
-		FVector SpawnLocation = GetActorLocation() 
-						  + (GetActorForwardVector() * ProjectileOffset.X)
-						  + (GetActorUpVector() * ProjectileOffset.Z);
-        
-		FRotator SpawnRotation = (TargetPlayer->GetActorLocation() - SpawnLocation).Rotation();
+		// 데이터 테이블(StatComp) 수치 주입
+		float AD = MinionStat->GetAD();
+		float Speed = MinionStat->GetAttackRange(); // 테이블의 데이터를 기반으로 작동
+		ETeam MyTeam = TagComp->GetTeam();
 
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = GetInstigator();
-
-		ALoLRanged_Projectile* Projectile = GetWorld()->SpawnActor<ALoLRanged_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-
-		if (Projectile)
-		{
-			// 태그 컴포넌트 대신 Actor Tag 사용
-			FName MyTeamTag = (Tags.Num() > 0) ? Tags[0] : NAME_None;
-			Projectile->Launch(ProjSpeed, AttackDamage, MyTeamTag);
-            
-			UE_LOG(LogTemp, Log, TEXT("[%s] 공성 포탄 발사!"), *Name_KR);
-		}
-
-		LastAttackTime = CurrentTime;
+		Projectile->Launch(Target, Speed, AD, MyTeam);
 	}
 }

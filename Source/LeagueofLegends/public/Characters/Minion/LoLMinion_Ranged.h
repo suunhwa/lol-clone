@@ -4,6 +4,9 @@
 #include "Characters/LoLMinion.h"
 #include "LoLMinion_Ranged.generated.h"
 
+// 전방 선언을 통해 의존성 최소화
+class ALoLRanged_Projectile;
+
 UCLASS()
 class LEAGUEOFLEGENDS_API ALoLMinion_Ranged : public ALoLMinion
 {
@@ -13,14 +16,10 @@ public:
 	ALoLMinion_Ranged();
 
 protected:
-	// 부모의 공격 함수를 오버라이드하여 투사체 발사 로직을 넣습니다.
-	virtual void PerformAttack() override;
+	// 원거리 공격 실행 함수
+	void ExecuteRangedAttack(AActor* Target);
 
-	// 블루프린트에서 어떤 투사체를 발사할지 선택합니다 (예: BP_Minion_Projectile)
-	UPROPERTY(EditAnywhere, Category = "AI|Combat")
-	TSubclassOf<class AActor> ProjectileClass;
-
-	// 투사체가 스폰될 위치 (보통 지팡이나 손 끝)
-	UPROPERTY(EditAnywhere, Category = "AI|Combat")
-	FVector ProjectileOffset = FVector(50.f, 0.f, 60.f);
+	// 에디터에서 ALoLRanged_Projectile 기반 블루프린트를 할당
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TSubclassOf<ALoLRanged_Projectile> ProjectileClass;
 };

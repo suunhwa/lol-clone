@@ -1,67 +1,77 @@
 ﻿#include "Characters/Minion/Ranged_Projectile.h"
-
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/StatComponent.h"
+#include "Components/TagComponent.h"
 #include "Characters/LoLMinion.h"
 #include "Characters/Nexus/Nexus.h"
 
 ALoLRanged_Projectile::ALoLRanged_Projectile()
 {
-    // 1. 충돌체 설정
     CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
     CollisionComp->InitSphereRadius(15.0f);
-    
-    // 콜리전 프리셋 설정 (미니언 캡슐을 Block할 수 있는 설정이어야 함)
     CollisionComp->SetCollisionProfileName(TEXT("Projectile")); 
-    CollisionComp->OnComponentHit.AddDynamic(this, &ALoLRanged_Projectile::OnProjectileHit);
     RootComponent = CollisionComp;
 
-    // 2. 외형 설정
     MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
     MeshComp->SetupAttachment(RootComponent);
     MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    // 3. 이동 컴포넌트 설정
     ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
     ProjectileMovement->UpdatedComponent = CollisionComp;
     ProjectileMovement->bRotationFollowsVelocity = true;
-    ProjectileMovement->ProjectileGravityScale = 0.0f; // 중력 무시
-    ProjectileMovement->InitialSpeed = 0.f;
+    ProjectileMovement->ProjectileGravityScale = 0.0f;
     ProjectileMovement->MaxSpeed = 5000.f;
 
-    SetLifeSpan(3.0f); // 3초 뒤 자동 파괴
+    SetLifeSpan(3.0f);
 }
 
-void ALoLRanged_Projectile::Launch(float InSpeed, float InDamage, FName InTeamTag)
+void ALoLRanged_Projectile::Launch(AActor* InTarget, float InSpeed, float InDamage, ETeam InOwnerTeam)
 {
+    TargetActor = InTarget;
     Damage = InDamage;
-    OwnerTeamTag = InTeamTag;
+    OwnerTeam = InOwnerTeam;
 
     if (ProjectileMovement)
     {
-        // 소환된 시점의 정면 방향으로 발사
-        ProjectileMovement->Velocity = GetActorForwardVector() * InSpeed;
+        ProjectileMovement->InitialSpeed = InSpeed;
+        if (InTarget)
+        {
+            ProjectileMovement->bIsHomingProjectile = true;
+            ProjectileMovement->HomingTargetComponent = InTarget->GetRootComponent();
+            ProjectileMovement->HomingAccelerationMagnitude = InSpeed * 2.5f;
+        }
+        FVector Direction = InTarget ? (InTarget->GetActorLocation() - GetActorLocation()).GetSafeNormal() : GetActorForwardVector();
+        ProjectileMovement->Velocity = Direction * InSpeed;
     }
 }
 
-void ALoLRanged_Projectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void ALoLRanged_Projectile::NotifyActorBeginOverlap(AActor* OtherActor)
 {
-    // 나 자신이나 주인은 무시
-    if (!OtherActor || OtherActor == GetOwner()) return;
+    Super::NotifyActorBeginOverlap(OtherActor);
 
-    // 팀이 다른 경우에만 데미지
-    if (!OtherActor->ActorHasTag(OwnerTeamTag))
+    if (!HasAuthority() || !OtherActor || OtherActor == GetOwner()) return;
+
+    // 타겟팅 투사체인 경우 타겟 필터링 (필요에 따라 제거 가능)
+    if (TargetActor.IsValid() && OtherActor != TargetActor.Get()) return;
+
+    // 상대방의 태그 컴포넌트 확인
+    UTagComponent* OtherTag = OtherActor->FindComponentByClass<UTagComponent>();
+    if (OtherTag)
     {
-        if (ALoLMinion* TargetMinion = Cast<ALoLMinion>(OtherActor))
+        // 적인지 확인 (내 팀과 상대 팀이 다를 때만 데미지)
+        if (OwnerTeam != ETeam::None && OtherTag->GetTeam() != ETeam::None && OwnerTeam != OtherTag->GetTeam())
         {
-            TargetMinion->TakeDamageSimple(Damage);
+            if (UStatComponent* TargetStat = OtherActor->FindComponentByClass<UStatComponent>())
+            {
+                TargetStat->ApplyHealthChange(-Damage);
+            }
+            else if (ANexus* TargetNexus = Cast<ANexus>(OtherActor))
+            {
+                TargetNexus->ReceiveDamage(Damage);
+            }
+            
+            Destroy();
         }
-        else if (class ANexus* TargetNexus = Cast<ANexus>(OtherActor))
-        {
-            TargetNexus->ReceiveDamage(Damage);
-        }
-
-        // 데미지를 줬다면 파괴
-        Destroy();
     }
 }
