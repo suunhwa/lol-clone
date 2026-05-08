@@ -16,6 +16,7 @@ class LEAGUEOFLEGENDS_API UItemSlotWidget : public UCommonSlotWidget
 {
 	GENERATED_BODY()
 	
+protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UImage> Img_BasicOutline;
 	
