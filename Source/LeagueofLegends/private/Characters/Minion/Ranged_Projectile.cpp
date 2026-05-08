@@ -4,7 +4,6 @@
 #include "Components/StatComponent.h"
 #include "Components/TagComponent.h"
 #include "Characters/LoLMinion.h"
-#include "Characters/Nexus/Nexus.h"
 
 ALoLRanged_Projectile::ALoLRanged_Projectile()
 {
@@ -65,10 +64,6 @@ void ALoLRanged_Projectile::NotifyActorBeginOverlap(AActor* OtherActor)
             if (UStatComponent* TargetStat = OtherActor->FindComponentByClass<UStatComponent>())
             {
                 TargetStat->ApplyHealthChange(-Damage);
-            }
-            else if (ANexus* TargetNexus = Cast<ANexus>(OtherActor))
-            {
-                TargetNexus->ReceiveDamage(Damage);
             }
             
             Destroy();

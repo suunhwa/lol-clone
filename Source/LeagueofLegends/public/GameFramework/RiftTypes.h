@@ -49,6 +49,7 @@ enum class EUnitType : uint8
 	Champion UMETA(DisplayName = "Champion"),
 	Minion UMETA(DisplayName = "Minion"),
 	Tower UMETA(DisplayName = "Tower"),
+	Inhibitor UMETA(DisplayName = "Inhibitor"),
 	Nexus UMETA(DisplayName = "Nexus"),
 };
 
