@@ -18,6 +18,7 @@ public:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 
 	void BeginPlay() override;
 	void OnNexusDestroyed(ETeam DestroyedTeam);

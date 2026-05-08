@@ -23,6 +23,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnPossess(APawn* InPawn) override;
 	virtual void AcknowledgePossession(APawn* P) override;
 	virtual void AutoManageActiveCameraTarget(AActor* SuggestedTarget) override;
 
@@ -78,6 +79,8 @@ public:
 	FVector2D CameraBoundsMax = FVector2D(4000.f, 4000.f);;
 
 	FVector TargetCameraLoc = FVector::ZeroVector;
+
+	FTimerHandle CameraInitTimer;
 
 protected:
 	// ----------------------------------Input---------------------------------
