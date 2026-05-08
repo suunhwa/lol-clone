@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CommonSlotWidget.h"
+#include "SlotWidgetBase.h"
 #include "SkillSlotWidget.generated.h"
 
 class UTextBlock;
@@ -14,7 +14,7 @@ class UTextBlock;
  * 스킬 슬롯 고유 위젯 컴포넌트를 추가로 바인딩합니다.
  */
 UCLASS()
-class LEAGUEOFLEGENDS_API USkillSlotWidget : public UCommonSlotWidget
+class LEAGUEOFLEGENDS_API USkillSlotWidget : public USlotWidgetBase
 {
 	GENERATED_BODY()
 
