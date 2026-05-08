@@ -25,7 +25,7 @@ void ALoLMinion_Ranged::ExecuteRangedAttack(AActor* Target)
 
 	if (ALoLRanged_Projectile* Projectile = GetWorld()->SpawnActor<ALoLRanged_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, Params))
 	{
-		// 하드코딩 완전 제거: StatComp에 정의된 수치만 사용
+		// StatComp에 정의된 수치만 사용
 		float AD = MinionStat->GetAD();
 		float Speed = MinionStat->GetAttackRange(); // 보통 발사 속도는 사거리/이동속도 등과 연계되거나 별도 변수 활용
 		ETeam MyTeam = TagComp->GetTeam();
