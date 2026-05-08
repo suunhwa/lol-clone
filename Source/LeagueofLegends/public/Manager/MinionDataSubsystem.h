@@ -12,6 +12,7 @@ class LEAGUEOFLEGENDS_API UMinionDataSubsystem : public UGameInstanceSubsystem
 
 public:
 	
+	
 	// 서브시스템이 생성될 때 실행 (테이블 로드 가능)
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
