@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Characters/LoLCharacterBase.h"
+#include "Interfaces/Targetable.h"
+
 #include "LoLMinion.generated.h"
 
 class AAStarGridManager;
@@ -14,9 +16,24 @@ class LEAGUEOFLEGENDS_API ALoLMinion : public ALoLCharacterBase
 public:
 	ALoLMinion();
 
+	// --- ITargetable Interface 구현 ---
+	virtual ETeam GetTeam_Implementation() const override;
+	virtual EUnitType GetUnitType_Implementation() const override;
+	virtual AActor* GetCurrentCombatTarget_Implementation() const override;
+	// ---------------------------------
+	
+	// 스포너가 소환 직후 호출해줄 함수
+	void SetLanePath(const TArray<FVector>& InPath) { LanePath = InPath; CurrentLaneIndex = 0; }
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	
+	// --- AI 설정 ---
+	UPROPERTY(EditAnywhere, Category = "Minion | AI")
+	float AcquisitionRange = 600.f;  // 어그로 인식 범위
+
+	UPROPERTY(EditAnywhere, Category = "Minion | AI")
+	float LoseTargetRange = 1000.f;  // 어그로 해제 범위
 
 	// --- 데이터 및 스탯 ---
 	UPROPERTY(EditAnywhere, Category = "Minion | Data")
@@ -26,7 +43,7 @@ protected:
 	float CachedAttackSpeed = 1.0f;
 
 	// --- AI 및 우선순위 ---
-	void UpdateAggro();
+	void UpdateAggro(float DeltaTime);
 	AActor* ScanForBestTarget();
 	int32 GetTargetPriority(AActor* PotentialTarget);
 
@@ -42,10 +59,18 @@ private:
 	int32 CurrentPathIndex = 0;
     
 	TWeakObjectPtr<AActor> CurrentTarget;
-    
-
+	
 	float PathUpdateTimer = 0.f;
 	const float PathUpdateInterval = 0.5f; // A* 계산 최적화 주기
+	
+	float AggroUpdateTimer = 0.f;
+	const float AggroUpdateInterval = 0.3f; // 0.3초마다 타겟 갱신
+	
+	UPROPERTY()
+	TArray<FVector> LanePath; // 스포너가 준 체크포인트 리스트
+
+	int32 CurrentLaneIndex = 0; // 현재 가야 할 체크포인트 번호
+	
 };
 
 	/*UPROPERTY(VisibleAnywhere, Category = "Minion|Base")

@@ -50,7 +50,7 @@ void AAStarGridManager::ScanWorld()
 
             // [디버그] 전체 시각화
             FColor DebugColor = Node.bIsWalkable ? FColor::Green : FColor::Red;
-            DrawDebugBox(GetWorld(), WorldPos, FVector(GridSize/2.1f, GridSize/2.1f, 2.0f), DebugColor, true, -1, 0, 1.5f);
+            //DrawDebugBox(GetWorld(), WorldPos, FVector(GridSize/2.1f, GridSize/2.1f, 2.0f), DebugColor, true, -1, 0, 1.5f);
         }
     }
 }

@@ -100,6 +100,19 @@ void AMinionSpawner::ExecuteSpawnSequence(const FString& IDListString)
                         TagComp->SetTeam(SpawnerTeam);
                     }
 
+                    // --- [경로 주입] ---
+                    if (Waypoints.Num() > 0)
+                    {
+                        TArray<FVector> WorldWaypoints;
+                        for (const FVector& LocalPoint : Waypoints)
+                        {
+                            // 스포너의 위치 기준인 로컬 좌표를 월드 좌표로 변환해서 전달
+                            WorldWaypoints.Add(GetActorTransform().TransformPosition(LocalPoint));
+                        }
+                        // 미니언에게 경로를 건네줍니다 (미니언 클래스에 SetLanePath 함수가 있어야 함)
+                        SpawnedMinion->SetLanePath(WorldWaypoints);
+                    }
+                    
                     // 스폰 직후 즉시 타겟을 찾도록 강제 호출
                     // 미니언이 BeginPlay에서 적이 없어 포기했을 수 있으므로 다시 깨웁니다.
                     SpawnedMinion->SetActorTickEnabled(true);
