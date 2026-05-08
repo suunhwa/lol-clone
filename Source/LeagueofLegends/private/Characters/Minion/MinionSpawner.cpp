@@ -17,7 +17,9 @@ void AMinionSpawner::BeginPlay()
     if (!HasAuthority()) return;
 
     // 롤 기준 첫 웨이브 1분 5초(65초) 시작, 이후 30초 간격
-    GetWorldTimerManager().SetTimer(WaveTimerHandle, this, &AMinionSpawner::CheckAndSpawnWave, 30.f, true, 5.f);
+    // 지금은 테스트용으로 5초에 시작, 10초 간격
+    GetWorldTimerManager().SetTimer(WaveTimerHandle, this, &AMinionSpawner::CheckAndSpawnWave, 
+        10.f, true, 5.f);
 }
 
 void AMinionSpawner::CheckAndSpawnWave()
@@ -30,7 +32,7 @@ void AMinionSpawner::CheckAndSpawnWave()
 
     CurrentWaveCount++;
 
-    // 1. 현재 서버 시간 기준 데이터 로우 선택
+    // 현재 서버 시간 기준 데이터 로우 선택
     float CurrentTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
     FMinionWaveRow* TargetRow = nullptr;
 
@@ -48,7 +50,7 @@ void AMinionSpawner::CheckAndSpawnWave()
 
     if (!TargetRow) return;
 
-    // 2. CSV 조건에 따른 스폰 리스트 결정
+    // CSV 조건에 따른 스폰 리스트 결정
     FString SelectedIDList;
 
     if (bIsInhibitorDestroyed)
@@ -64,7 +66,7 @@ void AMinionSpawner::CheckAndSpawnWave()
         SelectedIDList = TargetRow->Normal_Spawn_List; // 일반 미니언 구성
     }
 
-    // 3. 스폰 실행
+    // 스폰 실행
     ExecuteSpawnSequence(SelectedIDList);
 }
 
@@ -89,7 +91,7 @@ void AMinionSpawner::ExecuteSpawnSequence(const FString& IDListString)
                 
                 if (SpawnedMinion)
                 {
-                    // 1. [수정] 팀 설정 주입 (TagComp뿐만 아니라 미니언 멤버 변수에도 직접)
+                    // 팀 설정 주입 (TagComp뿐만 아니라 미니언 멤버 변수에도 직접)
                     // 만약 InitialTeam 변수가 있다면 그것도 채워줍니다.
                     // SpawnedMinion->InitialTeam = SpawnerTeam; 
 
@@ -98,7 +100,20 @@ void AMinionSpawner::ExecuteSpawnSequence(const FString& IDListString)
                         TagComp->SetTeam(SpawnerTeam);
                     }
 
-                    // 2. [추가] 스폰 직후 즉시 타겟을 찾도록 강제 호출
+                    // --- [경로 주입] ---
+                    if (Waypoints.Num() > 0)
+                    {
+                        TArray<FVector> WorldWaypoints;
+                        for (const FVector& LocalPoint : Waypoints)
+                        {
+                            // 스포너의 위치 기준인 로컬 좌표를 월드 좌표로 변환해서 전달
+                            WorldWaypoints.Add(GetActorTransform().TransformPosition(LocalPoint));
+                        }
+                        // 미니언에게 경로를 건네줍니다 (미니언 클래스에 SetLanePath 함수가 있어야 함)
+                        SpawnedMinion->SetLanePath(WorldWaypoints);
+                    }
+                    
+                    // 스폰 직후 즉시 타겟을 찾도록 강제 호출
                     // 미니언이 BeginPlay에서 적이 없어 포기했을 수 있으므로 다시 깨웁니다.
                     SpawnedMinion->SetActorTickEnabled(true);
                     

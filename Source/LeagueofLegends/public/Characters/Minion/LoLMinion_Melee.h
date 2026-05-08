@@ -7,6 +7,8 @@
 /**
  * 전사 미니언 (ID: 3001)
  */
+
+
 UCLASS()
 class LEAGUEOFLEGENDS_API ALoLMinion_Melee : public ALoLMinion
 {

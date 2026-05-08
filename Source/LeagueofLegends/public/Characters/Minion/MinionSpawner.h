@@ -42,6 +42,10 @@ protected:
 	void ExecuteSpawnSequence(const FString& IDListString);
 	TArray<int32> ParseIDList(const FString& IDListString);
 
+	// 에디터에서 직접 좌표를 찍을 수 있는 배열
+	UPROPERTY(EditAnywhere, Category = "Spawner|Settings", meta = (MakeEditWidget = true))
+	TArray<FVector> Waypoints;
+	
 public:
 	// 외부(억제기 파괴 시)에서 호출할 변수
 	UPROPERTY(BlueprintReadWrite, Category = "Spawner|State")
