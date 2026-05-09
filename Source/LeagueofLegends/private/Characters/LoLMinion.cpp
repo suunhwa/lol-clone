@@ -85,7 +85,7 @@ void ALoLMinion::Tick(float DeltaTime)
             CurrentPath.Empty();
             // TODO: 요기서 이제 전투컴포붙여서 공격로직
             // [로그 추가] 공격 범위 진입 확인
-            PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 공격 사거리 도달!"), *GetName());
+            PRINTLOG_HJ(TEXT("[%s] 공격 사거리 도달!"), *GetName());
         }
         else
         {
@@ -174,7 +174,7 @@ void ALoLMinion::UpdateAggro(float DeltaTime)
         if (Best && CurrentTarget != Best)
         {
             CurrentTarget = Best;
-            PRINTLOG_HJ(LogTemp, Warning, TEXT("[%s] 새 타겟 발견: %s"), *GetName(), *Best->GetName());
+            PRINTLOG_HJ(TEXT("[%s] 새 타겟 발견: %s"), *GetName(), *Best->GetName());
         }
         AggroUpdateTimer = 0.f;
     }
