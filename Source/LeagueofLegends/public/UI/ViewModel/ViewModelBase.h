@@ -18,3 +18,4 @@ public:
 	virtual void Initialize() PURE_VIRTUAL(UViewModelBase::Initialize,);
 	virtual void Reset() {}
 };
+

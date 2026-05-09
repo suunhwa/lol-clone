@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SlotWidgetBase.h"
+#include "UI/View/SlotWidgetBase.h"
 #include "SkillSlotWidget.generated.h"
 
 class UTextBlock;
 
 /**
  * 스킬 슬롯 위젯.
- * 공통 슬롯 요소는 UCommonSlotWidget에서 상속받으며,
+ * 공통 슬롯 요소는 USlotWidgetBase에서 상속받으며,
  * 스킬 슬롯 고유 위젯 컴포넌트를 추가로 바인딩합니다.
  */
 UCLASS()
@@ -23,3 +23,4 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_ManaCost;
 };
+

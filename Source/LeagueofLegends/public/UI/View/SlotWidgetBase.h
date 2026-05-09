@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "WidgetViewBase.h"
+#include "UI/View/WidgetViewBase.h"
 #include "SlotWidgetBase.generated.h"
 
 class UImage;
@@ -36,3 +36,4 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Index;
 };
+

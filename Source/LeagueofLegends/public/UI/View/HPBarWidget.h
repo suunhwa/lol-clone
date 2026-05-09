@@ -28,3 +28,4 @@ private:
 	UPROPERTY()
 	TObjectPtr<UStatComponent> StatComp;
 };
+

@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SlotWidgetBase.h"
+#include "UI/View/SlotWidgetBase.h"
 #include "ItemSlotWidget.generated.h"
 
 /**
  * 아이템 슬롯 위젯.
- * 공통 슬롯 요소는 UCommonSlotWidget에서 상속받습니다.
+ * 공통 슬롯 요소는 USlotWidgetBase에서 상속받습니다.
  * 아이템 슬롯 고유 위젯 컴포넌트가 생기면 이 클래스에 추가하세요.
  */
 UCLASS()
@@ -23,3 +23,4 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Stack;
 };
+

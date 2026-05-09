@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "WidgetViewBase.h"
+#include "UI/View/WidgetViewBase.h"
 #include "ItemProfileWidget.generated.h"
 
 /**
@@ -14,3 +14,4 @@ class LEAGUEOFLEGENDS_API UItemProfileWidget : public UWidgetViewBase
 {
 	GENERATED_BODY()
 };
+
