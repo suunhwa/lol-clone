@@ -22,22 +22,18 @@ void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
-	// PRINTLOG_SH(TEXT("PostLogin*************"));
+	ARiftPlayerState* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
+	if (!PS) { return; }
 
-	ARiftPlayerState* ps = NewPlayer->GetPlayerState<ARiftPlayerState>();
-	if (!ps) return;
-
-	AssignTeam(ps);
-
-	const FString TeamStr = ps->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red");
-	UE_LOG(LogTemp,
-	       Log,
-	       TEXT("Player joined. Team: %s, Blue: %d, Red: %d"),
-	       *TeamStr,
-	       BlueCount,
-	       RedCount);
-
+	const FString TeamStr = PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red");
+	PRINTLOG_SH(TEXT("Player joined. Team: %s, Blue: %d, Red: %d"), *TeamStr, BlueCount, RedCount);
+	
 	TryStartGame();
+}
+
+void ARiftGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
+{
+	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
 }
 
 void ARiftGameMode::Logout(AController* Exiting)
@@ -45,7 +41,7 @@ void ARiftGameMode::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 
 	ARiftPlayerState* ps = Exiting->GetPlayerState<ARiftPlayerState>();
-	if (!ps) return;
+	if (!ps) { return; }
 
 	ps->SetDisconnected(true);
 }
@@ -54,6 +50,11 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
 	ARiftPlayerState* ps = Player ? Player->GetPlayerState<ARiftPlayerState>() : nullptr;
 	if (!ps) return Super::ChoosePlayerStart_Implementation(Player);
+
+	if (ps->GetTeam() == ETeam::None)
+	{
+		AssignTeam(ps);
+	}
 
 	FName TargetTag = (ps->GetTeam() == ETeam::Blue) ? FName("BlueTeam") : FName("RedTeam");
 
@@ -84,14 +85,14 @@ void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)
 
 void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState* Victim)
 {
-	if (!Victim) return;
+	if (!Victim) { return; }
 	Victim->AddDeath();
 
-	if (!Killer || Killer == Victim) return;
+	if (!Killer || Killer == Victim) { return; }
 	Killer->AddKill();
 
 	ARiftGameState* GS = GetGameState<ARiftGameState>();
-	if (!GS) return;
+	if (!GS) { return; }
 	GS->AddTeamKill(Killer->GetTeam());
 }
 
@@ -118,7 +119,7 @@ void ARiftGameMode::TryStartGame()
 void ARiftGameMode::StartGame()
 {
 	ARiftGameState* gs = GetGameState<ARiftGameState>();
-	if (!gs) return;
+	if (!gs) { return; }
 
 	gs->SetPhase(EGamePhase::InGame);
 	gs->StartGameTimer();
@@ -127,7 +128,7 @@ void ARiftGameMode::StartGame()
 void ARiftGameMode::EndGame(ETeam WinningTeam)
 {
 	ARiftGameState* gs = GetGameState<ARiftGameState>();
-	if (!gs) return;
+	if (!gs) { return; }
 
 	gs->SetPhase(EGamePhase::GameOver);
 	gs->SetWinningTeam(WinningTeam);

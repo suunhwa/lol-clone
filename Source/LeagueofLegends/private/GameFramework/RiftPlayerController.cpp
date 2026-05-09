@@ -39,6 +39,14 @@ void ARiftPlayerController::BeginPlay()
 	// GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
 }
 
+void ARiftPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	OwnedChamp = Cast<ALoLChampion>(InPawn);
+	PRINTLOG_SH(TEXT("[OnPossess] OwnedChamp=%s"), *GetNameSafe(OwnedChamp));
+}
+
 void ARiftPlayerController::AcknowledgePossession(APawn* P)
 {
 	Super::AcknowledgePossession(P);
@@ -57,6 +65,16 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 
 	TargetCameraLoc = CameraStartLoc;
 	SetViewTarget(CameraActor);
+
+	// 클라이언트에서 첫 위치 복제 전에 스폰될 수 있으므로 0.3초 후 교정
+	GetWorldTimerManager().SetTimer(CameraInitTimer, [this]()
+	{
+		if (CameraActor && OwnedChamp)
+		{
+			CameraActor->SetActorLocation(OwnedChamp->GetActorLocation());
+			TargetCameraLoc = OwnedChamp->GetActorLocation();
+		}
+	}, 0.3f, false);
 }
 
 void ARiftPlayerController::AutoManageActiveCameraTarget(AActor* SuggestedTarget)
@@ -200,11 +218,6 @@ void ARiftPlayerController::OnMove()
 
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
-
-	PRINTLOG_SH(TEXT("OnMove — bHit:%d Loc:%s Actor:%s"),
-		HitResult.bBlockingHit,
-		*HitResult.ImpactPoint.ToString(),
-		*GetNameSafe(HitResult.GetActor()));
 
 	if (!HitResult.bBlockingHit) { return; }
 
@@ -402,6 +415,7 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(ALoLCharact
 
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 {
+	PRINTLOG_SH(TEXT("[Server_Move] OwnedChamp=%s Loc=%s"), *GetNameSafe(OwnedChamp), *Loc.ToString());
 	if (OwnedChamp)
 	{
 		OwnedChamp->StopAttackLoop();

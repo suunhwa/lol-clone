@@ -31,7 +31,7 @@ public:
 	float GetCurrentMana() const { return CurrentMana; }
 	int32 GetLevel() const { return Level; }
 
-	float GetMaxHP() const;
+	float GetMaxHP() const { return CachedMaxHP; }
 	float GetMaxMana() const;
 	float GetAD() const;
 	float GetAP() const;
@@ -53,7 +53,7 @@ public:
 	// 보너스 스탯 (아이템/버프)
 	void AddBonusAD(float Value) { BonusAD += Value; }
 	void AddBonusAP(float Value) { BonusAP += Value; }
-	void AddBonusHP(float Value) { BonusHP += Value; }
+	void AddBonusHP(float Value) { BonusHP += Value; CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP; }
 	void AddBonusArmor(float Value) { BonusArmor += Value; }
 
 	// --- delegates 
@@ -64,6 +64,9 @@ public:
 protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHP)
 	float CurrentHP = 0.f;
+
+	UPROPERTY(Replicated)
+	float CachedMaxHP = 0.f;
 	// ------------------------
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentMana)

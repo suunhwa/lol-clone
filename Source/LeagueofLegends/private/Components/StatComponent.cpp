@@ -20,6 +20,7 @@ void UStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(UStatComponent, CurrentHP);
 	DOREPLIFETIME(UStatComponent, CurrentMana);
 	DOREPLIFETIME(UStatComponent, Level);
+	DOREPLIFETIME(UStatComponent, CachedMaxHP);
 }
 
 void UStatComponent::InitStats(const FChampionBaseRow& ChampionBase, const FChampionStatRow& Stats,
@@ -50,13 +51,9 @@ void UStatComponent::InitStats(const FChampionBaseRow& ChampionBase, const FCham
 	MS_G = Growth.MS_G;
 	HPRegen_G = Growth.Regen_HP_G;
 
-	CurrentHP = GetMaxHP();
+	CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP;
+	CurrentHP = CachedMaxHP;
 	CurrentMana = GetMaxMana();
-}
-
-float UStatComponent::GetMaxHP() const
-{
-	return BaseHP + HP_G * (Level - 1) + BonusHP;
 }
 
 float UStatComponent::GetMaxMana() const
@@ -120,6 +117,7 @@ void UStatComponent::ApplyManaCost(float Cost)
 void UStatComponent::SetLevel(int32 NewLevel)
 {
 	Level = FMath::Clamp(NewLevel, 1, 18);
+	CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP;
 }
 
 void UStatComponent::OnRep_CurrentHP()

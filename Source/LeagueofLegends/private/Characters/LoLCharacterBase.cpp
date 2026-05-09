@@ -3,6 +3,7 @@
 #include "Characters/LoLCharacterBase.h"
 
 #include "LeagueofLegends.h"
+#include "Net/UnrealNetwork.h"
 #include "Components/StatComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/TagComponent.h"
@@ -15,8 +16,9 @@
 #include "Components/CapsuleComponent.h"
 #include "FOW/FOWManager.h"
 #include "GameFramework/RiftGameState.h"
+#include "GameFramework/RiftPlayerState.h"
 #include "Components/WidgetComponent.h"
-#include "UI/HPBarWidget.h"
+#include "UI/View/HPBarWidget.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
@@ -44,6 +46,35 @@ ALoLCharacterBase::ALoLCharacterBase()
 	HPBarWidgetComp->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 	HPBarWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 	HPBarWidgetComp->SetDrawSize(FVector2D(100.f, 12.f));
+}
+
+void ALoLCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ALoLCharacterBase, FacingRotation);
+}
+
+void ALoLCharacterBase::FaceRotation(FRotator NewControlRotation, float DeltaTime)
+{
+	Super::FaceRotation(NewControlRotation, DeltaTime);
+
+	if (HasAuthority())
+	{
+		FacingRotation = GetActorRotation();
+	}
+}
+
+void ALoLCharacterBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	if (HasAuthority())
+	{
+		if (ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>())
+		{
+			TagComp->SetTeam(PS->GetTeam());
+		}
+	}
 }
 
 void ALoLCharacterBase::BeginPlay()
@@ -101,7 +132,7 @@ void ALoLCharacterBase::ReceiveDamage_Implementation(float Amount, EDamageType D
 		}
 	}
 
-	// Owner CombatComp 없는 경우 (DoT, 환경 데미지 등) 직접 적용
+	// Owner CombatComp ?�는 경우 (DoT, ?�경 ?��?지 ?? 직접 ?�용
 	StatComp->ApplyHealthChange(-Amount);
 }
 
