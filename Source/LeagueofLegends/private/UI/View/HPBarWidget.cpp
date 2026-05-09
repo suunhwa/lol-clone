@@ -1,4 +1,4 @@
-#include "UI/HPBarWidget.h"
+#include "UI/View/HPBarWidget.h"
 
 #include "Components/ProgressBar.h"
 #include "Components/StatComponent.h"
@@ -32,3 +32,4 @@ void UHPBarWidget::OnHPChanged(float Current, float Max)
 
 	HPBar->SetPercent(Max > 0.f ? Current / Max : 0.f);
 }
+

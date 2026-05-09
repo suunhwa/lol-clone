@@ -7,6 +7,7 @@
 #include "WidgetViewBase.generated.h"
 
 class UViewModelBase;
+
 /**
  * 
  */
@@ -24,3 +25,4 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UViewModelBase> OwnerViewModel;
 };
+

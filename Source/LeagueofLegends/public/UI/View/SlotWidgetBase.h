@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "WidgetViewBase.h"
-#include "CommonSlotWidget.generated.h"
+#include "UI/View/WidgetViewBase.h"
+#include "SlotWidgetBase.generated.h"
 
 class UImage;
 class UTextBlock;
@@ -14,7 +14,7 @@ class UTextBlock;
  * WBP에서 동일하게 존재하는 위젯 컴포넌트를 바인딩합니다.
  */
 UCLASS(Abstract)
-class LEAGUEOFLEGENDS_API UCommonSlotWidget : public UWidgetViewBase
+class LEAGUEOFLEGENDS_API USlotWidgetBase : public UWidgetViewBase
 {
 	GENERATED_BODY()
 
@@ -36,3 +36,4 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Index;
 };
+
