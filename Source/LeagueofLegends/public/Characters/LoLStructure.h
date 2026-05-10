@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/Actor.h"
 #include "Interfaces/Damageable.h"
 #include "Interfaces/Targetable.h"
@@ -56,6 +57,14 @@ protected:
     // SkeletalMesh 컴포넌트 추가
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<USkeletalMeshComponent> MeshComp;
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+    TObjectPtr<UWidgetComponent> HPBarWidgetComp;
+
+    void UpdateHPBar(float CurrentHP, float MaxHP);
+    
+    UFUNCTION(BlueprintImplementableEvent)
+    void ReceiveUpdateHP(float CurrentHP, float MaxHP);
     
 public:
     virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;

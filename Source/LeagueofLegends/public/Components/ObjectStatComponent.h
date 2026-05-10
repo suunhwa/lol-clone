@@ -24,7 +24,9 @@ public:
 	// Getters
 	float GetCurrentHP() const { return CurrentHP; }
 	float GetMaxHP() const { return BaseData.Base_HP; }
-	float GetAttackDamage() const; // 가열 적용 대미지
+	int32 GetObjectID() const { return BaseData.Object_ID; }
+	int32 GetCurrentHeatStack() const { return CurrentHeatStack; }
+	float GetAttackDamage(AActor* Target) const; // 가열 적용 대미지
 	float GetAttackRange() const { return BaseData.Atk_Range; }
 	float GetAttackSpeed() const { return BaseData.Atk_Speed; }
 	float GetArmor() const { return CurrentArmor; }
