@@ -12,7 +12,7 @@ class LEAGUEOFLEGENDS_API ALoLMinion_Super : public ALoLMinion
 public:
 	ALoLMinion_Super();
 
-	// 전사 미니언과 동일한 오버라이드 구조
+	// [성공 포인트] 전사와 동일하게 오버라이드 선언
 	virtual void ExecuteAttack() override;
 	virtual void BeginPlay() override;
 };
