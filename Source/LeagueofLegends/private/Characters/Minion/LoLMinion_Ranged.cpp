@@ -6,6 +6,9 @@
 ALoLMinion_Ranged::ALoLMinion_Ranged()
 {
 	MinionID = 3002; // 법사 미니언 ID
+	
+	ProjectileSpawnPoint = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileSpawnPoint"));
+	ProjectileSpawnPoint->SetupAttachment(RootComponent);
 }
 
 void ALoLMinion_Ranged::ExecuteAttack()
@@ -25,9 +28,10 @@ void ALoLMinion_Ranged::ExecuteRangedAttack(AActor* Target)
 
 	UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp);
 	if (!MinionStat) return;
-
-	// 투사체 스폰 위치: 미니언 위치에서 약간 위(지팡이 높이)와 앞쪽으로 설정
-	FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 60.f + FVector(0.f, 0.f, 60.f);
+	
+	// 에디터에서 직접 배치한 투사체 위치 가져옴
+	FVector SpawnLocation = ProjectileSpawnPoint->GetComponentLocation();
+	// 회전값은 타겟을 바라보도록 계산
 	FRotator SpawnRotation = (Target->GetActorLocation() - SpawnLocation).Rotation();
 
 	FActorSpawnParameters Params;

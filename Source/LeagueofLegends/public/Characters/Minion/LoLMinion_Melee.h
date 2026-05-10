@@ -17,7 +17,7 @@ class LEAGUEOFLEGENDS_API ALoLMinion_Melee : public ALoLMinion
 public:
 	// 생성자에서 ID 및 기본 에셋 설정
 	ALoLMinion_Melee();
-
+	virtual void ExecuteAttack() override;
 protected:
 	// 전사 미니언만의 특별한 시작 로직이 필요할 경우 사용
 	virtual void BeginPlay() override;

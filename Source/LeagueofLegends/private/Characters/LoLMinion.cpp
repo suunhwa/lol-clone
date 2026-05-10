@@ -5,6 +5,8 @@
 #include "Components/MinionStatComponent.h"
 #include "Components/TagComponent.h"
 #include "AStar/AStarGridManager.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -13,12 +15,36 @@ ALoLMinion::ALoLMinion()
     PrimaryActorTick.bCanEverTick = true;
     
     AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+    
+    // --- 튕김 방지 설정 ---
+    // 1. 캐릭터 무브먼트 컴포넌트 가져오기
+    if (auto* MoveComp = GetCharacterMovement())
+    {
+        // 캡슐끼리 겹쳤을 때 강하게 튕겨내지 않고 부드럽게 밀어내게 함
+        MoveComp->MaxDepenetrationWithPawn = 100.f; 
+        
+        // 미니언끼리 길막을 덜 하도록 설정
+        MoveComp->bUseRVOAvoidance = true; // RVO 회피 활성화 (추천)
+        MoveComp->AvoidanceConsiderationRadius = 100.f;
+    }
+
+    // 2. 캡슐 물리 설정 (Physics에 의한 튕김 제거)
+    if (auto* Capsule = GetCapsuleComponent())
+    {
+        Capsule->SetCanEverAffectNavigation(true);
+        // 물리 시뮬레이션은 끄고, 단순 Overlap/Block만 사용
+        Capsule->SetSimulatePhysics(false); 
+    }
+    
 }
 
 void ALoLMinion::BeginPlay()
 {
     Super::BeginPlay();
-
+    
+    // [진단 로그]
+    PRINTLOG_HJ(TEXT("[%s] BeginPlay 시작! 현재 MinionID: %d"), *GetName(), MinionID);
+    
     if (!HasAuthority()) return;
 
     // AStar 매니저 찾기
@@ -30,8 +56,13 @@ void ALoLMinion::BeginPlay()
         if (UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp))
         {
             auto* BaseRow = DataSub->GetBaseRowByID(MinionID);
+            if (!BaseRow) PRINTLOG_HJ(TEXT("!! BaseRow 로드 실패 (ID: %d) !!"), MinionID);
+            
+            
             auto* GrowthRow = DataSub->GetGrowthRowByID(MinionID);
-
+            if (!GrowthRow) PRINTLOG_HJ(TEXT("!! GrowthRow 로드 실패 (ID: %d) !!"), MinionID);
+            
+            
             if (BaseRow && GrowthRow)
             {
                 int32 GameMinutes = 0;
@@ -107,8 +138,12 @@ void ALoLMinion::Tick(float DeltaTime)
             return;
         }
         
-        if (Dist <= CachedAttackRange)
+        float RealRange = (StatComp) ? StatComp->GetAttackRange() : 0.f;
+        
+        
+        if (Dist <= (RealRange + 100.f))
         {
+            
             // 공격 범위 안이면 길찾기 중단 및 공격 (공격 로직은 CombatComp에 위임)
             CurrentPath.Empty();
             // 타겟 방향으로 회전
