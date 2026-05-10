@@ -27,6 +27,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual void OnDeath(AActor* DamageInstigator) override;
 	
 	// --- AI 설정 ---
 	UPROPERTY(EditAnywhere, Category = "Minion | AI")
