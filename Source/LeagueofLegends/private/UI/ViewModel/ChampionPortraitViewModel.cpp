@@ -6,7 +6,7 @@
 #include "GameFramework/RiftPlayerState.h"
 
 // LoL 레벨별 필요 경험치 (레벨 1→2부터 17→18까지)
-static const float GXPRequired[] =
+static const float GXPRequiredPerLevel[] =
 {
 	280, 380, 480, 580, 680, 780, 880,
 	1080, 1280, 1480, 1780, 2080, 2380,
@@ -42,7 +42,7 @@ float UChampionPortraitViewModel::GetXPProgress() const
 	const int32 Level = GetLevel();
 	if (Level >= 18) return 1.f;
 
-	const float Required = GXPRequired[Level - 1]; // 현재 레벨 → 다음 레벨 필요 XP
+	const float Required = GXPRequiredPerLevel[Level - 1]; // 현재 레벨 → 다음 레벨 필요 XP
 	if (Required <= 0.f) return 0.f;
 
 	return FMath::Clamp(PlayerState->GetXP() / Required, 0.f, 1.f);

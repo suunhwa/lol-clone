@@ -436,9 +436,9 @@ void ARiftPlayerController::Server_AddXP_Implementation()
 	if (!PS) return;
 
 	const int32 PrevLevel = PS->GetChampionLevel();
-	PS->AddXP(50.f);
+	PS->AddXP(200.f);
 
-	// 레벨업 발생 시 StatComp 동기화
+	// 레벨업: StatComp 동기화
 	const int32 NewLevel = PS->GetChampionLevel();
 	if (NewLevel > PrevLevel && OwnedChamp && OwnedChamp->StatComp)
 	{
@@ -448,7 +448,7 @@ void ARiftPlayerController::Server_AddXP_Implementation()
 	else
 	{
 		PRINTLOG_SH(TEXT("[Debug] XP +50 → %.0f / %.0f"), PS->GetXP(),
-			NewLevel < 18 ? 280.f : 0.f); // 간단 표시
+			NewLevel < 18 ? 280.f : 0.f); 
 	}
 }
 
