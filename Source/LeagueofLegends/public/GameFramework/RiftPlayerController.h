@@ -141,7 +141,8 @@ public:
 	void OnSkillWReleased();
 	void OnSkillEPressed();
 	void OnSkillEReleased();
-	void OnSkillR();
+	void OnSkillRPressed();
+	void OnSkillRReleased();
 	void OnAPressed();
 	void OnAReleased();
 	void OnLeftClick();
