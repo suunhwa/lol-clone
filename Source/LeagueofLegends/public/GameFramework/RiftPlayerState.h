@@ -15,7 +15,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	// 서버 전용 세터
+	// 서버 전용 setter
 	void SetTeam(ETeam InTeam);
 	void SetLane(ELane InLane);
 	void SetSummonerSpells(ESummonerSpell Spell1, ESummonerSpell Spell2);
@@ -27,6 +27,9 @@ public:
 	void AddGold(int32 Amount);
 	void AddXP(float Amount);
 
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerLevelUp, int32 /*NewLevel*/);
+	FOnPlayerLevelUp OnLevelUp;
+
 	ETeam GetTeam() const { return Team; }
 	ELane GetLane() const { return Lane; }
 	int32 GetKills() const { return Kills; }
@@ -36,6 +39,7 @@ public:
 	int32 GetGold() const { return Gold; }
 	int32 GetTotalGold() const { return TotalGold; }
 	int32 GetChampionLevel() const { return ChampionLevel; }
+	float GetXP() const { return XP; }
 	bool IsDisconnected() const { return bIsDisconnected; }
 
 private:

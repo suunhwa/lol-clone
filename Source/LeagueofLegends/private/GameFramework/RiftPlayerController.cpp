@@ -9,6 +9,7 @@
 #include "Characters/LoLCharacterBase.h"
 #include "GameFramework/LoLCameraActor.h"
 #include "GameFramework/RiftPlayerState.h"
+#include "GameFramework/RiftHUD.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Components/CombatComponent.h"
 #include "Components/StatComponent.h"
@@ -54,6 +55,9 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 	ALoLChampion* Champion = Cast<ALoLChampion>(P);
 	OwnedChamp = Champion;
 	if (!Champion) return;
+
+	if (ARiftHUD* HUD = GetHUD<ARiftHUD>())
+		HUD->InitHUD(OwnedChamp);
 
 	FVector CameraStartLoc = Champion->GetActorLocation();
 
@@ -197,6 +201,9 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Started, this, &ARiftPlayerController::OnAPressed);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Completed, this, &ARiftPlayerController::OnAReleased);
 	EIC->BindAction(IA_LeftClick, ETriggerEvent::Started, this, &ARiftPlayerController::OnLeftClick);
+
+	if (IA_LevelUp)
+		EIC->BindAction(IA_LevelUp, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddXP);
 }
 
 void ARiftPlayerController::OnCameraFocusHeld()
@@ -415,12 +422,34 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(ALoLCharact
 
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 {
-	PRINTLOG_SH(TEXT("[Server_Move] OwnedChamp=%s Loc=%s"), *GetNameSafe(OwnedChamp), *Loc.ToString());
+	// PRINTLOG_SH(TEXT("[Server_Move] OwnedChamp=%s Loc=%s"), *GetNameSafe(OwnedChamp), *Loc.ToString());
 	if (OwnedChamp)
 	{
 		OwnedChamp->StopAttackLoop();
 	}
 	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Loc);
+}
+
+void ARiftPlayerController::Server_AddXP_Implementation()
+{
+	ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>();
+	if (!PS) return;
+
+	const int32 PrevLevel = PS->GetChampionLevel();
+	PS->AddXP(50.f);
+
+	// 레벨업 발생 시 StatComp 동기화
+	const int32 NewLevel = PS->GetChampionLevel();
+	if (NewLevel > PrevLevel && OwnedChamp && OwnedChamp->StatComp)
+	{
+		OwnedChamp->StatComp->SetLevel(NewLevel);
+		PRINTLOG_SH(TEXT("[Debug] LevelUp → Lv.%d"), NewLevel);
+	}
+	else
+	{
+		PRINTLOG_SH(TEXT("[Debug] XP +50 → %.0f / %.0f"), PS->GetXP(),
+			NewLevel < 18 ? 280.f : 0.f); // 간단 표시
+	}
 }
 
 void ARiftPlayerController::Server_SelectSummonerSpells_Implementation(ESummonerSpell Spell1, ESummonerSpell Spell2)

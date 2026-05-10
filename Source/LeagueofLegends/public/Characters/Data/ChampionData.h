@@ -22,6 +22,24 @@ public:
 	FName ChampionID;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Champion|Visual")
+	TObjectPtr<UTexture2D> PortraitTexture;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Skill|Icon")
+	TObjectPtr<UTexture2D> PassiveIcon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Skill|Icon")
+	TObjectPtr<UTexture2D> QIcon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Skill|Icon")
+	TObjectPtr<UTexture2D> WIcon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Skill|Icon")
+	TObjectPtr<UTexture2D> EIcon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Skill|Icon")
+	TObjectPtr<UTexture2D> RIcon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Visual")
 	TObjectPtr<USkeletalMesh> Mesh;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Champion|Visual")

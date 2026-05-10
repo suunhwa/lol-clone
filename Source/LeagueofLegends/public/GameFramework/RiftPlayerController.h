@@ -114,6 +114,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
 	TObjectPtr<UInputAction> IA_LeftClick;
 
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
+	TObjectPtr<UInputAction> IA_LevelUp;
+
 	UPROPERTY(EditDefaultsOnly, Category="Camera")
 	TSubclassOf<ALoLCameraActor> CameraActorClass;
 
@@ -144,6 +147,9 @@ public:
 	void OnLeftClick();
 
 	bool bAKeyPressed = false;
+
+	UFUNCTION(Server, Reliable)
+	void Server_AddXP();
 
 	// 스킬 조준 상태 (-1 = 없음, 0=Q, 1=W, 2=E, 3=R)
 	int32 PendingSkillSlot = -1;

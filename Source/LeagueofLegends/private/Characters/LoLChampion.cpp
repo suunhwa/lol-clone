@@ -14,6 +14,7 @@
 #include "Components/SkillExecutorComponent.h"
 #include "Components/TargetingComponent.h"
 #include "Manager/ChampionDataSubsystem.h"
+#include "GameFramework/RiftHUD.h"
 #include "Net/UnrealNetwork.h"
 
 ALoLChampion::ALoLChampion()
@@ -70,6 +71,15 @@ void ALoLChampion::OnRep_ChampionData()
 	{
 		Sub->ApplyVisuals(this, ChampionData);
 	}
+
+	// 클라이언트 HUD 아이콘 갱신
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (ARiftHUD* HUD = Cast<ARiftHUD>(PC->GetHUD()))
+		{
+			HUD->RefreshSkillIcons(this);
+		}
+	}
 }
 
 // ChampionData 세팅 (런타임, 캐릭터 선택 후) 
@@ -125,7 +135,7 @@ void ALoLChampion::StartAttackLoop(AActor* Target)
 {
 	if (!HasAuthority() || !Target) { return; }
 
-	UTargetingComponent* TargetComp = Cast<ALoLChampion>(Target)->FindComponentByClass<UTargetingComponent>();
+	UTargetingComponent* TargetComp = Target->FindComponentByClass<UTargetingComponent>();
 	if (!TargetComp || !TargetComp->IsValidTarget(this)) { return; }
 
 	AttackTarget = Target;
@@ -161,6 +171,7 @@ void ALoLChampion::AttackLoopTick()
 		StopAttackLoop();
 		return;
 	}
+
 
 	const float Range = StatComp ? StatComp->GetAttackRange() : 150.f;
 	const float AttackSpeed = StatComp ? StatComp->GetAttackSpeed() : 0.65f;

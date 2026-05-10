@@ -74,7 +74,8 @@ void ARiftGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// PRINTLOG_SH(TEXT("BeginPlay*************"));
+	// 테스트: 플레이어 수 상관없이 즉시 게임 시작 (실제 서비스 시 제거)
+	StartGame();
 }
 
 void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)
