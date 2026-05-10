@@ -132,7 +132,7 @@ void ALoLCharacterBase::ReceiveDamage_Implementation(float Amount, EDamageType D
 		}
 	}
 
-	// Owner CombatComp ?�는 경우 (DoT, ?�경 ?��?지 ?? 직접 ?�용
+	// Owner CombatComp ?�는 경우 (DoT, ?�경 ?��?지 ?? 직접 ?�용
 	StatComp->ApplyHealthChange(-Amount);
 }
 
@@ -189,6 +189,13 @@ ERiftSightTag ALoLCharacterBase::GetSightTag_Implementation() const
 void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)
 {
 	Multicast_OnDeath();
+}
+
+void ALoLCharacterBase::Multicast_StartCooldown_Implementation(FName Tag, float Duration)
+{
+	// 서버는 StartCooldown에서 이미 처리했으므로 클라이언트만 적용
+	if (!HasAuthority() && CooldownComp)
+		CooldownComp->StartCooldown(Tag, Duration);
 }
 
 void ALoLCharacterBase::Multicast_PlayMontage_Implementation(UAnimMontage* Montage)

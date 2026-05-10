@@ -9,6 +9,7 @@
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnHPChanged, float /*Current*/, float /*Max*/);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnManaChanged, float /*Current*/, float /*Max*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLevelChanged, int32 /*NewLevel*/);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class LEAGUEOFLEGENDS_API UStatComponent : public UActorComponent
@@ -32,7 +33,7 @@ public:
 	int32 GetLevel() const { return Level; }
 
 	float GetMaxHP() const { return CachedMaxHP; }
-	float GetMaxMana() const;
+	float GetMaxMana() const { return CachedMaxMana; }
 	float GetAD() const;
 	float GetAP() const;
 	float GetArmor() const;
@@ -59,6 +60,7 @@ public:
 	// --- delegates 
 	FOnHPChanged OnHPChanged;
 	FOnManaChanged OnManaChanged;
+	FOnLevelChanged OnLevelChanged;
 	
 	// 자식 접근을 위해 공통변수로 뺌
 protected:
@@ -67,6 +69,9 @@ protected:
 
 	UPROPERTY(Replicated)
 	float CachedMaxHP = 0.f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_CachedMaxMana)
+	float CachedMaxMana = 0.f;
 	// ------------------------
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentMana)
@@ -125,4 +130,7 @@ private:
 
 	UFUNCTION()
 	void OnRep_CurrentMana();
+
+	UFUNCTION()
+	void OnRep_CachedMaxMana();
 };
