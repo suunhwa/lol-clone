@@ -16,11 +16,11 @@ class LEAGUEOFLEGENDS_API UItemSlotWidget : public USlotWidgetBase
 {
 	GENERATED_BODY()
 	
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+private:
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Img_BasicOutline;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Stack;
 };
 

@@ -18,13 +18,14 @@ struct FPurchaseRecord
 	int32 ActionType{0}; // 0: 구매, 1: 판매
 	
 	UPROPERTY()
-	int32 SlotIndex{INDEX_NONE};   
+	int32 SlotIndex{INDEX_NONE}; // 판매할 때만 채워지는 값
 	
 	UPROPERTY()
 	TObjectPtr<UItemInstance> ItemInstance = nullptr;
 };
 
 DECLARE_MULTICAST_DELEGATE(FOnInventoryChanged);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGoldChanged, float);
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class LEAGUEOFLEGENDS_API UInventoryComponent : public UActorComponent
 {
@@ -39,7 +40,7 @@ protected:
 public:
 #pragma region Getter Setter
 	float GetGold() const { return Gold; }
-	void SetGold(float NewGold) { Gold = NewGold; }
+	void SetGold(float NewGold);
 	void AddGold(float Amount) { SetGold(Gold + Amount); }
 	void SpendGold(float Amount) { SetGold(Gold - Amount); }
 	
@@ -56,6 +57,7 @@ public:
 	bool EquipTrinket(UItemDataAsset* TrinketData);
 	
 	FOnInventoryChanged OnInventoryChanged;
+	FOnGoldChanged OnGoldChanged;
 
 private:
 	int GetEmptySlotIndex() const;

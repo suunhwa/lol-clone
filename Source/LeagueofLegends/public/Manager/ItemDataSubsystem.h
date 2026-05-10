@@ -28,6 +28,7 @@ public:
 	TArray<const FItemStatRow*> GetItemStats(int32 ItemID) const;
 	TArray<const FItemEffectRow*> GetItemEffect(const FString& EffectIDR) const;
 	const FItemStatTypeRow* GetStatTypeInfo(const FString& StatType) const;
+	TMap<int32, TObjectPtr<UItemDataAsset>> GetAllItemDataAssets() const { return ItemAssetMap; }
 #pragma endregion
 	
 private:

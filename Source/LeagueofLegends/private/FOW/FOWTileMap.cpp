@@ -78,7 +78,7 @@ void AFOWTileMap::GenerateTileMap(AFOWVolume* FOWVolume)
 {
 	if (!FOWVolume)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GenerateFromMap: MapActor is null"));
+		PRINTLOG_TK(TEXT("GenerateFromMap: MapActor is null"));
 		return;
 	}
 
@@ -203,7 +203,7 @@ void AFOWTileMap::SetTile(int32 X, int32 Y, const FTile& NewTile)
 {
 	if (!IsValidRange(X, Y))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SetTile: Invalid tile coordinates (%d, %d)"), X, Y);
+		PRINTLOG_TK(TEXT("SetTile: Invalid tile coordinates (%d, %d)"), X, Y);
 		return;
 	}
 	Tiles[Y * MapSize + X] = NewTile;
@@ -223,7 +223,7 @@ bool AFOWTileMap::IsVisibleTile(int32 X, int32 Y) const
 {
 	if (!IsInMap(X, Y))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("IsVisibleTile: Invalid tile coordinates (%d, %d)"), X, Y);
+		PRINTLOG_TK(TEXT("IsVisibleTile: Invalid tile coordinates (%d, %d)"), X, Y);
 		return false;
 	}
 	return GetTile(X, Y)->bIsVisible;
@@ -233,7 +233,7 @@ void AFOWTileMap::SetTileVisibility(int32 X, int32 Y, bool bVisible)
 {
 	if (!IsInMap(X, Y))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SetTileVisibility: Invalid tile coordinates (%d, %d)"), X, Y);
+		PRINTLOG_TK(TEXT("SetTileVisibility: Invalid tile coordinates (%d, %d)"), X, Y);
 		return;
 	}
 	GetTile(X, Y)->bIsVisible = bVisible;
@@ -258,7 +258,7 @@ void AFOWTileMap::CreateFogTexture()
  		FogTexture = UTexture2D::CreateTransient(TextureSize, TextureSize, PF_G8);
  		if (!FogTexture)
  		{
- 			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create transient texture"));
+ 			PRINTLOG_TK(TEXT("CreateDebugTexture: Failed to create transient texture"));
  			return;
  		}
  
@@ -296,7 +296,7 @@ void AFOWTileMap::CreateFOWPostProcess()
 {
 	if (!FOWPostProcessMaterial)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CreateFOWPostProcess: FOWPostProcessMaterial is null"));
+		PRINTLOG_TK(TEXT("CreateFOWPostProcess: FOWPostProcessMaterial is null"));
 		return;
 	}
 
@@ -307,7 +307,7 @@ void AFOWTileMap::CreateFOWPostProcess()
 
 	if (!FOWPostProcessMID)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CreateFOWPostProcess: Failed to create dynamic material instance"));
+		PRINTLOG_TK(TEXT("CreateFOWPostProcess: Failed to create dynamic material instance"));
 		return;
 	}
 
@@ -364,7 +364,7 @@ void AFOWTileMap::CreateDebugPlane()
 
 		if (!DebugMID)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("CreateDebugTexture: Failed to create dynamic material instance"));
+			PRINTLOG_TK(TEXT("CreateDebugTexture: Failed to create dynamic material instance"));
 			return;
 		}
 
@@ -377,7 +377,7 @@ void AFOWTileMap::UpdateFogTexture()
 {
 	if (!FogTexture || !PixelBuffer)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UpdateDebugTexture: DebugTexture or PixelBuffer is null"));
+		PRINTLOG_TK(TEXT("UpdateDebugTexture: DebugTexture or PixelBuffer is null"));
 		return;
 	}
 

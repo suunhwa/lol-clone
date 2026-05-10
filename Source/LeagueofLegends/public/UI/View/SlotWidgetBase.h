@@ -18,22 +18,22 @@ class LEAGUEOFLEGENDS_API USlotWidgetBase : public UWidgetViewBase
 {
 	GENERATED_BODY()
 
-protected:
+private:
 	// ─── 공통 이미지 ───────────────────────────────────────────
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Img_Icon;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Img_GoldOutline;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Img_Cooldown;
 
 	// ─── 공통 텍스트 ───────────────────────────────────────────
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_CoolTime;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Index;
 };
 

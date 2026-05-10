@@ -18,6 +18,8 @@ public class LeagueofLegends : ModuleRules
 			"AIModule",
 			"NavigationSystem",
 			"UMG",
+			"Slate",	// 추가
+			"SlateCore",  // 추가
 			"DeveloperSettings"
 		});
 

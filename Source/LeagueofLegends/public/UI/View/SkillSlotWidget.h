@@ -18,9 +18,9 @@ class LEAGUEOFLEGENDS_API USkillSlotWidget : public USlotWidgetBase
 {
 	GENERATED_BODY()
 
-protected:
+private:
 	// ─── SkillSlot 고유 텍스트 ─────────────────────────────────
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_ManaCost;
 };
 

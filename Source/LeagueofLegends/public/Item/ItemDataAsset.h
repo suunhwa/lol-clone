@@ -65,7 +65,7 @@ public:
 	int32 MaxStack = 0;
 
 	UPROPERTY(VisibleAnywhere, Category = "Base")
-	TSoftObjectPtr<UTexture2D> Icon;
+	TObjectPtr<UTexture2D> Icon;
 
 	// ===== Stats =====
 	// StatModifierComp.AddModifier()에 바로 넘길 수 있는 형태

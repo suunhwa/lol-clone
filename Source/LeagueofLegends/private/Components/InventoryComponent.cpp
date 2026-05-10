@@ -19,6 +19,12 @@ void UInventoryComponent::BeginPlay()
 	ItemSlot.Init(nullptr, MaxSlotCount);
 }
 
+void UInventoryComponent::SetGold(float NewGold)
+{
+	Gold = NewGold;
+	OnGoldChanged.Broadcast(Gold);
+}
+
 UItemInstance* UInventoryComponent::GetItemAtSlot(int32 SlotIndex) const
 {
 	if (!ItemSlot.IsValidIndex(SlotIndex))
