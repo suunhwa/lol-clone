@@ -18,7 +18,7 @@
 #include "GameFramework/RiftGameState.h"
 #include "GameFramework/RiftPlayerState.h"
 #include "Components/WidgetComponent.h"
-#include "UI/HPBarWidget.h"
+#include "UI/View/HPBarWidget.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
@@ -132,7 +132,7 @@ void ALoLCharacterBase::ReceiveDamage_Implementation(float Amount, EDamageType D
 		}
 	}
 
-	// Owner CombatComp 없는 경우 (DoT, 환경 데미지 등) 직접 적용
+	// Owner CombatComp ?�는 경우 (DoT, ?�경 ?��?지 ?? 직접 ?�용
 	StatComp->ApplyHealthChange(-Amount);
 }
 
