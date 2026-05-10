@@ -14,10 +14,15 @@ class LEAGUEOFLEGENDS_API ALoLMinion_Siege : public ALoLMinion
 public:
 	ALoLMinion_Siege();
 
+	virtual void ExecuteAttack() override;
+
 protected:
-	// 대포 전용 원거리 공격 로직
-	void ExecuteRangedAttack(AActor* Target);
+	// 법사(Ranged)와 동일한 투사체 발사 로직
+	void ExecuteSiegeRangedAttack(AActor* Target);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	TSubclassOf<ALoLRanged_Projectile> ProjectileClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
+	USceneComponent* ProjectileSpawnPoint;
 };

@@ -1,4 +1,6 @@
 ﻿#include "Characters/Minion/MinionSpawner.h"
+
+#include "LeagueofLegends.h"
 #include "Characters/LoLMinion.h"
 #include "Manager/MinionDataSubsystem.h" // 블루프린트 클래스 매핑용
 #include "GameFramework/GameStateBase.h"
@@ -73,55 +75,70 @@ void AMinionSpawner::CheckAndSpawnWave()
 void AMinionSpawner::ExecuteSpawnSequence(const FString& IDListString)
 {
     TArray<int32> MinionIDs = ParseIDList(IDListString);
+    
+    // 로그로 개수 재확인
+    PRINTLOG_HJ(TEXT("파싱된 총 미니언 수: %d, 원본 문자열: %s"), MinionIDs.Num(), *IDListString);
 
     for (int32 i = 0; i < MinionIDs.Num(); ++i)
     {
         int32 TargetID = MinionIDs[i];
-        FTimerHandle DelayHandle;
 
-        GetWorldTimerManager().SetTimer(DelayHandle, [this, TargetID]()
+        // [핵심 수정] 루프마다 완전히 독립적인 핸들을 사용하도록 보장
+        FTimerHandle* NewHandle = new FTimerHandle(); 
+
+        // 0.5초 간격으로 스폰하되, 블루/레드 팀 간의 타이머 충돌을 피하기 위해 
+        // 미세한 오프셋(i * 0.001f)을 추가하는 것이 안전해.
+        float StartDelay = (i * 0.5f) + 0.01f; 
+
+        GetWorldTimerManager().SetTimer(*NewHandle, [this, TargetID, i, NewHandle]()
         {
             if (MinionClassMap.Contains(TargetID))
             {
-                TSubclassOf<ALoLMinion> MinionClass = MinionClassMap[TargetID];
-                FActorSpawnParameters Params;
-                Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+                // 1. 포메이션 좌표 계산
+                FVector SpawnLocation = GetActorLocation();
+                float ForwardOffset = (i / 3) * -150.f; 
+                float SideOffset = ((i % 3) - 1) * 100.f; 
 
-                ALoLMinion* SpawnedMinion = GetWorld()->SpawnActor<ALoLMinion>(MinionClass, GetActorLocation(), GetActorRotation(), Params);
+                FVector Offset = (GetActorForwardVector() * ForwardOffset) + (GetActorRightVector() * SideOffset);
+                FVector FinalLocation = SpawnLocation + Offset;
+                
+                // 2. 소환 옵션 (AlwaysSpawn 적용됨)
+                FActorSpawnParameters Params;
+                Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+                TSubclassOf<ALoLMinion> MinionClass = MinionClassMap[TargetID];
+                ALoLMinion* SpawnedMinion = GetWorld()->SpawnActor<ALoLMinion>(MinionClass, FinalLocation, GetActorRotation(), Params);
                 
                 if (SpawnedMinion)
                 {
-                    // 팀 설정 주입 (TagComp뿐만 아니라 미니언 멤버 변수에도 직접)
-                    // 만약 InitialTeam 변수가 있다면 그것도 채워줍니다.
-                    // SpawnedMinion->InitialTeam = SpawnerTeam; 
-
+                    // 팀 설정 주입
                     if (UTagComponent* TagComp = SpawnedMinion->FindComponentByClass<UTagComponent>())
                     {
                         TagComp->SetTeam(SpawnerTeam);
                     }
 
-                    // --- [경로 주입] ---
+                    // 경로 주입
                     if (Waypoints.Num() > 0)
                     {
                         TArray<FVector> WorldWaypoints;
                         for (const FVector& LocalPoint : Waypoints)
                         {
-                            // 스포너의 위치 기준인 로컬 좌표를 월드 좌표로 변환해서 전달
                             WorldWaypoints.Add(GetActorTransform().TransformPosition(LocalPoint));
                         }
-                        // 미니언에게 경로를 건네줍니다 (미니언 클래스에 SetLanePath 함수가 있어야 함)
                         SpawnedMinion->SetLanePath(WorldWaypoints);
                     }
                     
-                    // 스폰 직후 즉시 타겟을 찾도록 강제 호출
-                    // 미니언이 BeginPlay에서 적이 없어 포기했을 수 있으므로 다시 깨웁니다.
                     SpawnedMinion->SetActorTickEnabled(true);
                     
-                    UE_LOG(LogTemp, Warning, TEXT("[%s-%s] ID %d 스폰 및 팀 주입 완료!"), 
-                        *UEnum::GetValueAsString(SpawnerTeam), *UEnum::GetValueAsString(SpawnerLane), TargetID);
+                    PRINTLOG_HJ(TEXT("[%s] ID %d 스폰 완료 (인덱스: %d)"), 
+                        *UEnum::GetValueAsString(SpawnerTeam), TargetID, i);
                 }
             }
-        }, i * 0.5f, false);
+            
+            // 사용이 끝난 동적 할당 핸들 메모리 해제
+            delete NewHandle;
+
+        }, StartDelay, false);
     }
 }
 

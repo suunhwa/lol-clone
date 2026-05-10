@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/StatComponent.h"
+
+#include "LeagueofLegends.h"
 #include "Net/UnrealNetwork.h"
 
 UStatComponent::UStatComponent()
@@ -21,11 +23,14 @@ void UStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(UStatComponent, CurrentMana);
 	DOREPLIFETIME(UStatComponent, Level);
 	DOREPLIFETIME(UStatComponent, CachedMaxHP);
+	DOREPLIFETIME(UStatComponent, CachedMaxMana);
 }
 
 void UStatComponent::InitStats(const FChampionBaseRow& ChampionBase, const FChampionStatRow& Stats,
                                const FChampionGrowthRow& Growth)
 {
+	Level = 1; // 항상 1레벨로 초기화 (Blueprint 기본값 오염 방지)
+
 	BaseMoveSpeed = ChampionBase.MoveSpeed;
 	BaseRange = ChampionBase.AttackRange;
 
@@ -52,14 +57,15 @@ void UStatComponent::InitStats(const FChampionBaseRow& ChampionBase, const FCham
 	HPRegen_G = Growth.Regen_HP_G;
 
 	CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP;
+	CachedMaxMana = BaseMana + Mana_G * (Level - 1);
 	CurrentHP = CachedMaxHP;
-	CurrentMana = GetMaxMana();
+	CurrentMana = CachedMaxMana;
+
+	OnHPChanged.Broadcast(CurrentHP, CachedMaxHP);
+	OnManaChanged.Broadcast(CurrentMana, GetMaxMana());
+	OnLevelChanged.Broadcast(Level);
 }
 
-float UStatComponent::GetMaxMana() const
-{
-	return BaseMana + Mana_G * (Level - 1);
-}
 
 float UStatComponent::GetAD() const
 {
@@ -116,8 +122,20 @@ void UStatComponent::ApplyManaCost(float Cost)
 
 void UStatComponent::SetLevel(int32 NewLevel)
 {
+	PRINTLOG_SH(TEXT("[SetLevel] %d → %d (Owner: %s)"), Level, NewLevel, *GetNameSafe(GetOwner()));
+	const float HPRatio = CachedMaxHP > 0.f ? CurrentHP / CachedMaxHP : 1.f;
+	const float ManaRatio = CachedMaxMana > 0.f ? CurrentMana / CachedMaxMana : 1.f;
+
 	Level = FMath::Clamp(NewLevel, 1, 18);
 	CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP;
+	CachedMaxMana = BaseMana + Mana_G * (Level - 1);
+
+	CurrentHP = CachedMaxHP * HPRatio;
+	CurrentMana = CachedMaxMana * ManaRatio;
+
+	OnHPChanged.Broadcast(CurrentHP, CachedMaxHP);
+	OnManaChanged.Broadcast(CurrentMana, CachedMaxMana);
+	OnLevelChanged.Broadcast(Level);
 }
 
 void UStatComponent::OnRep_CurrentHP()
@@ -128,4 +146,9 @@ void UStatComponent::OnRep_CurrentHP()
 void UStatComponent::OnRep_CurrentMana()
 {
 	OnManaChanged.Broadcast(CurrentMana, GetMaxMana());
+}
+
+void UStatComponent::OnRep_CachedMaxMana()
+{
+	OnManaChanged.Broadcast(CurrentMana, CachedMaxMana);
 }

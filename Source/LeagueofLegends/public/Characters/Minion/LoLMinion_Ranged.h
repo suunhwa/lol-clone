@@ -15,6 +15,9 @@ class LEAGUEOFLEGENDS_API ALoLMinion_Ranged : public ALoLMinion
 public:
 	ALoLMinion_Ranged();
 
+	
+	virtual void ExecuteAttack() override;
+	
 protected:
 	// 원거리 공격 실행 함수
 	void ExecuteRangedAttack(AActor* Target);
@@ -22,4 +25,9 @@ protected:
 	// 에디터에서 ALoLRanged_Projectile 기반 블루프린트를 할당
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	TSubclassOf<ALoLRanged_Projectile> ProjectileClass;
+	
+protected:
+	// 에디터에서 위치를 잡을 수 있는 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* ProjectileSpawnPoint;
 };

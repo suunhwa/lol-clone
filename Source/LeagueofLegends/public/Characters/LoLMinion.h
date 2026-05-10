@@ -51,6 +51,8 @@ protected:
 	void RequestNewPath(FVector Destination);
 	void MoveAlongPath(float DeltaTime);
 
+	TWeakObjectPtr<AActor> CurrentTarget;
+	
 private:
 	UPROPERTY()
 	AAStarGridManager* GridManager;
@@ -58,7 +60,7 @@ private:
 	TArray<FVector> CurrentPath;
 	int32 CurrentPathIndex = 0;
     
-	TWeakObjectPtr<AActor> CurrentTarget;
+	
 	
 	float PathUpdateTimer = 0.f;
 	const float PathUpdateInterval = 0.5f; // A* 계산 최적화 주기
@@ -71,6 +73,21 @@ private:
 
 	int32 CurrentLaneIndex = 0; // 현재 가야 할 체크포인트 번호
 	
+protected:
+	// 마지막 공격 시간 저장 (공격 속도 기반 쿨타임 계산용)
+	float LastAttackTime = 0.f;
+
+	// 언리얼 기본 데미지 전달 함수 오버라이드
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	// 사망 처리 함수
+	void Die(AActor* Killer);
+
+	// 공격 속도를 쿨타임(초)으로 변환하는 헬퍼
+	float GetAttackCooldown() const;
+	
+	// 실제 공격 실행 함수
+	virtual void ExecuteAttack();
 };
 
 	/*UPROPERTY(VisibleAnywhere, Category = "Minion|Base")

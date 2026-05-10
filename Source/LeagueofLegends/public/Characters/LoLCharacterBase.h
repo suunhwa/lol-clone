@@ -98,6 +98,10 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontage(UAnimMontage* Montage);
 
+	// 클라이언트 쿨타임 동기화
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_StartCooldown(FName Tag, float Duration);
+
 	// 특정 섹션부터 몽타주 재생
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontageSection(UAnimMontage* Montage, FName SectionName);

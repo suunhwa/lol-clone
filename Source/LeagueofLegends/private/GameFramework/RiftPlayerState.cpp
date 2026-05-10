@@ -71,10 +71,26 @@ void ARiftPlayerState::AddGold(int32 Amount)
 	TotalGold += Amount;
 }
 
+// 레벨별 필요 경험치 (레벨 1→2부터 17→18)
+static const float GXPRequired[] =
+{
+	280, 380, 480, 580, 680, 780, 880,
+	1080, 1280, 1480, 1780, 2080, 2380,
+	2680, 2980, 3280, 3480
+};
+
 void ARiftPlayerState::AddXP(float Amount)
 {
+	if (ChampionLevel >= 18) return;
+
 	XP += Amount;
-	// TODO: 레벨업 조건 & 레벨업
+
+	while (ChampionLevel < 18 && XP >= GXPRequired[ChampionLevel - 1])
+	{
+		XP -= GXPRequired[ChampionLevel - 1];
+		ChampionLevel++;
+		OnLevelUp.Broadcast(ChampionLevel);
+	}
 }
 
 void ARiftPlayerState::OnRep_Team()

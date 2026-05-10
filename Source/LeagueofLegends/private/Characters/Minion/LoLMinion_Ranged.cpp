@@ -5,31 +5,57 @@
 
 ALoLMinion_Ranged::ALoLMinion_Ranged()
 {
-	MinionID = 3002;
+	MinionID = 3002; // 법사 미니언 ID
+	
+	ProjectileSpawnPoint = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileSpawnPoint"));
+	ProjectileSpawnPoint->SetupAttachment(RootComponent);
+}
+
+void ALoLMinion_Ranged::ExecuteAttack()
+{
+	// 부모의 로직(로그 출력 등)을 수행하고 싶다면 유지, 
+	// 하지만 원거리 미니언은 투사체를 쏴야 하므로 아래 로직이 핵심입니다.
+	if (CurrentTarget.IsValid())
+	{
+		ExecuteRangedAttack(CurrentTarget.Get());
+	}
 }
 
 void ALoLMinion_Ranged::ExecuteRangedAttack(AActor* Target)
 {
+	// 권한 체크 및 투사체 클래스 유효성 확인
 	if (!HasAuthority() || !Target || !ProjectileClass) return;
 
 	UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp);
 	if (!MinionStat) return;
-
-	// 스폰 위치 (필요 시 이 오프셋도 테이블화 가능)
-	FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 50.f;
-	FRotator SpawnRotation = (Target->GetActorLocation() - GetActorLocation()).Rotation();
+	
+	// 에디터에서 직접 배치한 투사체 위치 가져옴
+	FVector SpawnLocation = ProjectileSpawnPoint->GetComponentLocation();
+	// 회전값은 타겟을 바라보도록 계산
+	FRotator SpawnRotation = (Target->GetActorLocation() - SpawnLocation).Rotation();
 
 	FActorSpawnParameters Params;
 	Params.Owner = this;
 	Params.Instigator = GetInstigator();
 
+	// 투사체 스폰
 	if (ALoLRanged_Projectile* Projectile = GetWorld()->SpawnActor<ALoLRanged_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, Params))
 	{
-		// StatComp에 정의된 수치만 사용
 		float AD = MinionStat->GetAD();
-		float Speed = MinionStat->GetAttackRange(); // 보통 발사 속도는 사거리/이동속도 등과 연계되거나 별도 변수 활용
-		ETeam MyTeam = TagComp->GetTeam();
+       
+		// 테이블(CSV)에서 가져온 탄속 적용
+		float Speed = MinionStat->GetProjSpeed(); 
+       
+		// 탄속 데이터 방어 코드
+		if (Speed <= 0.f) Speed = 1500.f; 
 
+		// 팀 정보 가져오기
+		ETeam MyTeam = ETeam::None;
+		if (TagComp) MyTeam = TagComp->GetTeam();
+
+		// 투사체 발사!
 		Projectile->Launch(Target, Speed, AD, MyTeam);
+       
+		PRINTLOG_HJ(TEXT("[%s] 법사 미니언 투사체 발사! 탄속: %.1f, 데미지: %.1f"), *GetName(), Speed, AD);
 	}
 }

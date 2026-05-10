@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/CooldownComponent.h"
+#include "Characters/LoLCharacterBase.h"
 
 UCooldownComponent::UCooldownComponent()
 {
@@ -21,7 +22,15 @@ void UCooldownComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 
 void UCooldownComponent::StartCooldown(FName Tag, float Duration)
 {
-	Cooldowns.Add(Tag, ApplyCDR(Duration));
+	const float FinalDuration = ApplyCDR(Duration);
+	Cooldowns.Add(Tag, FinalDuration);
+
+	// 클라이언트에 쿨타임 시작 전파 (서버에서만 호출)
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		if (ALoLCharacterBase* Char = Cast<ALoLCharacterBase>(GetOwner()))
+			Char->Multicast_StartCooldown(Tag, FinalDuration);
+	}
 }
 
 bool UCooldownComponent::IsOnCooldown(FName Tag) const

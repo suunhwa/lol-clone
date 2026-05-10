@@ -6,6 +6,5 @@
 void UWidgetViewBase::BindViewModel(UViewModelBase* InViewModel)
 {
 	OwnerViewModel = InViewModel;
-	ensureMsgf(false, TEXT("BindViewModel must be overridden in %s"), *GetClass()->GetName());
 }
 

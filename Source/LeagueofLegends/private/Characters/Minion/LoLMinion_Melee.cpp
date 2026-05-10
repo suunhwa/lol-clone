@@ -8,6 +8,11 @@ ALoLMinion_Melee::ALoLMinion_Melee()
 	// GetCapsuleComponent()->SetCapsuleHalfHeight(88.f);
 }
 
+void ALoLMinion_Melee::ExecuteAttack()
+{
+	Super::ExecuteAttack();
+}
+
 void ALoLMinion_Melee::BeginPlay()
 {
 	Super::BeginPlay();
