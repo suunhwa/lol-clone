@@ -16,10 +16,7 @@ class LEAGUEOFLEGENDS_API UItemSlotWidget : public USlotWidgetBase
 {
 	GENERATED_BODY()
 	
-private:
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UImage> Img_BasicOutline;
-	
+private:	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Stack;
 };

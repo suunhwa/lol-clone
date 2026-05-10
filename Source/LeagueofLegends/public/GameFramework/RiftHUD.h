@@ -4,6 +4,8 @@
 #include "GameFramework/HUD.h"
 #include "RiftHUD.generated.h"
 
+class UShopViewModel;
+class UShopWidget;
 class UMainHUDWidget;
 class ALoLChampion;
 
@@ -15,17 +17,37 @@ class LEAGUEOFLEGENDS_API ARiftHUD : public AHUD
 public:
 	ARiftHUD();
 
+protected:
 	virtual void BeginPlay() override;
 
+public:
 	// PlayerController의 AcknowledgePossession에서 호출
 	void InitHUD(ALoLChampion* Champion);
 	void RefreshSkillIcons(ALoLChampion* Champion);
 
+	void ToggleShop();
+	
+private:	
+	// void SetupMainHUD(ALoLChampion* Champion);
+	void SetupShopMVVM(ALoLChampion* Champion);
+	
 protected:
+	// Main HUD
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UMainHUDWidget> MainHUDClass;
 
+	// Shop
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UShopWidget> ShopWidgetClass;
+	
 private:
 	UPROPERTY()
 	TObjectPtr<UMainHUDWidget> MainHUDWidget;
+	
+	// Shop
+	UPROPERTY()
+	TObjectPtr<UShopWidget> ShopWidget;
+
+	UPROPERTY()
+	TObjectPtr<UShopViewModel> ShopVM;
 };

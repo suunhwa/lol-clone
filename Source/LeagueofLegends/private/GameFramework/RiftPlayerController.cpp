@@ -201,6 +201,7 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Started, this, &ARiftPlayerController::OnAPressed);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Completed, this, &ARiftPlayerController::OnAReleased);
 	EIC->BindAction(IA_LeftClick, ETriggerEvent::Started, this, &ARiftPlayerController::OnLeftClick);
+	EIC->BindAction(IA_Shop, ETriggerEvent::Started, this, &ARiftPlayerController::OnToggleShop);
 
 	if (IA_LevelUp)
 		EIC->BindAction(IA_LevelUp, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddXP);
@@ -263,6 +264,14 @@ void ARiftPlayerController::OnLeftClick()
 	if (bAKeyPressed)
 	{
 		TryBasicAttackAtCursor();
+	}
+}
+
+void ARiftPlayerController::OnToggleShop()
+{
+	if (ARiftHUD* HUD = GetHUD<ARiftHUD>())
+	{
+		HUD->ToggleShop();
 	}
 }
 

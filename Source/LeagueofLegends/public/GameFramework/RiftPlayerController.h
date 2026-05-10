@@ -114,6 +114,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
 	TObjectPtr<UInputAction> IA_LeftClick;
 
+	UPROPERTY(EditAnywhere, Category="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_Shop;
+	
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
 	TObjectPtr<UInputAction> IA_LevelUp;
 
@@ -145,6 +148,7 @@ public:
 	void OnAPressed();
 	void OnAReleased();
 	void OnLeftClick();
+	void OnToggleShop();
 
 	bool bAKeyPressed = false;
 

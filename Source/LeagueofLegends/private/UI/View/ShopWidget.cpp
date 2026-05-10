@@ -31,6 +31,12 @@ void UShopWidget::BindViewModel(UViewModelBase* InViewModel)
 
 void UShopWidget::UnbindViewModel()
 {
+	if (UShopViewModel* ShopVM = Cast<UShopViewModel>(OwnerViewModel))
+	{
+		ShopVM->OnShopItemsBuilt.RemoveAll(this);
+		ShopVM->OnGoldUpdated.RemoveAll(this);
+	}
+
 	Super::UnbindViewModel();
 }
 
@@ -41,18 +47,22 @@ void UShopWidget::PopulateItemList(const TArray<FItemProfileViewData>& ViewData)
 	for (const FItemProfileViewData& ItemData : ViewData)
 	{
 		UItemProfileWidget* NewItemProfile = CreateWidget<UItemProfileWidget>(GetOwningPlayer(), ItemProfileWidgetClass);
-		NewItemProfile->SetItemProfile(ItemData.Icon, FString::FromInt(ItemData.Price), ItemData.ItemID);
 		WrapBox_ItemList->AddChild(NewItemProfile);
+
+		NewItemProfile->SetItemProfile(ItemData.Icon, FString::FromInt(ItemData.Price), ItemData.ItemID);
+		NewItemProfile->OnItemClicked.AddUObject(this, &UShopWidget::OnItemSlotClicked);
+		NewItemProfile->BindItemButtonClick();
 	}
 }
 
 void UShopWidget::OnGoldUpdated(int32 NewGold)
 {
-	Txt_CurrentGold->SetText(FText::FromString(FString::Printf(TEXT("Gold: %d"), NewGold)));
+	Txt_CurrentGold->SetText(FText::FromString(FString::Printf(TEXT("%d"), NewGold)));
 }
 
 void UShopWidget::OnItemSlotClicked(int32 ItemID)
 {
+	SelectedItemID = ItemID;
 }
 
 void UShopWidget::OnPurchaseClicked()

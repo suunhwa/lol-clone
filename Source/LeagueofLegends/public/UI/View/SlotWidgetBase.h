@@ -17,8 +17,8 @@ UCLASS(Abstract)
 class LEAGUEOFLEGENDS_API USlotWidgetBase : public UWidgetViewBase
 {
 	GENERATED_BODY()
-
-private:
+	
+protected:
 	// ─── 공통 이미지 ───────────────────────────────────────────
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Img_Icon;

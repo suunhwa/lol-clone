@@ -7,11 +7,13 @@
 #include "Characters/Data/ChampionData.h"
 #include "Champions/Projectile/ChampionSkillProjectile.h"
 #include "Components/CombatComponent.h"
+#include "Components/InventoryComponent.h"
 #include "Components/StatComponent.h"
 #include "Components/StateComponent.h"
 #include "Components/TagComponent.h"
 #include "Components/SkillComponent.h"
 #include "Components/SkillExecutorComponent.h"
+#include "Components/StatModifierComponent.h"
 #include "Components/TargetingComponent.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "GameFramework/RiftHUD.h"
@@ -20,6 +22,9 @@
 ALoLChampion::ALoLChampion()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	
+	StatModifierComp = CreateDefaultSubobject<UStatModifierComponent>(TEXT("StatModifierComp"));
+	InventoryComp = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComp"));
 }
 
 void ALoLChampion::BeginPlay()

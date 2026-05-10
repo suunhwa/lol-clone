@@ -56,12 +56,16 @@ void ALoLMinion::BeginPlay()
         if (UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp))
         {
             auto* BaseRow = DataSub->GetBaseRowByID(MinionID);
-            if (!BaseRow) PRINTLOG_HJ(TEXT("!! BaseRow 로드 실패 (ID: %d) !!"), MinionID);
-            
+            if (!BaseRow)
+            {
+                PRINTLOG_HJ(TEXT("!! BaseRow 로드 실패 (ID: %d) !!"), MinionID);
+            }
             
             auto* GrowthRow = DataSub->GetGrowthRowByID(MinionID);
-            if (!GrowthRow) PRINTLOG_HJ(TEXT("!! GrowthRow 로드 실패 (ID: %d) !!"), MinionID);
-            
+            if (!GrowthRow)
+            {
+                PRINTLOG_HJ(TEXT("!! GrowthRow 로드 실패 (ID: %d) !!"), MinionID);
+            }
             
             if (BaseRow && GrowthRow)
             {

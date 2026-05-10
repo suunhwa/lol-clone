@@ -121,16 +121,16 @@ const FItemStatTypeRow* UItemDataSubsystem::GetStatTypeInfo(const FString& StatT
 void UItemDataSubsystem::LoadDataTables()
 {   
 	DT_ItemBase = LoadObject<UDataTable>(nullptr,
-		TEXT("/Script/Engine.DataTable'/Game/Data/ItemDataTable_ItemBase.ItemDataTable_ItemBase'"));
+		TEXT("/Script/Engine.DataTable'/Game/DataTables/ItemDataTable_ItemBase.ItemDataTable_ItemBase'"));
 
 	DT_ItemEffect = LoadObject<UDataTable>(nullptr,
-		TEXT("/Script/Engine.DataTable'/Game/Data/ItemDataTable_ItemEffect.ItemDataTable_ItemEffect'"));
+		TEXT("/Script/Engine.DataTable'/Game/DataTables/ItemDataTable_ItemEffect.ItemDataTable_ItemEffect'"));
 
 	DT_ItemStat = LoadObject<UDataTable>(nullptr,
-		TEXT("/Script/Engine.DataTable'/Game/Data/ItemDataTable_ItemStat.ItemDataTable_ItemStat'"));
+		TEXT("/Script/Engine.DataTable'/Game/DataTables/ItemDataTable_ItemStat.ItemDataTable_ItemStat'"));
 
 	DT_ItemStatType = LoadObject<UDataTable>(nullptr,
-		TEXT("/Script/Engine.DataTable'/Game/Data/ItemDataTable_ItemStatType.ItemDataTable_ItemStatType'"));
+		TEXT("/Script/Engine.DataTable'/Game/DataTables/ItemDataTable_ItemStatType.ItemDataTable_ItemStatType'"));
 
 	// 로드 검증
 	PRINTLOG_TK(TEXT("DT_ItemBase     : %s"), DT_ItemBase     ? TEXT("OK") : TEXT("FAILED"));

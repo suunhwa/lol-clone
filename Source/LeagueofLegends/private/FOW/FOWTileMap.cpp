@@ -52,13 +52,13 @@ void AFOWTileMap::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (FOWPostProcessMID)
-	{
-		FVector PlayerWorldPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation();
-		FOWPostProcessMID->SetVectorParameterValue(
-			TEXT("PlayerLocation"),
-			FLinearColor(PlayerWorldPos.X, PlayerWorldPos.Y, 0, 0));
-	}
+	// if (FOWPostProcessMID)
+	// {
+	// 	FVector PlayerWorldPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation();
+	// 	FOWPostProcessMID->SetVectorParameterValue(
+	// 		TEXT("PlayerLocation"),
+	// 		FLinearColor(PlayerWorldPos.X, PlayerWorldPos.Y, 0, 0));
+	// }
 }
 
 void AFOWTileMap::Generate(AFOWVolume* FOWVolume)
@@ -448,10 +448,10 @@ void AFOWTileMap::UpdateSightDataTexture(const TArray<TScriptInterface<ISightPro
 		SightDataBuffer[i] = FLinearColor(Origin.X, Origin.Y, Range, 1.f);
 		
 		// 디버깅
-		PRINTLOG_TK(TEXT("SightProvider %d: Origin=(%.1f, %.1f), Range=%.1f"), i, Origin.X, Origin.Y, Range);
+		// PRINTLOG_TK(TEXT("SightProvider %d: Origin=(%.1f, %.1f), Range=%.1f"), i, Origin.X, Origin.Y, Range);
 	}
 	
-	PRINTLOG_TK(TEXT("Updating SightDataTexture with %d active sight providers"), ActiveCount);
+	// PRINTLOG_TK(TEXT("Updating SightDataTexture with %d active sight providers"), ActiveCount);
 
 	// FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(
 	// 	0, 0, 0, 0, ActiveCount, 1);

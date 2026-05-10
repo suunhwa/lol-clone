@@ -40,8 +40,11 @@ protected:
 public:
 #pragma region Getter Setter
 	float GetGold() const { return Gold; }
+	UFUNCTION(BlueprintCallable)
 	void SetGold(float NewGold);
+	UFUNCTION(BlueprintCallable)
 	void AddGold(float Amount) { SetGold(Gold + Amount); }
+	UFUNCTION(BlueprintCallable)
 	void SpendGold(float Amount) { SetGold(Gold - Amount); }
 	
 	UItemInstance* GetItemAtSlot(int32 SlotIndex) const;

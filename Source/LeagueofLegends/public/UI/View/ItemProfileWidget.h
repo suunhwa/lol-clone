@@ -11,15 +11,26 @@ class UTextBlock;
 /**
  * 
  */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemProfileClicked, int32);
 UCLASS()
 class LEAGUEOFLEGENDS_API UItemProfileWidget : public UWidgetViewBase
 {
 	GENERATED_BODY()
 	
 public:
-	void SetItemProfile(UTexture2D* Icon, const FString& Price, int32 InItemID) const;
-	void SetItemIcon(UTexture2D* Icon) const;
-	void SetItemPrice(const FString& Price) const;
+	void SetItemProfile(UTexture2D* Icon, const FString& Price, int32 InItemID);
+	void SetItemIcon(UTexture2D* Icon);
+	void SetItemPrice(const FString& Price);
+	
+	UButton* GetItemButton() const { return Btn_ItemProfile; }
+
+	FOnItemProfileClicked OnItemClicked;
+
+	void BindItemButtonClick();
+	
+private:
+	UFUNCTION()
+	void HandleClicked();
 	
 private:
 	UPROPERTY(meta = (BindWidget))
