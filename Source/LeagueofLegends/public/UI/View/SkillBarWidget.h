@@ -20,6 +20,14 @@ public:
 	virtual void BindViewModel(UViewModelBase* InViewModel) override;
 
 	void RefreshIcons(UChampionData* Data);
+	void RefreshSkillLevelUpButtons();
+
+private:
+	UFUNCTION()
+	void OnLevelChanged(int32 NewLevel);
+
+	UFUNCTION()
+	void OnRankChanged();
 
 private:
 	UFUNCTION()

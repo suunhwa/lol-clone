@@ -152,3 +152,8 @@ void UStatComponent::OnRep_CachedMaxMana()
 {
 	OnManaChanged.Broadcast(CurrentMana, CachedMaxMana);
 }
+
+void UStatComponent::OnRep_Level()
+{
+	OnLevelChanged.Broadcast(Level);
+}

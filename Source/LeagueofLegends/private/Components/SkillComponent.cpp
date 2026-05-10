@@ -68,7 +68,16 @@ bool USkillComponent::AssignSkillPoint(ESkillSlot Slot)
 	uint8 Idx = static_cast<uint8>(Slot);
 	if (Ranks[Idx] >= MaxRanks[Idx]) return false;
 	Ranks[Idx]++;
+	OnRankChanged.Broadcast();
 	return true;
+}
+
+void USkillComponent::ApplySkillPointClient(ESkillSlot Slot)
+{
+	uint8 Idx = static_cast<uint8>(Slot);
+	if (Ranks[Idx] < MaxRanks[Idx])
+		Ranks[Idx]++;
+	OnRankChanged.Broadcast();
 }
 
 bool USkillComponent::IsMaxRank(ESkillSlot Slot) const

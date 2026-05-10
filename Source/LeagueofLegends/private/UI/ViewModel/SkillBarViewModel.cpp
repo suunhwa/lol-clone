@@ -3,12 +3,13 @@
 #include "Characters/LoLChampion.h"
 #include "Characters/Data/ChampionData.h"
 #include "Components/CooldownComponent.h"
+#include "Components/SkillComponent.h"
 #include "Components/StatComponent.h"
 
 void USkillBarViewModel::Setup(ALoLChampion* InChampion)
 {
 	Champion = InChampion;
-	if (!Champion || !Champion->StatComp) return;
+	if (!Champion || !Champion->StatComp) { return; }
 
 	Champion->StatComp->OnHPChanged.AddUObject(this, &USkillBarViewModel::HandleHPChanged);
 	Champion->StatComp->OnManaChanged.AddUObject(this, &USkillBarViewModel::HandleManaChanged);
@@ -30,6 +31,11 @@ UChampionData* USkillBarViewModel::GetChampionData() const
 UStatComponent* USkillBarViewModel::GetStatComp() const
 {
 	return Champion ? Champion->StatComp : nullptr;
+}
+
+USkillComponent* USkillBarViewModel::GetSkillComp() const
+{
+	return Champion ? Champion->SkillComp : nullptr;
 }
 
 void USkillBarViewModel::HandleHPChanged(float Current, float Max)

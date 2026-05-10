@@ -151,6 +151,12 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_AddXP();
 
+	UFUNCTION(Server, Reliable)
+	void Server_AssignSkillPoint(ESkillSlot Slot);
+
+	UFUNCTION(Client, Reliable)
+	void Client_OnSkillAssigned(ESkillSlot Slot);
+
 	// 스킬 조준 상태 (-1 = 없음, 0=Q, 1=W, 2=E, 3=R)
 	int32 PendingSkillSlot = -1;
 

@@ -11,9 +11,16 @@ void UChampionPortraitWidget::BindViewModel(UViewModelBase* InViewModel)
 	Super::BindViewModel(InViewModel);
 
 	VM = Cast<UChampionPortraitViewModel>(InViewModel);
-	if (!VM) return;
+	if (!VM) { return; }
 
 	VM->OnLevelUpdated.AddUObject(this, &UChampionPortraitWidget::OnLevelUpdated);
+
+	// 초기값 즉시 반영
+	if (txt_Level)
+	{
+		txt_Level->SetText(FText::AsNumber(FMath::Max(1, VM->GetLevel())));
+	}
+		
 
 	if (img_Portrait)
 	{
@@ -21,7 +28,9 @@ void UChampionPortraitWidget::BindViewModel(UViewModelBase* InViewModel)
 		{
 			UMaterialInstanceDynamic* DynMat = img_Portrait->GetDynamicMaterial();
 			if (DynMat)
+			{
 				DynMat->SetTextureParameterValue(TEXT("PortraitTex"), Portrait);
+			}
 		}
 	}
 
@@ -30,7 +39,9 @@ void UChampionPortraitWidget::BindViewModel(UViewModelBase* InViewModel)
 	{
 		ExpMat = img_Exp->GetDynamicMaterial();
 		if (ExpMat)
+		{
 			ExpMat->SetScalarParameterValue(TEXT("Progress"), 0.f);
+		}
 	}
 }
 
@@ -38,10 +49,10 @@ void UChampionPortraitWidget::NativeTick(const FGeometry& MyGeometry, float InDe
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	if (!VM || !ExpMat) return;
+	if (!VM || !ExpMat) { return; }
 
 	TickAccum += InDeltaTime;
-	if (TickAccum < RefreshInterval) return;
+	if (TickAccum < RefreshInterval) { return; }
 	TickAccum = 0.f;
 
 	ExpMat->SetScalarParameterValue(TEXT("Progress"), VM->GetXPProgress());
@@ -51,5 +62,7 @@ void UChampionPortraitWidget::OnLevelUpdated(int32 NewLevel)
 {
 	PRINTLOG_SH(TEXT("[Portrait] Level updated → %d"), NewLevel);
 	if (txt_Level)
+	{
 		txt_Level->SetText(FText::AsNumber(NewLevel));
+	}
 }

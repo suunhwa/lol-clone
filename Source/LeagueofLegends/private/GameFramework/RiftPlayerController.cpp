@@ -201,9 +201,7 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Started, this, &ARiftPlayerController::OnAPressed);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Completed, this, &ARiftPlayerController::OnAReleased);
 	EIC->BindAction(IA_LeftClick, ETriggerEvent::Started, this, &ARiftPlayerController::OnLeftClick);
-
-	if (IA_LevelUp)
-		EIC->BindAction(IA_LevelUp, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddXP);
+	EIC->BindAction(IA_LevelUp, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddXP);
 }
 
 void ARiftPlayerController::OnCameraFocusHeld()
@@ -340,6 +338,9 @@ void ARiftPlayerController::ShowSkillIndicator(ESkillSlot Slot)
 {
 	if (!OwnedChamp) { return; }
 
+	// 랭크 0이면 인디케이터 표시 안 함
+	if (OwnedChamp->SkillComp && OwnedChamp->SkillComp->GetRank(Slot) == 0) { return; }
+
 	HideSkillIndicator();
 	PendingSkillSlot = static_cast<int32>(Slot);
 
@@ -389,6 +390,17 @@ void ARiftPlayerController::FirePendingSkill()
 {
 	if (PendingSkillSlot < 0) { return; }
 
+	// 랭크 0이면 발사 차단
+	if (OwnedChamp && OwnedChamp->SkillComp)
+	{
+		ESkillSlot Slot = static_cast<ESkillSlot>(PendingSkillSlot);
+		if (OwnedChamp->SkillComp->GetRank(Slot) == 0)
+		{
+			HideSkillIndicator();
+			return;
+		}
+	}
+
 	ESkillSlot Slot = static_cast<ESkillSlot>(PendingSkillSlot);
 	HideSkillIndicator();
 	RequestSkill(Slot);
@@ -430,10 +442,28 @@ void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Loc);
 }
 
+void ARiftPlayerController::Server_AssignSkillPoint_Implementation(ESkillSlot Slot)
+{
+	if (!OwnedChamp || !OwnedChamp->SkillComp) { return; }
+	if (OwnedChamp->SkillComp->AssignSkillPoint(Slot))
+	{
+		Client_OnSkillAssigned(Slot); // 본인 클라이언트에만 전송
+	}
+		
+}
+
+void ARiftPlayerController::Client_OnSkillAssigned_Implementation(ESkillSlot Slot)
+{
+	// Listen Server 호스트는 서버에서 이미 처리했으므로 스킵
+	// 순수 클라이언트만 랭크 업데이트 + UI 갱신
+	if (!HasAuthority() && OwnedChamp && OwnedChamp->SkillComp)
+		OwnedChamp->SkillComp->ApplySkillPointClient(Slot);
+}
+
 void ARiftPlayerController::Server_AddXP_Implementation()
 {
 	ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>();
-	if (!PS) return;
+	if (!PS) { return; }
 
 	const int32 PrevLevel = PS->GetChampionLevel();
 	PS->AddXP(200.f);

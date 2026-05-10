@@ -44,6 +44,13 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSkillActivated, ESkillSlot, FVector);
 	FOnSkillActivated OnSkillActivated;
 
+	// 클라이언트 UI 갱신용
+	DECLARE_MULTICAST_DELEGATE(FOnRankChanged);
+	FOnRankChanged OnRankChanged;
+
+	// 클라이언트에서 랭크 직접 업데이트 (Multicast RPC 수신 후 호출)
+	void ApplySkillPointClient(ESkillSlot Slot);
+
 private:
 	int32 Ranks[4] = {0, 0, 0, 0};
 

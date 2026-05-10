@@ -55,9 +55,9 @@ public:
 	// 리스폰 (서버 전용)
 	void Respawn();
 
-	// 모든 클라에 리스폰 시각 처리
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Respawn();
+
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator) override;
