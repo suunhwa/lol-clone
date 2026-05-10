@@ -19,7 +19,8 @@ public:
 	float GetTowerDamageReduction() const { return TowerDamageReduction; }
 	bool IsSiegeMinion() const { return bIsSiege; }
 	bool IsSuperMinion() const { return bIsSuper; }
-	
+	// 외부(미니언 클래스)에서 탄속을 참조할 함수
+	float GetProjSpeed() const { return CachedProjSpeed; }
 protected:
 	// 미니언 고유 특성 저장용
 	UPROPERTY(VisibleAnywhere, Category = "Stats|Minion")
@@ -34,4 +35,8 @@ protected:
 	// 미니언 보상 정보
 	UPROPERTY(VisibleAnywhere, Category = "Stats|Minion")
 	int32 BaseGoldReward = 0;
+
+	UPROPERTY(VisibleAnywhere, Category = "Stats|Minion")
+	float CachedProjSpeed = 0.f;
+	
 };

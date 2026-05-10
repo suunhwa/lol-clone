@@ -15,6 +15,9 @@ class LEAGUEOFLEGENDS_API ALoLMinion_Ranged : public ALoLMinion
 public:
 	ALoLMinion_Ranged();
 
+	
+	virtual void ExecuteAttack() override;
+	
 protected:
 	// 원거리 공격 실행 함수
 	void ExecuteRangedAttack(AActor* Target);
