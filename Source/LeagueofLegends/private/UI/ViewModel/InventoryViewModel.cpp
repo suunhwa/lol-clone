@@ -2,3 +2,13 @@
 
 
 #include "UI/ViewModel/InventoryViewModel.h"
+
+void UInventoryViewModel::Initialize()
+{
+	Super::Initialize();
+}
+
+void UInventoryViewModel::Reset()
+{
+	Super::Reset();
+}
