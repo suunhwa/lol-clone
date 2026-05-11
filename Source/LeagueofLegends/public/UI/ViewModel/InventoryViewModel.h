@@ -6,6 +6,7 @@
 #include "ViewModelBase.h"
 #include "InventoryViewModel.generated.h"
 
+class UInventoryComponent;
 /**
  * 
  */
@@ -13,4 +14,15 @@ UCLASS()
 class LEAGUEOFLEGENDS_API UInventoryViewModel : public UViewModelBase
 {
 	GENERATED_BODY()
+	
+public:
+	virtual void Initialize() override;
+	virtual void Reset() override;
+	
+	void SetInventoryComponent(UInventoryComponent* InInventoryComp) { InventoryComp = InInventoryComp; }
+	
+	
+private:
+	UPROPERTY()
+	TObjectPtr<UInventoryComponent> InventoryComp;
 };

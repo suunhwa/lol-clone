@@ -24,7 +24,7 @@ struct FPurchaseRecord
 	TObjectPtr<UItemInstance> ItemInstance = nullptr;
 };
 
-DECLARE_MULTICAST_DELEGATE(FOnInventoryChanged);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInventorySlotChanged, int32, UItemInstance*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGoldChanged, float);
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class LEAGUEOFLEGENDS_API UInventoryComponent : public UActorComponent
@@ -59,7 +59,7 @@ public:
 	void ClearHistory() { PurchaseHistoryStack.Empty(); }
 	bool EquipTrinket(UItemDataAsset* TrinketData);
 	
-	FOnInventoryChanged OnInventoryChanged;
+	FOnInventorySlotChanged OnInventorySlotChanged;
 	FOnGoldChanged OnGoldChanged;
 
 private:
