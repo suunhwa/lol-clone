@@ -23,9 +23,7 @@ void ALoLInhibitor::OnDestroyed()
 	UpdateSpawner(true);
 
 	// 3. 리스폰 타이머 (데이터 테이블의 MechData.Respawn_Time 활용)
-	float RespawnTime = MechData.Respawn_Time;
-	if (RespawnTime <= 0.f) RespawnTime = 300.f; // 기본 5분
-
+	float RespawnTime = (MechData.Respawn_Time > 0.f) ? MechData.Respawn_Time : 300.f;
 	GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &ALoLInhibitor::Respawn, RespawnTime, false);
     
 	PRINTLOG_HJ(TEXT("[억제기] 파괴됨! %s팀의 슈퍼 미니언 소환 시작."), (GetTeam() == ETeam::Red) ? TEXT("Blue") : TEXT("Red"));
