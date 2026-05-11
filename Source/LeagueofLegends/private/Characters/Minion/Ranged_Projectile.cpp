@@ -14,6 +14,7 @@ ALoLRanged_Projectile::ALoLRanged_Projectile()
     CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
     CollisionComp->InitSphereRadius(15.0f);
     
+    CollisionComp->SetCollisionProfileName(TEXT("Projectile"));
     CollisionComp->SetCollisionResponseToAllChannels(ECR_Overlap);
     
     CollisionComp->SetCollisionProfileName(TEXT("Projectile")); 
