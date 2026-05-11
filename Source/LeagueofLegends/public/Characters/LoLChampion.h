@@ -32,6 +32,7 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
+	virtual bool IsHideable_Implementation() const override { return true; } // 챔피언은 은신 불가능 (예외: 쉔 W)
 	
 public:
 #pragma region Component Getters

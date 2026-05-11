@@ -50,6 +50,7 @@ public:
 	virtual float GetSightRange_Implementation() const override;
 	virtual bool IsStatic_Implementation() const override;
 	virtual ERiftSightTag GetSightTag_Implementation() const override;
+	virtual bool IsHideable_Implementation() const override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Sight")
@@ -58,8 +59,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Sight")
 	bool bStaticSight = false;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Sight")
-	ERiftSightTag SightTag = ERiftSightTag::None;
+	// UPROPERTY(EditDefaultsOnly, Category = "Sight")
+	// ERiftSightTag SightTag = ERiftSightTag::None;
 #pragma endregion
 
 public:
@@ -91,6 +92,7 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UWidgetComponent> HPBarWidgetComp;
 
+	// TODO : 이거 없어져야 하는 값 같음.
 	UPROPERTY(EditAnywhere, Category = "Team")
 	ETeam InitialTeam = ETeam::Blue;
 

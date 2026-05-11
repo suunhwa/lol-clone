@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/TagComponent.h"
+
+#include "Characters/LoLStructure.h"
 #include "Net/UnrealNetwork.h"
 
 UTagComponent::UTagComponent()
@@ -15,6 +17,31 @@ void UTagComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME(UTagComponent, Team);
 	DOREPLIFETIME(UTagComponent, UnitType);
 	DOREPLIFETIME(UTagComponent, Tags);
+}
+
+void UTagComponent::SetTeam(ETeam InTeam)
+{
+	Team = InTeam;
+	
+	if (Cast<ALoLStructure>(GetOwner()))
+	{
+		SightTag = ERiftSightTag::None; // 구조물은 시야 태그 없음
+	}
+	else
+	{
+		switch (Team)
+		{
+		case ETeam::Red:
+			SightTag = ERiftSightTag::Red;
+			break;
+		case ETeam::Blue:
+			SightTag = ERiftSightTag::Blue;
+			break;
+		default:
+			SightTag = ERiftSightTag::None;
+			break;
+		}
+	}
 }
 
 bool UTagComponent::IsEnemy(const UTagComponent* Other) const

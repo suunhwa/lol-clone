@@ -9,7 +9,7 @@
 UENUM(BlueprintType)
 enum class ERiftSightTag : uint8
 {
-	None, Red, Blue
+	None, Blue, Red
 };
 
 // This class does not need to be modified.

@@ -21,8 +21,6 @@ public:
 	void SetItemProfile(UTexture2D* Icon, const FString& Price, int32 InItemID);
 	void SetItemIcon(UTexture2D* Icon);
 	void SetItemPrice(const FString& Price);
-	
-	UButton* GetItemButton() const { return Btn_ItemProfile; }
 
 	FOnItemProfileClicked OnItemClicked;
 

@@ -99,12 +99,12 @@ void ALoLCharacterBase::BeginPlay()
 		}
 		else
 		{
-			PRINTLOG_SH(TEXT("RegisterSightProvider failed: FOWManager is null for %s"), *GetName());
+			PRINTLOG_TK(TEXT("RegisterSightProvider failed: FOWManager is null for %s"), *GetName());
 		}
 	}
 	else
 	{
-		PRINTLOG_SH(TEXT("RegisterSightProvider failed: GameState is null for %s"), *GetName());
+		PRINTLOG_TK(TEXT("RegisterSightProvider failed: GameState is null for %s"), *GetName());
 	}
 
 	if (UHPBarWidget* HPBar = Cast<UHPBarWidget>(HPBarWidgetComp->GetWidget()))
@@ -183,7 +183,12 @@ bool ALoLCharacterBase::IsStatic_Implementation() const
 
 ERiftSightTag ALoLCharacterBase::GetSightTag_Implementation() const
 {
-	return SightTag;
+	return TagComp->GetSightTag();
+}
+
+bool ALoLCharacterBase::IsHideable_Implementation() const
+{
+	return false; 
 }
 
 void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)

@@ -6,6 +6,7 @@
 #include "WidgetViewBase.h"
 #include "InventoryWidget.generated.h"
 
+class UItemSlotWidget;
 class UTextBlock;
 class UScaleBox;
 /**
@@ -16,10 +17,17 @@ class LEAGUEOFLEGENDS_API UInventoryWidget : public UWidgetViewBase
 {
 	GENERATED_BODY()
 	
+public:
+	// UFUNCTION()
+	// void (int32 S)
+	
 private:
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UItemSlotWidget> ItemSlotWidgetClass;
+	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScaleBox> ScaleBox_Slot0;
-	
+	 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScaleBox> ScaleBox_Slot1;
 	

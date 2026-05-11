@@ -6,6 +6,8 @@
 #include "Manager/ObjectDataSubsystem.h"
 #include "Components/SkeletalMeshComponent.h" 
 #include "Components/WidgetComponent.h"
+#include "FOW/FOWManager.h"
+#include "GameFramework/RiftGameState.h"
 #include "Manager/MinionDataSubsystem.h"
 #include "UI/View/HPBarWidget.h"
 
@@ -25,6 +27,11 @@ ALoLStructure::ALoLStructure()
     HPBarWidgetComp->SetWidgetSpace(EWidgetSpace::Screen); 
     HPBarWidgetComp->SetDrawAtDesiredSize(true);
     
+}
+
+ERiftSightTag ALoLStructure::GetSightTag_Implementation() const
+{
+    return TagComp->GetSightTag();
 }
 
 void ALoLStructure::BeginPlay()
@@ -51,6 +58,22 @@ void ALoLStructure::BeginPlay()
         TagComp->SetTeam(InitialTeam);
         Tags.Add((InitialTeam == ETeam::Red) ? TEXT("RedTeam") : TEXT("BlueTeam"));
         Tags.Add(TEXT("Structure"));
+    }
+    
+    if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+    {
+        if (AFOWManager* FOWManager = GS->GetFOWManager())
+        {
+            FOWManager->RegisterSightProvider(this);
+        }
+        else
+        {
+            PRINTLOG_TK(TEXT("RegisterSightProvider failed: FOWManager is null for %s"), *GetName());
+        }
+    }
+    else
+    {
+        PRINTLOG_TK(TEXT("RegisterSightProvider failed: GameState is null for %s"), *GetName());
     }
 }
 

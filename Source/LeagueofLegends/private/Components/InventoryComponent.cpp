@@ -55,8 +55,7 @@ bool UInventoryComponent::PurchaseItem(int32 ItemID)
 	// 골드 검증
 	if (Gold < ItemData->Price)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PurchaseItem: Not enough gold. Required: %d, Available: %f"), ItemData->Price,
-		       Gold);
+		UE_LOG(LogTemp, Warning, TEXT("PurchaseItem: Not enough gold. Required: %d, Available: %f"), ItemData->Price, Gold);
 		return false;
 	}
 
@@ -76,6 +75,7 @@ bool UInventoryComponent::PurchaseItem(int32 ItemID)
 
 	ItemSlot[EmptySlot] = NewItem;
 	NewItem->OnEquipped();
+	OnInventorySlotChanged.Broadcast(EmptySlot, NewItem);
 
 	FPurchaseRecord Record
 	{
@@ -113,7 +113,7 @@ void UInventoryComponent::SellItem(int32 SlotIndex)
 
 	ItemToSell->OnUnequipped();
 	ItemSlot[SlotIndex] = nullptr;
-
+	OnInventorySlotChanged.Broadcast(SlotIndex, nullptr);
 	// OnInventoryChanged.Broadcast();
 
 	PRINTLOG_TK(TEXT("[%s] 판매 완료 — SlotIndex: %d / 환급 골드: %d / 잔여 골드: %.0f"),
@@ -152,6 +152,7 @@ void UInventoryComponent::Undo()
 
 		ItemSlot[FoundSlot]->OnUnequipped();
 		ItemSlot[FoundSlot] = nullptr;
+		OnInventorySlotChanged.Broadcast(FoundSlot, nullptr);
 		AddGold(ItemData->Price);
 
 		PRINTLOG_TK(TEXT("[%s] 구매 취소 — SlotIndex: %d / 환급: %d / 잔여: %.0f"),
@@ -175,6 +176,7 @@ void UInventoryComponent::Undo()
 
 		SpendGold(ItemData->RefundPrice);
 		ItemSlot[TargetSlot] = Instance;
+		OnInventorySlotChanged.Broadcast(TargetSlot, Instance);
 		Instance->OnEquipped();
 
 		PRINTLOG_TK(TEXT("[%s] 판매 취소 — SlotIndex: %d / 차감: %d / 잔여: %.0f"),

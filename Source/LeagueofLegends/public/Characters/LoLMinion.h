@@ -22,6 +22,9 @@ public:
 	virtual AActor* GetCurrentCombatTarget_Implementation() const override;
 	// ---------------------------------
 	
+	// --- ISightProvider Interface 구현 ---
+	virtual bool IsHideable_Implementation() const override { return true; }
+	
 	// 스포너가 소환 직후 호출해줄 함수
 	void SetLanePath(const TArray<FVector>& InPath) { LanePath = InPath; CurrentLaneIndex = 0; }
 protected:

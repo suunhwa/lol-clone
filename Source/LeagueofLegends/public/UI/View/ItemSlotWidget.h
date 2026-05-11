@@ -6,17 +6,40 @@
 #include "UI/View/SlotWidgetBase.h"
 #include "ItemSlotWidget.generated.h"
 
-/**
- * 아이템 슬롯 위젯.
- * 공통 슬롯 요소는 USlotWidgetBase에서 상속받습니다.
- * 아이템 슬롯 고유 위젯 컴포넌트가 생기면 이 클래스에 추가하세요.
- */
+class UItemInstance;
+class UButton;
+class UOverlay;
+
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemInventorySlotClicked, int32);
 UCLASS()
 class LEAGUEOFLEGENDS_API UItemSlotWidget : public USlotWidgetBase
 {
 	GENERATED_BODY()
 	
-private:	
+public:
+	void SetItemProfile(UTexture2D* Icon, const FString& Price, int32 InItemID);
+	void SetItemIcon(UTexture2D* Icon);
+	void SetSlotIndex(int32 InSlotIndex);
+
+	FOnItemInventorySlotClicked OnSlotClicked;
+
+	void BindSlotButtonClick();
+
+private:
+	UFUNCTION()
+	void HandleSlotButtonClicked();
+	
+private:
+	int32 ItemID;
+	int32 SlotIndex;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> Btn_Icon;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UOverlay> Overlay_CD;
+	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Stack;
 };

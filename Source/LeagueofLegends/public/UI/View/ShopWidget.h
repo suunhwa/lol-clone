@@ -41,8 +41,7 @@ private:
 
 	UFUNCTION()
 	void OnUndoClicked();
-	
-	
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	int32 SelectedItemID = INDEX_NONE;

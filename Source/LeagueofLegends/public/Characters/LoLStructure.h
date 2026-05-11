@@ -4,6 +4,7 @@
 #include "Components/WidgetComponent.h"
 #include "GameFramework/Actor.h"
 #include "Interfaces/Damageable.h"
+#include "Interfaces/SightProvider.h"
 #include "Interfaces/Targetable.h"
 #include "Struct/ObjectStruct.h"
 #include "LoLStructure.generated.h"
@@ -13,13 +14,20 @@ class UTagComponent;
 class USkeletalMeshComponent;
 
 UCLASS()
-class LEAGUEOFLEGENDS_API ALoLStructure : public AActor, public IDamageable, public ITargetable
+class LEAGUEOFLEGENDS_API ALoLStructure : public AActor, public IDamageable, public ITargetable, public ISightProvider
 {
     GENERATED_BODY()
 
 public:
     ALoLStructure();
 
+    // --- ISightProvider Interface 구현 ---
+    virtual FVector GetSightOrigin_Implementation() const override { return GetActorLocation(); }
+    virtual float GetSightRange_Implementation() const override { return 1000; }
+    virtual bool IsStatic_Implementation() const override { return true; }
+    virtual ERiftSightTag GetSightTag_Implementation() const override;
+    virtual bool IsHideable_Implementation() const override { return false; }
+    
 protected:
     virtual void BeginPlay() override;
     virtual void InitializeStructureData();
