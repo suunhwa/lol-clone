@@ -155,8 +155,8 @@ void ALoLMinion::OnDeath(AActor* DamageInstigator)
 
     Super::OnDeath(DamageInstigator);
 
-    // 3초 후 소멸
-    SetLifeSpan(3.f);
+    // 0.3초 후 소멸
+    SetLifeSpan(0.3f);
 }
 
 void ALoLMinion::Tick(float DeltaTime)
@@ -383,7 +383,7 @@ void ALoLMinion::ExecuteAttack()
     // if (!CurrentTarget.IsValid() || !StatComp) { return; }
     if (!CurrentTarget.IsValid() || !CombatComp) { return; }
 
-    /*
+    
     // StatComp에서 AD 가져오기
     float Damage = StatComp->GetAD();
 
@@ -408,6 +408,25 @@ void ALoLMinion::ExecuteAttack()
     // CombatComponent로 데미지 적용
     CombatComp->PerformBasicAttack(CurrentTarget.Get());
     PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
+}
+
+void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
+{
+    // 죽은 상태면 무시
+    if (!StatComp || StatComp->IsDead()) return;
+
+    // 로그 찍어서 대미지가 오는지 확인
+    PRINTLOG_HJ(TEXT("[%s] 포탑/챔피언으로부터 %.1f 대미지 수신!"), *GetName(), Amount);
+
+    // 실제 대미지 적용 (StatComponent의 HP 감소 호출)
+    // 기존 TakeDamage와 로직을 통일하기 위해 내부적으로 처리
+    StatComp->ApplyHealthChange(-Amount);
+
+    // 사망 체크
+    if (StatComp->IsDead())
+    {
+        Die(DamageInstigator);
+    }
 }
 
 float ALoLMinion::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

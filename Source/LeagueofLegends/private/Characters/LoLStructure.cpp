@@ -19,6 +19,13 @@ ALoLStructure::ALoLStructure()
     MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComp"));
     SetRootComponent(MeshComp);
     
+    // 캐릭터가 못 지나가게 막음
+    MeshComp->SetCollisionProfileName(TEXT("BlockAll")); // 모든 것을 막음 (벽처럼 작동)
+    MeshComp->SetCanEverAffectNavigation(true);
+    
+    // 타게팅 탐색을 위해 필요
+    MeshComp->SetGenerateOverlapEvents(true);
+    
     ObjectStatComp = CreateDefaultSubobject<UObjectStatComponent>(TEXT("ObjectStatComp"));
     TagComp = CreateDefaultSubobject<UTagComponent>(TEXT("TagComp"));
     
@@ -125,5 +132,9 @@ void ALoLStructure::OnDestroyed()
 {
     if (bIsDestroyed) return;
     bIsDestroyed = true;
+    PRINTLOG_HJ(TEXT("[%s] 포탑 파괴 로직 실행!"), *GetName());
+    // 충돌 끄기 (더 이상 타겟팅 안 되게)
+    SetActorEnableCollision(false);
     Tags.Empty();
+    
 }

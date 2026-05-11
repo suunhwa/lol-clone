@@ -23,7 +23,15 @@ void USkillSlotWidget::InitSlot(UCooldownComponent* CD, FName InCDTag, FText Hot
 
 	if (Txt_ManaCost)
 	{
-		Txt_ManaCost->SetText(FText::FromString(FString::FromInt(FMath::RoundToInt(InManaCost))));
+		if (InManaCost > 0.f)
+		{
+			Txt_ManaCost->SetText(FText::FromString(FString::FromInt(FMath::RoundToInt(InManaCost))));
+			Txt_ManaCost->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			Txt_ManaCost->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
 
 	if (Overlay_CD)

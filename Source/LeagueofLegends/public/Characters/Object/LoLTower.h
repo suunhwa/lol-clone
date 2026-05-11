@@ -26,6 +26,9 @@ protected:
 
 	/** 투사체 발사 및 대미지 처리 */
 	void Fire();
+	
+	// 파괴 로직
+	virtual void OnDestroyed() override;
 
 	/** * 현재 타겟 (인터페이스 포인터가 아닌 AActor 포인터를 사용해야 안전함)
 	 */

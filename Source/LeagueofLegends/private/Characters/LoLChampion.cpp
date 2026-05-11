@@ -15,6 +15,10 @@
 #include "Components/SkillExecutorComponent.h"
 #include "Components/StatModifierComponent.h"
 #include "Components/TargetingComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Interfaces/Damageable.h"
+#include "Interfaces/Targetable.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "GameFramework/RiftHUD.h"
 #include "GameFramework/RiftGameMode.h"
@@ -136,7 +140,22 @@ void ALoLChampion::StartAttackLoop(AActor* Target)
 	if (!HasAuthority() || !Target) { return; }
 
 	UTargetingComponent* TargetComp = Target->FindComponentByClass<UTargetingComponent>();
-	if (!TargetComp || !TargetComp->IsValidTarget(this)) { return; }
+	if (TargetComp)
+	{
+		if (!TargetComp->IsValidTarget(this)) { return; }
+	}
+	else
+	{
+		// 포탑 등 TargetingComponent 없는 경우 인터페이스로 직접 검증
+		if (!Target->GetClass()->ImplementsInterface(UDamageable::StaticClass())) { return; }
+		if (IDamageable::Execute_IsDead(Target)) { return; }
+		if (Target->GetClass()->ImplementsInterface(UTargetable::StaticClass()))
+		{
+			ETeam TargetTeam = ITargetable::Execute_GetTeam(Target);
+			ETeam MyTeam = TagComp ? TagComp->GetTeam() : ETeam::None;
+			if (TargetTeam == MyTeam || TargetTeam == ETeam::None) { return; }
+		}
+	}
 
 	AttackTarget = Target;
 	GetWorldTimerManager().ClearTimer(AttackLoopTimer);
@@ -166,12 +185,32 @@ void ALoLChampion::AttackLoopTick()
 	AActor* Target = AttackTarget.Get();
 
 	UTargetingComponent* TargetComp = Target->FindComponentByClass<UTargetingComponent>();
-	if (!TargetComp || !TargetComp->IsValidTarget(this))
+	if (TargetComp)
 	{
-		StopAttackLoop();
-		return;
+		if (!TargetComp->IsValidTarget(this))
+		{
+			StopAttackLoop();
+			return;
+		}
 	}
-
+	else
+	{
+		// 포탑 등 TargetingComponent 없는 경우 인터페이스로 직접 검증
+		bool bValid = false;
+		if (Target->GetClass()->ImplementsInterface(UDamageable::StaticClass()) &&
+			!IDamageable::Execute_IsDead(Target) &&
+			Target->GetClass()->ImplementsInterface(UTargetable::StaticClass()))
+		{
+			ETeam TargetTeam = ITargetable::Execute_GetTeam(Target);
+			ETeam MyTeam = TagComp ? TagComp->GetTeam() : ETeam::None;
+			bValid = (TargetTeam != MyTeam && TargetTeam != ETeam::None);
+		}
+		if (!bValid)
+		{
+			StopAttackLoop();
+			return;
+		}
+	}
 
 	const float Range = StatComp ? StatComp->GetAttackRange() : 150.f;
 	const float AttackSpeed = StatComp ? StatComp->GetAttackSpeed() : 0.65f;
@@ -214,6 +253,13 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 {
 	StopAttackLoop();
 
+	// 이동 즉시 차단 (죽은 채로 걷는 좀비 방지)
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->DisableMovement();
+	}
+
 	if (HasAuthority())
 	{
 		if (ARiftGameMode* GM = GetWorld()->GetAuthGameMode<ARiftGameMode>())
@@ -232,11 +278,11 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 
 	Super::OnDeath(DamageInstigator);
 
-	// 서버에서만 리스폰 타이머 등록
-	if (HasAuthority())
-	{
-		GetWorldTimerManager().SetTimer(RespawnTimer, this, &ALoLChampion::Respawn, RespawnDelay, false);
-	}
+	// 리스폰 비활성화 (테스트용)
+	// if (HasAuthority())
+	// {
+	// 	GetWorldTimerManager().SetTimer(RespawnTimer, this, &ALoLChampion::Respawn, RespawnDelay, false);
+	// }
 }
 
 void ALoLChampion::Respawn()
@@ -260,12 +306,17 @@ void ALoLChampion::Respawn()
 
 void ALoLChampion::Multicast_Respawn_Implementation()
 {
-	// 충돌 복구
 	SetActorEnableCollision(true);
 
-	// 리스폰 위치로 이동 (BeginPlay 시 기록해둔 스폰 위치)
-	// 간단히 원래 위치 쓰거나, PlayerStart 위치 쓰면 됨
-	// 지금은 제자리 리스폰
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+	}
+
+	if (HPBarWidgetComp)
+	{
+		HPBarWidgetComp->SetVisibility(true);
+	}
 }
 
 // 평타

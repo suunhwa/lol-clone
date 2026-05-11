@@ -13,6 +13,7 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Components/CombatComponent.h"
 #include "Components/StatComponent.h"
+#include "Interfaces/Damageable.h"
 #include "Kismet/GameplayStatics.h"
 
 ARiftPlayerController::ARiftPlayerController()
@@ -230,15 +231,13 @@ void ARiftPlayerController::OnMove()
 	if (!HitResult.bBlockingHit) { return; }
 
 	// 커서가 적 위에 있으면 이동 대신 공격
-	ALoLCharacterBase* HitChar = Cast<ALoLCharacterBase>(HitResult.GetActor());
-	if (HitChar && HitChar != OwnedChamp)
+	AActor* HitActor = HitResult.GetActor();
+	if (HitActor && HitActor != OwnedChamp &&
+		HitActor->GetClass()->ImplementsInterface(UDamageable::StaticClass()) &&
+		!IDamageable::Execute_IsDead(HitActor))
 	{
-		UStatComponent* TargetStat = HitChar->FindComponentByClass<UStatComponent>();
-		if (TargetStat && !TargetStat->IsDead())
-		{
-			Server_RequestBasicAttack(HitChar);
-			return;
-		}
+		Server_RequestBasicAttack(HitActor);
+		return;
 	}
 
 	Server_MoveToLocation(HitResult.ImpactPoint);
@@ -287,29 +286,28 @@ void ARiftPlayerController::TryBasicAttackAtCursor()
 
 	if (HitResult.bBlockingHit && HitResult.GetActor())
 	{
-		UStatComponent* Stat = HitResult.GetActor()->FindComponentByClass<UStatComponent>();
-		if (Stat && !Stat->IsDead() && HitResult.GetActor() != OwnedChamp)
+		AActor* HitActor = HitResult.GetActor();
+		if (HitActor != OwnedChamp &&
+			HitActor->GetClass()->ImplementsInterface(UDamageable::StaticClass()) &&
+			!IDamageable::Execute_IsDead(HitActor))
 		{
-			Target = HitResult.GetActor();
+			Target = HitActor;
 		}
 	}
 
-	// 클릭한 타겟 없으면 커서 주변 가장 가까운 타겟 탐색
+	// 클릭한 타겟 없으면 커서 주변 가장 가까운 타겟 탐색 (챔피언, 미니언, 포탑 포함)
 	if (!Target)
 	{
 		const FVector CursorLoc = HitResult.bBlockingHit ? HitResult.ImpactPoint : OwnedChamp->GetActorLocation();
-
 		float NearestDist = FLT_MAX;
 
-		TArray<AActor*> allActors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ALoLCharacterBase::StaticClass(), allActors);
+		TArray<AActor*> AllActors;
+		UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UDamageable::StaticClass(), AllActors);
 
-		for (AActor* Actor : allActors)
+		for (AActor* Actor : AllActors)
 		{
 			if (Actor == OwnedChamp) { continue; }
-
-			UStatComponent* Stat = Actor->FindComponentByClass<UStatComponent>();
-			if (!Stat || Stat->IsDead()) { continue; }
+			if (IDamageable::Execute_IsDead(Actor)) { continue; }
 
 			float Dist = FVector::Dist(Actor->GetActorLocation(), CursorLoc);
 			if (Dist < NearestDist)
@@ -322,12 +320,8 @@ void ARiftPlayerController::TryBasicAttackAtCursor()
 
 	if (Target)
 	{
-		ALoLCharacterBase* TargetChar = Cast<ALoLCharacterBase>(Target);
-		if (TargetChar)
-		{
-			Server_RequestBasicAttack(TargetChar);
-			PRINTLOG_SH(TEXT("A+LMB 평타 -> %s"), *GetNameSafe(Target));
-		}
+		Server_RequestBasicAttack(Target);
+		PRINTLOG_SH(TEXT("A+LMB 평타 -> %s"), *GetNameSafe(Target));
 	}
 }
 
@@ -435,7 +429,7 @@ void ARiftPlayerController::Server_RequestSkill_Implementation(ESkillSlot Slot, 
 	OwnedChamp->SkillComp->RequestActivateSkill(Slot, TargetLoc);
 }
 
-void ARiftPlayerController::Server_RequestBasicAttack_Implementation(ALoLCharacterBase* Target)
+void ARiftPlayerController::Server_RequestBasicAttack_Implementation(AActor* Target)
 {
 	if (!OwnedChamp || !Target) { return; }
 	OwnedChamp->StartAttackLoop(Target);
@@ -466,7 +460,10 @@ void ARiftPlayerController::Client_OnSkillAssigned_Implementation(ESkillSlot Slo
 	// Listen Server 호스트는 서버에서 이미 처리했으므로 스킵
 	// 순수 클라이언트만 랭크 업데이트 + UI 갱신
 	if (!HasAuthority() && OwnedChamp && OwnedChamp->SkillComp)
+	{
 		OwnedChamp->SkillComp->ApplySkillPointClient(Slot);
+	}
+		
 }
 
 void ARiftPlayerController::Server_AddXP_Implementation()

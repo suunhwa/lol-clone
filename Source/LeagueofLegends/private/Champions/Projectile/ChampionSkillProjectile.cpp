@@ -5,6 +5,9 @@
 #include "DrawDebugHelpers.h"
 #include "Characters/LoLCharacterBase.h"
 #include "Components/CooldownComponent.h"
+#include "Components/StatComponent.h"
+#include "Interfaces/Damageable.h"
+#include "Interfaces/Targetable.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
@@ -70,10 +73,11 @@ void AChampionSkillProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* Other
 	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	if (!HasAuthority() || !Other || Other == GetOwner()) { return; }
+	if (!Other->GetClass()->ImplementsInterface(UTargetable::StaticClass())) { return; }
 
-	ALoLCharacterBase* OtherChar = Cast<ALoLCharacterBase>(Other);
 	ALoLCharacterBase* Caster = Cast<ALoLCharacterBase>(GetOwner());
-	if (!OtherChar || !Caster || ITargetable::Execute_GetTeam(OtherChar) == ITargetable::Execute_GetTeam(Caster)) { return; }
+	if (!Caster) { return; }
+	if (ITargetable::Execute_GetTeam(Other) == ITargetable::Execute_GetTeam(Caster)) { return; }
 
 	ApplyHit(Other);
 	Destroy();
@@ -84,10 +88,11 @@ void AChampionSkillProjectile::OnBeginOverlap(UPrimitiveComponent* Overlapped, A
 {
 	if (!HasAuthority() || !Other || Other == GetOwner()) { return; }
 	if (HitActors.Contains(Other)) { return; }
+	if (!Other->GetClass()->ImplementsInterface(UTargetable::StaticClass())) { return; }
 
-	ALoLCharacterBase* OtherChar = Cast<ALoLCharacterBase>(Other);
 	ALoLCharacterBase* Caster = Cast<ALoLCharacterBase>(GetOwner());
-	if (!OtherChar || !Caster || ITargetable::Execute_GetTeam(OtherChar) == ITargetable::Execute_GetTeam(Caster)) { return; }
+	if (!Caster) { return; }
+	if (ITargetable::Execute_GetTeam(Other) == ITargetable::Execute_GetTeam(Caster)) { return; }
 
 	HitActors.Add(Other);
 	ApplyHit(Other);
@@ -98,7 +103,16 @@ void AChampionSkillProjectile::ApplyHit(AActor* Target)
 	ALoLCharacterBase* Caster = Cast<ALoLCharacterBase>(GetOwner());
 	if (!Caster || !Caster->CombatComp) { return; }
 
-	Caster->CombatComp->DealDamage(Target, DamageCtx);
+	// StatComponent 있는 타겟(챔피언, 미니언)은 CombatComp 경유
+	// 없는 타겟(포탑 등)은 IDamageable 인터페이스로 직접 전달
+	if (Target->FindComponentByClass<UStatComponent>())
+	{
+		Caster->CombatComp->DealDamage(Target, DamageCtx);
+	}
+	else if (Target->GetClass()->ImplementsInterface(UDamageable::StaticClass()))
+	{
+		IDamageable::Execute_ReceiveDamage(Target, DamageCtx.RawDamage, DamageCtx.DamageType, Caster);
+	}
 
 	if (bCooldownOnHit && Caster->CooldownComp)
 	{
