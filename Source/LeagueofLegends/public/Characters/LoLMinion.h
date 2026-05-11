@@ -74,6 +74,8 @@ private:
 
 	int32 CurrentLaneIndex = 0; // 현재 가야 할 체크포인트 번호
 	
+	// 부모의 ReceiveDamage를 오버라이드하여 미니언 전용 HP 로직과 연결
+	virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
 protected:
 	// 마지막 공격 시간 저장 (공격 속도 기반 쿨타임 계산용)
 	float LastAttackTime = 0.f;
@@ -104,8 +106,7 @@ protected:
 	// float LastAttackTime = 0.0f;
 	
 /*public:
-	// 부모의 ReceiveDamage를 오버라이드하여 미니언 전용 HP 로직과 연결
-	virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
+	
 
 	// 포탑이 팀을 확인할 때 사용할 인터페이스 함수 오버라이드
 	virtual ETeam GetTeam_Implementation() const override;

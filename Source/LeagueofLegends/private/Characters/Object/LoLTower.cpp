@@ -131,3 +131,19 @@ void ALoLTower::Fire()
         }
     }
 }
+
+
+void ALoLTower::OnDestroyed()
+{
+    // 1. 부모의 공통 정리(상태값 변경 등) 호출
+    Super::OnDestroyed();
+
+    // 2. 타워 공격 타이머 끄기
+    GetWorldTimerManager().ClearTimer(AttackTimerHandle);
+
+    // 3. 타워는 다시 살아나지 않으므로 파괴
+    if (HasAuthority())
+    {
+        Destroy();
+    }
+}
