@@ -197,7 +197,8 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_SkillW, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillWReleased);
 	EIC->BindAction(IA_SkillE, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillEPressed);
 	EIC->BindAction(IA_SkillE, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillEReleased);
-	EIC->BindAction(IA_SkillR, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillR);
+	EIC->BindAction(IA_SkillR, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillRPressed);
+	EIC->BindAction(IA_SkillR, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillRReleased);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Started, this, &ARiftPlayerController::OnAPressed);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Completed, this, &ARiftPlayerController::OnAReleased);
 	EIC->BindAction(IA_LeftClick, ETriggerEvent::Started, this, &ARiftPlayerController::OnLeftClick);
@@ -329,10 +330,8 @@ void ARiftPlayerController::OnSkillWReleased() { FirePendingSkill(); }
 void ARiftPlayerController::OnSkillEPressed()  { ShowSkillIndicator(ESkillSlot::E); }
 void ARiftPlayerController::OnSkillEReleased() { FirePendingSkill(); }
 
-void ARiftPlayerController::OnSkillR()
-{
-	RequestSkill(ESkillSlot::R);
-}
+void ARiftPlayerController::OnSkillRPressed()  { ShowSkillIndicator(ESkillSlot::R); }
+void ARiftPlayerController::OnSkillRReleased() { FirePendingSkill(); }
 
 void ARiftPlayerController::ShowSkillIndicator(ESkillSlot Slot)
 {

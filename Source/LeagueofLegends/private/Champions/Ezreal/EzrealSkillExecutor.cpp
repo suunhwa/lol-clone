@@ -1,8 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Champions/Ezreal/EzrealSkillExecutor.h"
 
 #include "LeagueofLegends.h"
+#include "DrawDebugHelpers.h"
+#include "Champions/Projectile/ChampionSkillProjectile.h"
 #include "Engine/OverlapResult.h"
 #include "Characters/LoLCharacterBase.h"
 #include "Characters/LoLChampion.h"
@@ -278,16 +280,6 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 	const float ManaCost = Stats ? Stats->Cost : 100.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 120.f;
 
-	if (Stats)
-	{
-		PRINTLOG_SH(TEXT("[R] 테이블 ─ Rank:%d Base:%.1f Cost:%.1f CD:%.2f"),
-		            GetRank(ESkillSlot::R), Stats->Base_Value, Stats->Cost, Stats->CoolDown);
-	}
-	else
-	{
-		PRINTLOG_SH(TEXT("[R] 테이블 로드 실패 — fallback 수치 사용"));
-	}
-
 	if (StatComp)
 	{
 		StatComp->ApplyManaCost(ManaCost);
@@ -298,18 +290,40 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 		CooldownComp->StartCooldown(TEXT("Skill.R"), Cooldown);
 	}
 
+	const FVector Origin = OwnerChar->GetActorLocation();
+	const FVector Dir = (TargetLoc - Origin).GetSafeNormal2D();
+	constexpr float RLength = 40000.f; // 맵 끝까지
+	constexpr float RHalfWidth = 160.f;
+	constexpr float VisualDuration = 1.2f;
+
+	const FVector Right = FVector::CrossProduct(Dir, FVector::UpVector) * RHalfWidth;
+	UWorld* World = OwnerChar->GetWorld();
+
+	// 중앙선 + 좌우 외곽선만
+	DrawDebugLine(World, Origin, Origin + Dir * RLength, FColor::Blue, false, VisualDuration, 0, 20.f);
+	DrawDebugLine(World, Origin + Right, Origin + Right + Dir * RLength, FColor::Cyan, false, VisualDuration, 0, 6.f);
+	DrawDebugLine(World, Origin - Right, Origin - Right + Dir * RLength, FColor::Cyan, false, VisualDuration, 0, 6.f);
+
+	// 데미지 컨텍스트
 	FDamageContext Ctx;
 	Ctx.RawDamage = Stats ? ComputeScaledDamage(*Stats, StatComp) : 350.f;
 	Ctx.DamageType = EDamageType::Magical;
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("Ezreal.R");
 
-	PRINTLOG_SH(TEXT("[R] 발사 ─ 데미지:%.1f"), Ctx.RawDamage);
+	PRINTLOG_SH(TEXT("[R] Charge ─ 데미지:%.1f"), Ctx.RawDamage);
 
-	// 글로벌 사거리 관통 발사체 (bPiercing=true, 사거리 20000)
-	SpawnProjectile(
-		(TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-		2000.f, 20000.f, Ctx, true, false, TEXT("Socket_Q"));
+	// 애니메이션 차지 후 발사 (1초 딜레이)
+	FTimerHandle RTimer;
+	OwnerChar->GetWorldTimerManager().SetTimer(RTimer,
+	                                           [this, Dir, Ctx]()
+	                                           {
+		                                           if (!OwnerChar) return;
+		                                           PRINTLOG_SH(TEXT("[R] 발사!"));
+		                                           if (AChampionSkillProjectile* Proj = SpawnProjectile(
+			                                           Dir, 2000.f, 40000.f, Ctx, true, false, TEXT("Socket_Q")))
+			                                           Proj->DebugTrailHalfWidth = 160.f;
+	                                           }, 1.0f, false);
 }
 
 void UEzrealSkillExecutor::FireESecondaryShot()
