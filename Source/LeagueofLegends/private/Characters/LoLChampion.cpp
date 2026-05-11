@@ -17,6 +17,8 @@
 #include "Components/TargetingComponent.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "GameFramework/RiftHUD.h"
+#include "GameFramework/RiftGameMode.h"
+#include "GameFramework/RiftPlayerState.h"
 #include "Net/UnrealNetwork.h"
 
 ALoLChampion::ALoLChampion()
@@ -34,13 +36,6 @@ void ALoLChampion::BeginPlay()
 	if (SkillComp)
 	{
 		SkillComp->OnSkillActivated.AddUObject(this, &ALoLChampion::HandleSkillActivated);
-
-		// 테스트용: 모든 스킬 랭크 1로 설정
-		// TODO: 레벨업 시 플레이어가 직접 할당하도록 변경 예정
-		SkillComp->AssignSkillPoint(ESkillSlot::Q);
-		SkillComp->AssignSkillPoint(ESkillSlot::W);
-		SkillComp->AssignSkillPoint(ESkillSlot::E);
-		SkillComp->AssignSkillPoint(ESkillSlot::R);
 	}
 
 	if (!ChampionData) { return; }
@@ -219,6 +214,17 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 {
 	StopAttackLoop();
 
+	if (HasAuthority())
+	{
+		if (ARiftGameMode* GM = GetWorld()->GetAuthGameMode<ARiftGameMode>())
+		{
+			ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator);
+			ARiftPlayerState* KillerPS = KillerChamp ? KillerChamp->GetPlayerState<ARiftPlayerState>() : nullptr;
+			ARiftPlayerState* VictimPS = GetPlayerState<ARiftPlayerState>();
+			GM->OnChampionKilled(KillerPS, VictimPS);
+		}
+	}
+
 	if (ChampionData && ChampionData->DeathMontage)
 	{
 		Multicast_PlayMontage(ChampionData->DeathMontage);
@@ -250,6 +256,7 @@ void ALoLChampion::Respawn()
 	// 충돌 다시 활성화 (Multicast_OnDeath에서 껐으므로)
 	Multicast_Respawn();
 }
+
 
 void ALoLChampion::Multicast_Respawn_Implementation()
 {

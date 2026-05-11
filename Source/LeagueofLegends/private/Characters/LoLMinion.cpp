@@ -1,6 +1,10 @@
 #include "Characters/LoLMinion.h"
 
 #include "LeagueofLegends.h"
+#include "Characters/LoLChampion.h"
+#include "GameFramework/RiftPlayerState.h"
+#include "GameFramework/RiftGameState.h"
+#include "FOW/FOWManager.h"
 #include "Manager/MinionDataSubsystem.h"
 #include "Components/MinionStatComponent.h"
 #include "Components/TagComponent.h"
@@ -45,7 +49,7 @@ void ALoLMinion::BeginPlay()
     // [진단 로그]
     PRINTLOG_HJ(TEXT("[%s] BeginPlay 시작! 현재 MinionID: %d"), *GetName(), MinionID);
     
-    if (!HasAuthority()) return;
+    if (!HasAuthority()) { return; }
 
     // AStar 매니저 찾기
     GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
@@ -102,8 +106,10 @@ void ALoLMinion::BeginPlay()
     if (TagComp)
     {
         TagComp->SetUnitType(EUnitType::Minion);
-        if (TagComp->GetTeam() == ETeam::None) TagComp->SetTeam(InitialTeam);
-        
+        if (TagComp->GetTeam() == ETeam::None)
+        {
+            TagComp->SetTeam(InitialTeam);
+        }
         // [수정] 팀 설정 확인 로그 추가
         PRINTLOG_HJ(TEXT("[%s] 소환됨 - 팀: %d (0:None, 1:Blue, 2:Red)"), 
             *GetName(), (int32)TagComp->GetTeam());
@@ -122,11 +128,43 @@ void ALoLMinion::BeginPlay()
     
 }
 
+void ALoLMinion::OnDeath(AActor* DamageInstigator)
+{
+    // CS 추적: 챔피언이 죽인 경우 PlayerState에 CS 추가
+    if (ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator))
+    {
+        if (ARiftPlayerState* PS = KillerChamp->GetPlayerState<ARiftPlayerState>())
+        {
+            PS->AddCS(1);
+        }
+          
+    }
+
+    CurrentTarget = nullptr;
+    CurrentPath.Empty();
+
+    // FOW 시야 제공자 해제
+    if (ARiftGameState* GS = GetWorld()->GetGameState<ARiftGameState>())
+    {
+        if (AFOWManager* FOW = GS->GetFOWManager())
+        {
+            FOW->UnregisterSightProvider(this);
+        }
+    }
+        
+
+    Super::OnDeath(DamageInstigator);
+
+    // 3초 후 소멸
+    SetLifeSpan(3.f);
+}
+
 void ALoLMinion::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    if (!HasAuthority()) return;
-    
+    if (!HasAuthority()) { return; }
+    if (StatComp && StatComp->IsDead()) { return; } // 사망 후 AI 중단
+
     // 1. 타겟팅 업데이트 (주기적 실행)
     UpdateAggro(DeltaTime);
 
@@ -341,9 +379,11 @@ float ALoLMinion::GetAttackCooldown() const
 }
 
 void ALoLMinion::ExecuteAttack()
-{
-    if (!CurrentTarget.IsValid() || !StatComp) return;
+{   
+    // if (!CurrentTarget.IsValid() || !StatComp) { return; }
+    if (!CurrentTarget.IsValid() || !CombatComp) { return; }
 
+    /*
     // StatComp에서 AD 가져오기
     float Damage = StatComp->GetAD();
 
@@ -355,13 +395,19 @@ void ALoLMinion::ExecuteAttack()
     }
     else
     {
-        // 근거리 즉시 데미지 적용
-        UGameplayStatics::ApplyDamage(CurrentTarget.Get(), Damage, GetController(), this, UDamageType::StaticClass());
-        PRINTLOG_HJ(TEXT("[%s] 근접 공격 수행! 데미지: %.1f"), *GetName(), Damage);
+        if (CurrentTarget->GetClass()->ImplementsInterface(UDamageable::StaticClass()))
+        {
+            IDamageable::Execute_ReceiveDamage(CurrentTarget.Get(), Damage, EDamageType::Physical, this);
+            PRINTLOG_HJ(TEXT("[%s] 근접 공격! %s에게 %.1f 데미지"), *GetName(), *CurrentTarget->GetName(), Damage);
+        }
     }
-
+    LastAttackTime = GetWorld()->GetTimeSeconds();
     // 애니메이션 재생 (공격 속도에 맞춰 배속 조절 필요)
-    // PlayAnimMontage(AttackMontage, StatComp->GetAttackSpeed());
+    // PlayAnimMontage(AttackMontage, StatComp->GetAttackSpeed());*/
+    
+    // CombatComponent로 데미지 적용
+    CombatComp->PerformBasicAttack(CurrentTarget.Get());
+    PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
 }
 
 float ALoLMinion::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

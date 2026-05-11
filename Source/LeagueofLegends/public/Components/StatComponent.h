@@ -77,7 +77,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentMana)
 	float CurrentMana = 0.f;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_Level)
 	int32 Level = 1;
 
 	// 자식 접근을 위해 공통변수로 뺌
@@ -133,4 +133,7 @@ private:
 
 	UFUNCTION()
 	void OnRep_CachedMaxMana();
+
+	UFUNCTION()
+	void OnRep_Level();
 };

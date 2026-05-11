@@ -18,9 +18,17 @@ class LEAGUEOFLEGENDS_API AChampionSkillProjectile : public AActor
 public:
 	AChampionSkillProjectile();
 
-	// bPiercing=true: 관통 (W), false: 첫 적 명중 후 소멸 (Q, E 보조)
-	// bCooldownOnHit: 명중 시 시전자 쿨다운 1.5초 감소 (이즈리얼 Q 패시브)
+	virtual void Tick(float DeltaTime) override;
+
 	void Launch(FDamageContext InCtx, float Speed, float MaxRange, bool bPiercing, bool bInCooldownOnHit = false);
+	void SetCollisionRadius(float Radius);
+
+	// Debug trail 폭 (R=160, Q/E/W=0)
+	UPROPERTY()
+	float DebugTrailHalfWidth = 0.f;
+
+private:
+	FVector PrevLocation = FVector::ZeroVector;
 
 protected:
 	// 관통 발사체 (W): Overlap 방식

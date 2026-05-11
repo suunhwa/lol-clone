@@ -8,6 +8,7 @@ class ALoLChampion;
 class UCooldownComponent;
 class UChampionData;
 class UStatComponent;
+class USkillComponent;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStatValueChanged, float /*Current*/, float /*Max*/);
 
@@ -23,7 +24,8 @@ public:
 
 	UCooldownComponent* GetCooldownComp() const;
 	UChampionData* GetChampionData() const;
-	UStatComponent* GetStatComp() const;
+	UStatComponent*  GetStatComp()  const;
+	USkillComponent* GetSkillComp() const;
 
 	FOnStatValueChanged OnHPChanged;
 	FOnStatValueChanged OnManaChanged;
