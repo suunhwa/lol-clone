@@ -155,8 +155,8 @@ void ALoLMinion::OnDeath(AActor* DamageInstigator)
 
     Super::OnDeath(DamageInstigator);
 
-    // 3초 후 소멸
-    SetLifeSpan(3.f);
+    // 0.3초 후 소멸
+    SetLifeSpan(0.3f);
 }
 
 void ALoLMinion::Tick(float DeltaTime)

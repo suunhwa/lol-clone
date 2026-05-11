@@ -29,7 +29,7 @@ void USkillBarWidget::BindViewModel(UViewModelBase* InViewModel)
 	// 패시브 슬롯 — 레벨업 없음, 점 없음
 	if (Slot_P)
 	{
-		Slot_P->InitSlot(nullptr, NAME_None, FText::FromString(TEXT("P")), 0.f, 0.f);
+		Slot_P->InitSlot(nullptr, NAME_None, FText::FromString(TEXT("")), 0.f, 0.f);
 		Slot_P->InitSlotMeta(ESkillSlot::Q, 0); // MaxRank=0 → 점/버튼 전부 숨김
 	}
 
@@ -128,7 +128,7 @@ void USkillBarWidget::RefreshSkillLevelUpButtons()
 
 	auto Refresh = [&](USkillSlotWidget* InSlot, ESkillSlot SlotEnum, int32 Max, int32 MinLevel = 1)
 	{
-		if (!InSlot) return;
+		if (!InSlot) { return; }
 		const int32 Rank = SkillComp->GetRank(SlotEnum);
 		const bool bLevelOk = Level >= MinLevel;
 		InSlot->RefreshRank(Rank);

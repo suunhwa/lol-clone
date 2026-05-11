@@ -132,8 +132,16 @@ void ALoLCharacterBase::ReceiveDamage_Implementation(float Amount, EDamageType D
 		}
 	}
 
-	// Owner CombatComp ?�는 경우 (DoT, ?�경 ?��?지 ?? 직접 ?�용
+	// InstigatorCombat 없는 경우 (포탑 투사체 등) 직접 처리
 	StatComp->ApplyHealthChange(-Amount);
+
+	if (StatComp->IsDead())
+	{
+		StateComp->TryChangeState(ECharacterState::Dead);
+		TagComp->AddTag(UnitTags::Dead);
+		TagComp->AddTag(UnitTags::Untargetable);
+		CombatComp->OnDeath.Broadcast(Ctx.DamageInstigator);
+	}
 }
 
 bool ALoLCharacterBase::IsDead_Implementation() const
@@ -216,4 +224,8 @@ void ALoLCharacterBase::Multicast_PlayMontageSection_Implementation(UAnimMontage
 void ALoLCharacterBase::Multicast_OnDeath_Implementation()
 {
 	SetActorEnableCollision(false);
+	if (HPBarWidgetComp)
+	{
+		HPBarWidgetComp->SetVisibility(false);
+	}
 }
