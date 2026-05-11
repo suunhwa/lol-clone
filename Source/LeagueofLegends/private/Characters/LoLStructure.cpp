@@ -1,10 +1,13 @@
 #include "Characters/LoLStructure.h"
+
+#include "LeagueofLegends.h"
 #include "Components/ObjectStatComponent.h"
 #include "Components/TagComponent.h"
 #include "Manager/ObjectDataSubsystem.h"
 #include "Components/SkeletalMeshComponent.h" 
 #include "Components/WidgetComponent.h"
 #include "Manager/MinionDataSubsystem.h"
+#include "UI/View/HPBarWidget.h"
 
 ALoLStructure::ALoLStructure()
 {
@@ -12,6 +15,7 @@ ALoLStructure::ALoLStructure()
     
     // SkeletalMesh 컴포넌트 생성 및 루트 설정
     MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComp"));
+    SetRootComponent(MeshComp);
     
     ObjectStatComp = CreateDefaultSubobject<UObjectStatComponent>(TEXT("ObjectStatComp"));
     TagComp = CreateDefaultSubobject<UTagComponent>(TEXT("TagComp"));
@@ -25,9 +29,18 @@ ALoLStructure::ALoLStructure()
 
 void ALoLStructure::BeginPlay()
 {
-    InitializeStructureData();
     Super::BeginPlay();
+    InitializeStructureData();
     // StatComponent의 OnHPChanged 델리게이트와 위젯 업데이트 함수 연결
+    if (HPBarWidgetComp)
+    {
+        if (auto* HPWidget = Cast<UHPBarWidget>(HPBarWidgetComp->GetUserWidgetObject()))
+        {
+            // 이제 타입 걱정 없이 포탑(this)을 넘겨주면 됨!
+            HPWidget->InitWidgetFromDamageable(this);
+        }
+    }
+    
     if (ObjectStatComp)
     {
         ObjectStatComp->OnHPChanged.AddUObject(this, &ALoLStructure::UpdateHPBar);
@@ -69,6 +82,9 @@ void ALoLStructure::UpdateHPBar(float CurrentHP, float MaxHP)
 void ALoLStructure::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
 {
     if (bIsDestroyed || !ObjectStatComp) return;
+    PRINTLOG_HJ(TEXT("[포탑 피격] %s로부터 %.1f 대미지 전달됨!"),
+    
+        DamageInstigator ? *DamageInstigator->GetName() : TEXT("Unknown"), Amount);
     ObjectStatComp->ApplyDamage(Amount);
     if (ObjectStatComp->IsDead()) OnDestroyed();
 }

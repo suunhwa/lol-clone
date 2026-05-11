@@ -105,7 +105,13 @@ void UObjectStatComponent::ApplyDamage(float Amount)
 {
     if (IsDead()) return;
     float DamageMultiplier = 100.0f / (100.0f + CurrentArmor);
+    float FinalDamage = Amount * DamageMultiplier;
+    
     CurrentHP = FMath::Clamp(CurrentHP - (Amount * DamageMultiplier), 0.f, GetMaxHP());
+    
+    PRINTLOG_HJ(TEXT("[%s] 실제 들어간 대미지: %.2f | 현재 남은 HP: %.1f"), 
+        *GetOwner()->GetName(), FinalDamage, CurrentHP);
+    
     OnHPChanged.Broadcast(CurrentHP, GetMaxHP());
 }
 
