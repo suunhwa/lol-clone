@@ -351,11 +351,13 @@ void ALoLMinion::ExecuteAttack()
     }
     else
     {
-        // 근거리 즉시 데미지 적용
-        UGameplayStatics::ApplyDamage(CurrentTarget.Get(), Damage, GetController(), this, UDamageType::StaticClass());
-        PRINTLOG_HJ(TEXT("[%s] 근접 공격 수행! 데미지: %.1f"), *GetName(), Damage);
+        if (CurrentTarget->GetClass()->ImplementsInterface(UDamageable::StaticClass()))
+        {
+            IDamageable::Execute_ReceiveDamage(CurrentTarget.Get(), Damage, EDamageType::Physical, this);
+            PRINTLOG_HJ(TEXT("[%s] 근접 공격! %s에게 %.1f 데미지"), *GetName(), *CurrentTarget->GetName(), Damage);
+        }
     }
-
+    LastAttackTime = GetWorld()->GetTimeSeconds();
     // 애니메이션 재생 (공격 속도에 맞춰 배속 조절 필요)
     // PlayAnimMontage(AttackMontage, StatComp->GetAttackSpeed());
 }

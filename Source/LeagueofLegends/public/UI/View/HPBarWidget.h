@@ -17,7 +17,8 @@ protected:
 
 public:
 	void InitWidget(UStatComponent* InStatComp);
-
+	void InitWidgetFromDamageable(AActor* InActor);
+	
 private:
 	UFUNCTION()
 	void OnHPChanged(float Current, float Max);
