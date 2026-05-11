@@ -3,6 +3,7 @@
 #include "Components/CombatComponent.h"
 
 #include "LeagueofLegends.h"
+#include "DrawDebugHelpers.h"
 #include "Components/StatComponent.h"
 #include "Components/StateComponent.h"
 #include "Components/TagComponent.h"
@@ -91,6 +92,11 @@ void UCombatComponent::PerformBasicAttack(AActor* Target)
 	Ctx.DamageType = EDamageType::Physical;
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("BasicAttack");
+
+	DrawDebugLine(GetOwner()->GetWorld(),
+		GetOwner()->GetActorLocation(),
+		Target->GetActorLocation(),
+		FColor::Orange, false, 0.3f, 0, 4.f);
 
 	DealDamage(Target, Ctx);
 }

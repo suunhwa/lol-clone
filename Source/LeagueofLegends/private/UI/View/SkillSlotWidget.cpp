@@ -194,7 +194,7 @@ void USkillSlotWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	if (!CooldownComp || CDTag.IsNone()) { return; }
+	if (!IsValid(CooldownComp) || CDTag.IsNone()) { return; }
 
 	const bool bOnCD = CooldownComp->IsOnCooldown(CDTag);
 	const float Remaining = CooldownComp->GetRemaining(CDTag);
