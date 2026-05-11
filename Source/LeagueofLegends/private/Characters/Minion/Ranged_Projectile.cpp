@@ -13,6 +13,9 @@ ALoLRanged_Projectile::ALoLRanged_Projectile()
 
     CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
     CollisionComp->InitSphereRadius(15.0f);
+    
+    CollisionComp->SetCollisionResponseToAllChannels(ECR_Overlap);
+    
     CollisionComp->SetCollisionProfileName(TEXT("Projectile")); 
     RootComponent = CollisionComp;
 
@@ -58,8 +61,14 @@ void ALoLRanged_Projectile::NotifyActorBeginOverlap(AActor* OtherActor)
     Super::NotifyActorBeginOverlap(OtherActor);
 
     // 서버 권한 체크 및 자가 충돌 방지
-    if (!HasAuthority() || !OtherActor || OtherActor == GetOwner()) return;
+    if (!HasAuthority() || !OtherActor) return; 
 
+    if (OtherActor->IsA(ALoLRanged_Projectile::StaticClass())) 
+    {
+        return; 
+    }
+    
+    if (OtherActor == GetOwner()) return;
     // 타겟팅 투사체인 경우 지정된 타겟이 아니면 통과 (미니언 평타 특성)
     if (TargetActor.IsValid() && OtherActor != TargetActor.Get()) return;
 
