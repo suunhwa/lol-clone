@@ -93,10 +93,10 @@ void UCombatComponent::PerformBasicAttack(AActor* Target)
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("BasicAttack");
 
-	DrawDebugLine(GetOwner()->GetWorld(),
+	/*DrawDebugLine(GetOwner()->GetWorld(),
 		GetOwner()->GetActorLocation(),
 		Target->GetActorLocation(),
-		FColor::Orange, false, 0.3f, 0, 4.f);
+		FColor::Orange, false, 0.3f, 0, 4.f);*/
 
 	DealDamage(Target, Ctx);
 }

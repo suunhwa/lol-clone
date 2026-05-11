@@ -413,7 +413,7 @@ void ALoLMinion::ExecuteAttack()
     
     // CombatComponent로 데미지 적용
     CombatComp->PerformBasicAttack(CurrentTarget.Get());
-    PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
+    //PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
 }
 
 void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
