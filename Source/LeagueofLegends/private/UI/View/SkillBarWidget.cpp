@@ -26,14 +26,24 @@ void USkillBarWidget::BindViewModel(UViewModelBase* InViewModel)
 		OnManaChanged(Stat->GetCurrentMana(), Stat->GetMaxMana());
 	}
 
-	// 패시브 슬롯 — 레벨업 없음, 점 없음
+	// 패시브 슬롯 
+	if (Slot_P)
+	{
+		Slot_P->InitSlot(nullptr, NAME_None, FText::GetEmpty(), 0.f, 0.f);
+		Slot_P->InitSlotMeta(ESkillSlot::Q, 0);
+
+		// 패시브 슬롯만 크기 축소
+		/*Slot_P->SetSlotSize(50.f, 50.f);
+		Slot_P->SetPassive();*/
+	}
+	
+	/*// 패시브 슬롯 — 레벨업 없음, 점 없음
 	if (Slot_P)
 	{
 		Slot_P->InitSlot(nullptr, NAME_None, FText::FromString(TEXT("")), 0.f, 0.f);
 		Slot_P->InitSlotMeta(ESkillSlot::Q, 0); // MaxRank=0 → 점/버튼 전부 숨김
-	}
-
-
+	}*/
+	
 	// Q/W/E/R 슬롯
 	UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
 	UChampionData* Data = VM->GetChampionData();
