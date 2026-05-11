@@ -38,13 +38,15 @@ void ALoLRanged_Projectile::Launch(AActor* InTarget, float InSpeed, float InDama
     if (ProjectileMovement)
     {
         ProjectileMovement->InitialSpeed = InSpeed;
+        ProjectileMovement->MaxSpeed = InSpeed;
+        
         if (InTarget)
         {
             // 유도탄 설정 (Homing)
             ProjectileMovement->bIsHomingProjectile = true;
             ProjectileMovement->HomingTargetComponent = InTarget->GetRootComponent();
             // 탄속이 빠를수록 더 강한 힘으로 꺾어야 타겟을 놓치지 않음
-            ProjectileMovement->HomingAccelerationMagnitude = InSpeed * 2.5f;
+            ProjectileMovement->HomingAccelerationMagnitude = InSpeed * 50.0f;
         }
         FVector Direction = InTarget ? (InTarget->GetActorLocation() - GetActorLocation()).GetSafeNormal() : GetActorForwardVector();
         ProjectileMovement->Velocity = Direction * InSpeed;
