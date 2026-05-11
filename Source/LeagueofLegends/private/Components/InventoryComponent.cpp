@@ -84,7 +84,7 @@ bool UInventoryComponent::PurchaseItem(int32 ItemID)
 	};
 	PurchaseHistoryStack.Push(Record);
 
-	OnInventoryChanged.Broadcast();
+	// OnInventoryChanged.Broadcast();
 
 	PRINTLOG_TK(TEXT("[%s] 구매 완료 — SlotIndex: %d / 잔여 골드: %.0f"), *ItemData->NameKR, EmptySlot, Gold);
 	return true;
@@ -114,7 +114,7 @@ void UInventoryComponent::SellItem(int32 SlotIndex)
 	ItemToSell->OnUnequipped();
 	ItemSlot[SlotIndex] = nullptr;
 
-	OnInventoryChanged.Broadcast();
+	// OnInventoryChanged.Broadcast();
 
 	PRINTLOG_TK(TEXT("[%s] 판매 완료 — SlotIndex: %d / 환급 골드: %d / 잔여 골드: %.0f"),
 	            *ItemData->NameKR, SlotIndex, ItemData->RefundPrice, Gold);
@@ -181,7 +181,7 @@ void UInventoryComponent::Undo()
 			*ItemData->NameKR, TargetSlot, ItemData->RefundPrice, Gold);
 	}
 
-	OnInventoryChanged.Broadcast();
+	// OnInventoryChanged.Broadcast();
 }
 
 bool UInventoryComponent::EquipTrinket(UItemDataAsset* TrinketData)
@@ -205,7 +205,7 @@ bool UInventoryComponent::EquipTrinket(UItemDataAsset* TrinketData)
 	TrinketSlot = NewInstance;
 	TrinketSlot->OnEquipped();
 
-	OnInventoryChanged.Broadcast();
+	// OnInventoryChanged.Broadcast();
 
 	PRINTLOG_TK(TEXT("[%s] 트링켓 장착 완료"), *TrinketData->NameKR);
 	return true;
