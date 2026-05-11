@@ -49,7 +49,7 @@ void UChampionPortraitWidget::NativeTick(const FGeometry& MyGeometry, float InDe
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	if (!VM || !ExpMat) { return; }
+	if (!IsValid(VM) || !ExpMat) { return; }
 
 	TickAccum += InDeltaTime;
 	if (TickAccum < RefreshInterval) { return; }

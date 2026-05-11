@@ -25,19 +25,25 @@ ALoLMinion::ALoLMinion()
     if (auto* MoveComp = GetCharacterMovement())
     {
         // 캡슐끼리 겹쳤을 때 강하게 튕겨내지 않고 부드럽게 밀어내게 함
-        MoveComp->MaxDepenetrationWithPawn = 100.f; 
+        MoveComp->MaxDepenetrationWithPawn = 5.f; 
         
         // 미니언끼리 길막을 덜 하도록 설정
         MoveComp->bUseRVOAvoidance = true; // RVO 회피 활성화 (추천)
-        MoveComp->AvoidanceConsiderationRadius = 100.f;
+        MoveComp->AvoidanceConsiderationRadius = 80.f;
+        MoveComp->AvoidanceWeight = 0.5f;
+        
+        //  상호작용 끄기
+        MoveComp->bEnablePhysicsInteraction = false;
     }
 
     // 2. 캡슐 물리 설정 (Physics에 의한 튕김 제거)
     if (auto* Capsule = GetCapsuleComponent())
     {
-        Capsule->SetCanEverAffectNavigation(true);
+        Capsule->SetCanEverAffectNavigation(false);
         // 물리 시뮬레이션은 끄고, 단순 Overlap/Block만 사용
         Capsule->SetSimulatePhysics(false); 
+        
+        Capsule->SetCollisionProfileName(TEXT("Pawn"));
     }
     
 }
@@ -407,7 +413,7 @@ void ALoLMinion::ExecuteAttack()
     
     // CombatComponent로 데미지 적용
     CombatComp->PerformBasicAttack(CurrentTarget.Get());
-    PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
+    //PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
 }
 
 void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
@@ -467,7 +473,13 @@ void ALoLMinion::Die(AActor* Killer)
 {
     // 1. 태그 변경 (사망 상태 표시)
     if (TagComp) TagComp->AddTag(UnitTags::Dead);
-
+    
+    // 죽는 순간 즉시 충돌을 꺼버려서 길막/튕김 원천 봉쇄
+    if (auto* Capsule = GetCapsuleComponent())
+    {
+        Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        Capsule->SetCollisionResponseToAllChannels(ECR_Ignore);
+    }
     // 2. 골드 보상 로직 (미니언스탯컴포넌트 참조)
     if (UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp))
     {
