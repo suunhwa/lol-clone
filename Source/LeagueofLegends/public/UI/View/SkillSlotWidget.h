@@ -7,6 +7,7 @@
 #include "Components/SkillComponent.h"
 #include "SkillSlotWidget.generated.h"
 
+class USizeBox;
 class UTextBlock;
 class UOverlay;
 class UButton;
@@ -31,8 +32,17 @@ public:
 	void RefreshRank(int32 NewRank);
 	void SetLevelUpAvailable(bool bAvailable);
 	void SetSkillActive(bool bActive); // 랭크 0이면 어둡게
+	
+	/*UFUNCTION(BlueprintCallable)
+	void SetSlotSize(float Width, float Height);
+	
+	UFUNCTION(BlueprintCallable)
+	void SetPassive();*/
 
 protected:
+	/*UPROPERTY(meta = (BindWidget))
+	USizeBox* Root_SizeBox;*/
+		
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UOverlay> Overlay_CD;
 

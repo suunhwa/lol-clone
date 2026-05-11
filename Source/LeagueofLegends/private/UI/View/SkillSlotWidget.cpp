@@ -5,6 +5,7 @@
 #include "Components/CooldownComponent.h"
 #include "Components/Image.h"
 #include "Components/Overlay.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "GameFramework/RiftPlayerController.h"
@@ -125,6 +126,39 @@ void USkillSlotWidget::SetSkillActive(bool bActive)
 			                             : FLinearColor(0.25f, 0.25f, 0.25f, 1.f));
 	}
 }
+
+/*
+void USkillSlotWidget::SetSlotSize(float Width, float Height)
+{
+	if (!Root_SizeBox) { return; }
+
+	Root_SizeBox->SetWidthOverride(Width);
+	Root_SizeBox->SetHeightOverride(Height);
+}
+
+void USkillSlotWidget::SetPassive()
+{
+	if (Btn_LevelUp)
+	{
+		Btn_LevelUp->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (Txt_Index)
+	{
+		Txt_Index->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (Txt_ManaCost)
+	{
+		Txt_ManaCost->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (HBox_Ranks)
+	{
+		HBox_Ranks->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+*/
 
 void USkillSlotWidget::SetLevelUpAvailable(bool bAvailable)
 {
