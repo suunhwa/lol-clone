@@ -6,9 +6,17 @@
 UENUM(BlueprintType)
 enum class EGamePhase : uint8
 {
-	WaitingForPlayers UMETA(DisplayName = "Waiting For Players"),
+	Lobby UMETA(DisplayName = "Lobby"),
+	ChampionSelect UMETA(DisplayName = "Champion Select"),
 	InGame UMETA(DisplayName = "In Game"),
 	GameOver UMETA(DisplayName = "Game Over"),
+};
+
+UENUM(BlueprintType)
+enum class EMatchMode : uint8
+{
+	SummonersRift UMETA(DisplayName = "소환사의 협곡"),
+	DodgeBall UMETA(DisplayName = "문도피구"),
 };
 
 UENUM(BlueprintType)

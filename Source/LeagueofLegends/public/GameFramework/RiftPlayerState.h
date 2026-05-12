@@ -26,6 +26,12 @@ public:
 	void AddCS(int32 Amount = 1);
 	void AddGold(int32 Amount);
 	void AddXP(float Amount);
+	
+	void SetSelectedChampion(FName ChampionID);
+	void SetReady(bool bReady);
+
+	FName GetSelectedChampion() const { return SelectedChampionID; }
+	bool GetIsReady() const { return bIsReady; }
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerLevelUp, int32 /*NewLevel*/);
 	FOnPlayerLevelUp OnLevelUp;
@@ -81,6 +87,15 @@ private:
 
 	UPROPERTY(Replicated)
 	bool bIsDisconnected = false;
+	
+	UPROPERTY(ReplicatedUsing = OnRep_IsReady)
+	bool bIsReady = false;
+
+	UPROPERTY(Replicated)
+	FName SelectedChampionID = NAME_None;
+
+	UFUNCTION()
+	void OnRep_IsReady();
 
 	UFUNCTION()
 	void OnRep_Team();

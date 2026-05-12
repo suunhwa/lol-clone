@@ -23,11 +23,11 @@ void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 	Super::PostLogin(NewPlayer);
 
 	ARiftPlayerState* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
-	if (!PS) { return; }
+	if (!PS) return;
 
-	const FString TeamStr = PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red");
-	PRINTLOG_SH(TEXT("Player joined. Team: %s, Blue: %d, Red: %d"), *TeamStr, BlueCount, RedCount);
-	
+	PRINTLOG_SH(TEXT("Player joined game. Team: %s"),
+		PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+
 	TryStartGame();
 }
 
@@ -48,34 +48,18 @@ void ARiftGameMode::Logout(AController* Exiting)
 
 AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
-	ARiftPlayerState* ps = Player ? Player->GetPlayerState<ARiftPlayerState>() : nullptr;
-	if (!ps) return Super::ChoosePlayerStart_Implementation(Player);
+	ARiftPlayerState* PS = Player ? Player->GetPlayerState<ARiftPlayerState>() : nullptr;
+	if (!PS) return Super::ChoosePlayerStart_Implementation(Player);
 
-	if (ps->GetTeam() == ETeam::None)
-	{
-		AssignTeam(ps);
-	}
-
-	FName TargetTag = (ps->GetTeam() == ETeam::Blue) ? FName("BlueTeam") : FName("RedTeam");
+	FName Tag = (PS->GetTeam() == ETeam::Blue) ? FName("BlueTeam") : FName("RedTeam");
 
 	TArray<APlayerStart*> ValidStarts;
 	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
-	{
-		if (It->PlayerStartTag == TargetTag)
+		if (It->PlayerStartTag == Tag)
 			ValidStarts.Add(*It);
-	}
 
 	if (ValidStarts.IsEmpty()) return Super::ChoosePlayerStart_Implementation(Player);
-
 	return ValidStarts[FMath::RandRange(0, ValidStarts.Num() - 1)];
-}
-
-void ARiftGameMode::BeginPlay()
-{
-	Super::BeginPlay();
-
-	// 테스트: 플레이어 수 상관없이 즉시 게임 시작 (실제 서비스 시 제거)
-	StartGame();
 }
 
 void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)
@@ -97,24 +81,29 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState*
 	GS->AddTeamKill(Killer->GetTeam());
 }
 
-void ARiftGameMode::AssignTeam(ARiftPlayerState* PS)
-{
-	if (BlueCount <= RedCount)
-	{
-		PS->SetTeam(ETeam::Blue);
-		BlueCount++;
-	}
-	else
-	{
-		PS->SetTeam(ETeam::Red);
-		RedCount++;
-	}
-}
-
 void ARiftGameMode::TryStartGame()
 {
-	if (BlueCount >= PlayersPerTeam && RedCount >= PlayersPerTeam)
+	int32 Blue = 0, Red = 0;
+	
+	for (APlayerState* PS : GameState->PlayerArray)
+	{
+		if (auto* RPS = Cast<ARiftPlayerState>(PS))
+		{
+			if (RPS->GetTeam() == ETeam::Blue)
+			{
+				Blue++;
+			}
+			else if (RPS->GetTeam() == ETeam::Red)
+			{
+				Red++;
+			}
+		}
+	}
+	
+	if (Blue >= PlayersPerTeam && Red >= PlayersPerTeam)
+	{
 		StartGame();
+	}
 }
 
 void ARiftGameMode::StartGame()

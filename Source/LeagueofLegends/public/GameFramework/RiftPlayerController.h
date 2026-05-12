@@ -32,6 +32,22 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
+	UFUNCTION(Server, Reliable)
+	void Server_SelectTeam(ETeam Team);
+
+	UFUNCTION(Server, Reliable)
+	void Server_SelectChampion(FName ChampionID);
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetReady();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartChampionSelect();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartGame();
+	
+public:
 	// 로비: 소환사 주문 선택 하게
 	UFUNCTION(Server, Reliable)
 	void Server_SelectSummonerSpells(ESummonerSpell Spell1, ESummonerSpell Spell2);

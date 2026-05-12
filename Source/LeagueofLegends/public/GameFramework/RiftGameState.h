@@ -39,7 +39,7 @@ public:
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentPhase)
-	EGamePhase CurrentPhase = EGamePhase::WaitingForPlayers;
+	EGamePhase CurrentPhase = EGamePhase::Lobby;
 
 	UPROPERTY(Replicated)
 	ETeam WinningTeam = ETeam::None;
