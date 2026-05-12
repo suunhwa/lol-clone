@@ -30,8 +30,7 @@ private:
 	void PopulateItemList(const TArray<FItemProfileViewData>& ViewData);
 	void OnGoldUpdated(int32 NewGold);
 	
-	UFUNCTION()
-	void OnItemSlotClicked(int32 ItemID);
+	void OnItemSlotClicked(int32 ItemID, UItemProfileWidget* ClickedItem);
 
 	UFUNCTION()
 	void OnPurchaseClicked();
@@ -51,6 +50,9 @@ private:
 	
 	UPROPERTY(VisibleAnywhere)
 	int32 SelectedSlotIndex = INDEX_NONE;
+	
+	UPROPERTY()
+	UItemProfileWidget* CurrentSelectedItem = nullptr;
 	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UItemProfileWidget> ItemProfileWidgetClass;

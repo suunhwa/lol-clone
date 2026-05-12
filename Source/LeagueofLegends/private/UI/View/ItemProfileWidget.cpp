@@ -3,7 +3,7 @@
 
 #include "UI/View/ItemProfileWidget.h"
 
-#include "Components/Button.h"
+#include "Components/CheckBox.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 
@@ -16,12 +16,7 @@ void UItemProfileWidget::SetItemProfile(UTexture2D* Icon, const FString& Price, 
  
 void UItemProfileWidget::SetItemIcon(UTexture2D* Icon)
 {
-	FButtonStyle Style = Btn_ItemProfile->GetStyle();
-	Style.Normal.SetResourceObject(Icon);
-	Style.Hovered.SetResourceObject(Icon);
-	Style.Pressed.SetResourceObject(Icon);
-	Style.Disabled.SetResourceObject(Icon);
-	Btn_ItemProfile->SetStyle(Style);
+	Img_Icon->SetBrushFromTexture(Icon);
 }
 
 void UItemProfileWidget::SetItemPrice(const FString& Price)
@@ -31,10 +26,25 @@ void UItemProfileWidget::SetItemPrice(const FString& Price)
 
 void UItemProfileWidget::BindItemButtonClick()
 {
-	Btn_ItemProfile->OnClicked.AddDynamic(this, &UItemProfileWidget::HandleClicked);
+	Tgl_ItemProfile->OnCheckStateChanged.AddDynamic(this, &UItemProfileWidget::HandleToggleStateChanged);
 }
 
-void UItemProfileWidget::HandleClicked()
+void UItemProfileWidget::SetSelected(bool bSelected)
 {
-	OnItemClicked.Broadcast(ItemID);
+	Tgl_ItemProfile->SetCheckedState(bSelected ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	HandleToggleStateChanged(bSelected);
+}
+
+void UItemProfileWidget::HandleToggleStateChanged(bool bIsChecked)
+{
+	const float Alpha = bIsChecked ? 1.f : 0.f;
+	Img_OutlineL->SetRenderOpacity(Alpha);
+	Img_OutlineT->SetRenderOpacity(Alpha);
+	Img_OutlineR->SetRenderOpacity(Alpha);
+	Img_OutlineB->SetRenderOpacity(Alpha);
+
+	if (bIsChecked)
+	{
+		OnItemClicked.Broadcast(ItemID, this);
+	}
 }

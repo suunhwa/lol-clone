@@ -34,6 +34,7 @@ public:
 private:
 	void LoadDataTables();
 	void LoadRegistry();
+	void LoadItemIcons();
 	
 	// RowData를 바탕으로 DataAsset 조립
 	void BuildItemDataAssets();
@@ -49,6 +50,9 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<UItemEffectRegistry> EffectRegistry;
+	
+	UPROPERTY()
+	TMap<int32, TObjectPtr<UTexture2D>> IconMap;
 	
 	UPROPERTY()
 	TObjectPtr<UDataTable> DT_ItemBase;

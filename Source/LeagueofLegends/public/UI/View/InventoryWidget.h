@@ -27,7 +27,7 @@ public:
 	
 private:
 	void HandleSlotChanged(const FInventorySlotViewData& SlotData);
-	void HandleGoldChanged(float NewGold);
+	void HandleGoldChanged(int32 NewGold);
 	
 	void InitSlots();
 	

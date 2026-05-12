@@ -56,9 +56,9 @@ void UInventoryWidget::HandleSlotChanged(const FInventorySlotViewData& SlotData)
 	}
 }
 
-void UInventoryWidget::HandleGoldChanged(const float NewGold)
+void UInventoryWidget::HandleGoldChanged(int32 NewGold)
 {
-	Txt_CurrentGold->SetText(FText::AsNumber(FMath::RoundToInt(NewGold)));
+	Txt_CurrentGold->SetText(FText::FromString(FString::Printf(TEXT("%d"), NewGold)));
 }
 
 void UInventoryWidget::InitSlots()

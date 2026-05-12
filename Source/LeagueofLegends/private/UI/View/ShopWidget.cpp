@@ -44,6 +44,8 @@ void UShopWidget::UnbindViewModel()
 void UShopWidget::PopulateItemList(const TArray<FItemProfileViewData>& ViewData)
 {
 	WrapBox_ItemList->ClearChildren();
+	CurrentSelectedItem = nullptr;
+	SelectedItemID = INDEX_NONE;
 	
 	for (const FItemProfileViewData& ItemData : ViewData)
 	{
@@ -61,8 +63,13 @@ void UShopWidget::OnGoldUpdated(int32 NewGold)
 	Txt_CurrentGold->SetText(FText::FromString(FString::Printf(TEXT("%d"), NewGold)));
 }
 
-void UShopWidget::OnItemSlotClicked(int32 ItemID)
+void UShopWidget::OnItemSlotClicked(int32 ItemID, UItemProfileWidget* ClickedItem)
 {
+	if (CurrentSelectedItem && CurrentSelectedItem != ClickedItem)
+	{
+		CurrentSelectedItem->SetSelected(false);
+	}
+	CurrentSelectedItem = ClickedItem;
 	SelectedItemID = ItemID;
 }
 

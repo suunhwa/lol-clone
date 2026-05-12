@@ -6,12 +6,13 @@
 #include "UI/View/WidgetViewBase.h"
 #include "ItemProfileWidget.generated.h"
 
-class UButton;
+class UCheckBox;
+class UImage;
 class UTextBlock;
 /**
  * 
  */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemProfileClicked, int32);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnItemProfileClicked, int32, UItemProfileWidget*);
 UCLASS()
 class LEAGUEOFLEGENDS_API UItemProfileWidget : public UWidgetViewBase
 {
@@ -26,13 +27,30 @@ public:
 
 	void BindItemButtonClick();
 	
+	void SetSelected(bool bSelected);
+	
 private:
 	UFUNCTION()
-	void HandleClicked();
+	void HandleToggleStateChanged(bool bIsChecked);
 	
 private:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> Btn_ItemProfile;
+	TObjectPtr<UCheckBox> Tgl_ItemProfile;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Img_Icon;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Img_OutlineL;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Img_OutlineT;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Img_OutlineR;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Img_OutlineB;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Price;
@@ -40,4 +58,3 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="ItemProfile")
 	int32 ItemID;
 };
-

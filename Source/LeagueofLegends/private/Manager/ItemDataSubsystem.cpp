@@ -4,6 +4,7 @@
 #include "Manager/ItemDataSubsystem.h"
 #include "Item/ItemEffectRegistry.h"
 #include "LeagueofLegends.h"
+#include "Engine/ObjectLibrary.h"
 #include "Item/ItemPassiveEffectBase.h"
 #include "Item/ItemSettings.h"
 
@@ -13,6 +14,7 @@ void UItemDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	
 	LoadDataTables();
 	LoadRegistry();
+	LoadItemIcons();
 	BuildItemDataAssets();
 }
 
@@ -162,6 +164,32 @@ void UItemDataSubsystem::LoadRegistry()
 	}
 }
 
+void UItemDataSubsystem::LoadItemIcons()
+{
+	UObjectLibrary* Library = UObjectLibrary::CreateLibrary(UTexture2D::StaticClass(), false, true);
+	Library->AddToRoot();
+    
+	Library->LoadAssetDataFromPath(TEXT("/Game/Asset/Items"));
+	Library->LoadAssetsFromAssetData();
+
+	TArray<UTexture2D*> LoadedTextures;
+	Library->GetObjects<UTexture2D>(LoadedTextures);
+
+	for (UTexture2D* Texture : LoadedTextures)
+	{
+		if (Texture)
+		{
+			int32 ItemID = FCString::Atoi(*Texture->GetName());
+			IconMap.Add(ItemID, Texture);
+		}
+	}
+	
+	// 다 쓴 후 해제
+	Library->RemoveFromRoot();
+	Library = nullptr;
+}
+
+
 void UItemDataSubsystem::BuildItemDataAssets()
 {
 	if (!DT_ItemBase)
@@ -252,9 +280,18 @@ UItemDataAsset* UItemDataSubsystem::BuildSingleItem(const FItemBaseRow* BaseRow)
 		{
 			PRINTLOG_TK(TEXT("EffectRegistry is null — skipping class binding"));
 		}
-
-
+		
 		Asset->Effects.Add(EffectData);
+	}
+	
+	// Icon 조립
+	if (TObjectPtr<UTexture2D>* FoundIcon = IconMap.Find(Asset->ItemID))
+	{
+		Asset->Icon = *FoundIcon;
+	}
+	else
+	{
+		PRINTLOG_TK(TEXT("Icon not found for ItemID: %d"), Asset->ItemID);
 	}
 	
 	return Asset;

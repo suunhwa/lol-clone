@@ -21,7 +21,7 @@ struct FInventorySlotViewData
 };
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemSlotUpdated, const FInventorySlotViewData&);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryGoldChanged, float);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryGoldChanged, int32);
 UCLASS()
 class LEAGUEOFLEGENDS_API UInventoryViewModel : public UViewModelBase
 {

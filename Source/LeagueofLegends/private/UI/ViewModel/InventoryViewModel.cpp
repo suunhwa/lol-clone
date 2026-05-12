@@ -52,5 +52,5 @@ void UInventoryViewModel::HandleInventorySlotChanged(int32 SlotIndex, UItemInsta
 
 void UInventoryViewModel::HandleGoldChanged(float NewGold)
 {
-	OnGoldChanged.Broadcast(NewGold);
+	OnGoldChanged.Broadcast(static_cast<int32>(NewGold));
 }
