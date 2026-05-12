@@ -4,6 +4,8 @@
 #include "Blueprint/UserWidget.h"
 #include "MainHUDWidget.generated.h"
 
+class UMinimapWidget;
+class UInventoryWidget;
 class USkillBarWidget;
 class UChampionPortraitWidget;
 class UGameInfoBarWidget;
@@ -31,4 +33,10 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UGameInfoBarWidget> GameInfoBar;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UInventoryWidget> WBP_Inventory;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UMinimapWidget> WBP_Minimap;
 };

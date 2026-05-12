@@ -43,6 +43,8 @@ enum class ELolStatType  : uint8
 	Omnivamp,
 	HealShieldPower,
 	
+	FinalDamagePercent,
+	
 	// Economic
 	Gold,
 };

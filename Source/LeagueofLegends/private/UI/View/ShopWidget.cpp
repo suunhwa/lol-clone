@@ -16,6 +16,7 @@ void UShopWidget::NativeConstruct()
 	Btn_Purchase->OnClicked.AddDynamic(this, &UShopWidget::OnPurchaseClicked);
 	Btn_Sell->OnClicked.AddDynamic(this, &UShopWidget::OnSellClicked);
 	Btn_Undo->OnClicked.AddDynamic(this, &UShopWidget::OnUndoClicked);
+	Btn_Close->OnClicked.AddDynamic(this, &UShopWidget::OnCloseClicked);
 }
 
 void UShopWidget::BindViewModel(UViewModelBase* InViewModel)
@@ -90,4 +91,9 @@ void UShopWidget::OnUndoClicked()
 	{
 		ShopVM->RequestUndo();
 	}
+}
+
+void UShopWidget::OnCloseClicked()
+{
+	SetVisibility(ESlateVisibility::Hidden);
 }

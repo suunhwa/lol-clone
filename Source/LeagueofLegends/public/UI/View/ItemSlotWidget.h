@@ -18,7 +18,6 @@ class LEAGUEOFLEGENDS_API UItemSlotWidget : public USlotWidgetBase
 	GENERATED_BODY()
 	
 public:
-	void SetItemProfile(UTexture2D* Icon, const FString& Price, int32 InItemID);
 	void SetItemIcon(UTexture2D* Icon);
 	void SetSlotIndex(int32 InSlotIndex);
 
@@ -31,7 +30,6 @@ private:
 	void HandleSlotButtonClicked();
 	
 private:
-	int32 ItemID;
 	int32 SlotIndex;
 	
 	UPROPERTY(meta = (BindWidget))

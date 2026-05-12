@@ -23,6 +23,33 @@ void ARiftHUD::BeginPlay()
 
 void ARiftHUD::InitHUD(ALoLChampion* Champion)
 {
+	SetupMainHUD(Champion);	
+	SetupShopMVVM(Champion);
+}
+
+void ARiftHUD::RefreshSkillIcons(ALoLChampion* Champion)
+{
+	if (!MainHUDWidget || !Champion || !Champion->GetChampionData()) return;
+	if (USkillBarWidget* Bar = MainHUDWidget->GetSkillBar())
+		Bar->RefreshIcons(Champion->GetChampionData());
+}
+
+void ARiftHUD::ToggleShop()
+{
+	if (!ShopWidget) return;
+
+	if (ShopWidget->IsVisible())
+	{
+		ShopWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	else
+	{
+		ShopWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void ARiftHUD::SetupMainHUD(ALoLChampion* Champion)
+{
 	// BP에서 이미 위젯을 만든 경우를 대비해 lazy 생성
 	if (!MainHUDWidget && MainHUDClass)
 	{
@@ -52,29 +79,6 @@ void ARiftHUD::InitHUD(ALoLChampion* Champion)
 	for (UActorComponent* Comp : Champion->GetComponents())
 	{
 		PRINTLOG_TK(TEXT("  - %s"), *Comp->GetClass()->GetName());
-	}
-	
-	SetupShopMVVM(Champion);
-}
-
-void ARiftHUD::RefreshSkillIcons(ALoLChampion* Champion)
-{
-	if (!MainHUDWidget || !Champion || !Champion->GetChampionData()) return;
-	if (USkillBarWidget* Bar = MainHUDWidget->GetSkillBar())
-		Bar->RefreshIcons(Champion->GetChampionData());
-}
-
-void ARiftHUD::ToggleShop()
-{
-	if (!ShopWidget) return;
-
-	if (ShopWidget->IsVisible())
-	{
-		ShopWidget->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	else
-	{
-		ShopWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 

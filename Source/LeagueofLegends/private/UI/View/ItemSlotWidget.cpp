@@ -6,10 +6,6 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
-void UItemSlotWidget::SetItemProfile(UTexture2D* Icon, const FString& Price, int32 InItemID)
-{
-}
-
 void UItemSlotWidget::SetItemIcon(UTexture2D* Icon)
 {
 	FButtonStyle Style = Btn_Icon->GetStyle();

@@ -9,8 +9,6 @@
 
 void UInventoryViewModel::Initialize()
 {
-	Super::Initialize();
-	
 	if (!InventoryComp) return;
 
 	InventoryComp->OnInventorySlotChanged.AddUObject(this, &UInventoryViewModel::HandleInventorySlotChanged);

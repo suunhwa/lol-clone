@@ -4,6 +4,7 @@
 #include "GameFramework/HUD.h"
 #include "RiftHUD.generated.h"
 
+class UInventoryWidget;
 class UShopViewModel;
 class UShopWidget;
 class UMainHUDWidget;
@@ -28,7 +29,7 @@ public:
 	void ToggleShop();
 	
 private:	
-	// void SetupMainHUD(ALoLChampion* Champion);
+	void SetupMainHUD(ALoLChampion* Champion);
 	void SetupShopMVVM(ALoLChampion* Champion);
 	
 protected:
@@ -51,3 +52,4 @@ private:
 	UPROPERTY()
 	TObjectPtr<UShopViewModel> ShopVM;
 };
+

@@ -41,6 +41,9 @@ private:
 
 	UFUNCTION()
 	void OnUndoClicked();
+	
+	UFUNCTION()
+	void OnCloseClicked();
 
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -66,4 +69,7 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_CurrentGold;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> Btn_Close;
 };

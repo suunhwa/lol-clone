@@ -6,6 +6,7 @@
 #include "WidgetViewBase.h"
 #include "InventoryWidget.generated.h"
 
+struct FInventorySlotViewData;
 class UItemSlotWidget;
 class UTextBlock;
 class UScaleBox;
@@ -17,9 +18,18 @@ class LEAGUEOFLEGENDS_API UInventoryWidget : public UWidgetViewBase
 {
 	GENERATED_BODY()
 	
+protected:
+	virtual void NativeConstruct() override;
+	
 public:
-	// UFUNCTION()
-	// void (int32 S)
+	virtual void BindViewModel(UViewModelBase* InViewModel) override;
+	virtual void UnbindViewModel() override;
+	
+private:
+	void HandleSlotChanged(const FInventorySlotViewData& SlotData);
+	void HandleGoldChanged(float NewGold);
+	
+	void InitSlots();
 	
 private:
 	UPROPERTY(EditDefaultsOnly)
@@ -45,4 +55,6 @@ private:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_CurrentGold;
+	
+	TArray<TObjectPtr<UItemSlotWidget>> SlotWidgets;
 };

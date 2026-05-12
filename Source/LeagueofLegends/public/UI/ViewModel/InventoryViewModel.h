@@ -20,7 +20,7 @@ struct FInventorySlotViewData
 	TObjectPtr<UTexture2D> Icon;
 };
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemSlotUpdated, const FInventorySlotViewData);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemSlotUpdated, const FInventorySlotViewData&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryGoldChanged, float);
 UCLASS()
 class LEAGUEOFLEGENDS_API UInventoryViewModel : public UViewModelBase
