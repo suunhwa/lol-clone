@@ -2,7 +2,7 @@
 
 #include "GameFramework/RiftPlayerState.h"
 #include "GameFramework/RiftGameState.h"
-#include "GameFramework/RiftTypes.h"
+#include "Type/RiftTypes.h"
 #include "GameFramework/PlayerController.h"
 
 void UGameInfoViewModel::Setup(ARiftPlayerState* InPS, ARiftGameState* InGS)

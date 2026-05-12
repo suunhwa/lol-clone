@@ -1,5 +1,5 @@
 #include "GameFramework/RiftGameMode.h"
-#include "GameFramework/RiftTypes.h"
+#include "Type/RiftTypes.h"
 #include "GameFramework/RiftPlayerState.h"
 #include "GameFramework/RiftGameState.h"
 #include "GameFramework/RiftPlayerController.h"

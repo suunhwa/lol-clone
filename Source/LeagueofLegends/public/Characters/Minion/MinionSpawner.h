@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GameFramework/RiftTypes.h"      
+#include "Type/RiftTypes.h"      
 #include "Struct/MinionStruct.h" 
 #include "MinionSpawner.generated.h"
 

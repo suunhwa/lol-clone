@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/RiftTypes.h"
+#include "Type/RiftTypes.h"
 #include "RiftPlayerState.generated.h"
 
 UCLASS()

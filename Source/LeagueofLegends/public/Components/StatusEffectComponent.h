@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "GameFramework/RiftTypes.h"
+#include "Type/RiftTypes.h"
 #include "StatusEffectComponent.generated.h"
 
 USTRUCT()

@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/LoLCameraActor.h"
-#include "GameFramework/RiftTypes.h"
+#include "Type/RiftTypes.h"
 #include "AStar/AStarGridManager.h"
 #include "Components/SkillComponent.h"
 #include "RiftPlayerController.generated.h"
