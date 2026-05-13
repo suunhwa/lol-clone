@@ -33,11 +33,11 @@ ALoLStructure::ALoLStructure()
     HPBarWidgetComp->SetupAttachment(RootComponent);
     HPBarWidgetComp->SetWidgetSpace(EWidgetSpace::Screen); 
     HPBarWidgetComp->SetDrawAtDesiredSize(true);
-    
 }
 
 ERiftSightTag ALoLStructure::GetSightTag_Implementation() const
 {
+    // Actor의 이름과 GetSightTag을 함께 출력해서 디버깅하기
     return TagComp->GetSightTag();
 }
 

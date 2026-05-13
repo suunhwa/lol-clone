@@ -23,7 +23,7 @@ public:
 
     // --- ISightProvider Interface 구현 ---
     virtual FVector GetSightOrigin_Implementation() const override { return GetActorLocation(); }
-    virtual float GetSightRange_Implementation() const override { return 1000; }
+    virtual float GetSightRange_Implementation() const override { return 1200; }
     virtual bool IsStatic_Implementation() const override { return true; }
     virtual ERiftSightTag GetSightTag_Implementation() const override;
     virtual bool IsHideable_Implementation() const override { return false; }

@@ -2,6 +2,7 @@
 
 #include "Components/TagComponent.h"
 
+#include "LeagueofLegends.h"
 #include "Characters/LoLStructure.h"
 #include "Net/UnrealNetwork.h"
 
@@ -23,25 +24,27 @@ void UTagComponent::SetTeam(ETeam InTeam)
 {
 	Team = InTeam;
 	
-	if (Cast<ALoLStructure>(GetOwner()))
+	switch (Team)
 	{
-		SightTag = ERiftSightTag::None; // 구조물은 시야 태그 없음
+	case ETeam::Red:
+		SightTag = ERiftSightTag::Red;
+		break;
+	case ETeam::Blue:
+		SightTag = ERiftSightTag::Blue;
+		break;
+	default:
+		SightTag = ERiftSightTag::None;
+		break;
 	}
-	else
-	{
-		switch (Team)
-		{
-		case ETeam::Red:
-			SightTag = ERiftSightTag::Red;
-			break;
-		case ETeam::Blue:
-			SightTag = ERiftSightTag::Blue;
-			break;
-		default:
-			SightTag = ERiftSightTag::None;
-			break;
-		}
-	}
+	
+	// if (Cast<ALoLStructure>(GetOwner()))
+	// {
+	// 	SightTag = ERiftSightTag::None; // 구조물은 시야 태그 없음
+	// }
+	// else
+	// {
+	// 	
+	// }
 }
 
 bool UTagComponent::IsEnemy(const UTagComponent* Other) const

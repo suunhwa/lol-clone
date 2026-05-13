@@ -125,10 +125,12 @@ void AFOWTileMap::GenerateTileMap(AFOWVolume* FOWVolume)
 				float Diff = 8600.f - HitResult.Location.Z;
 				bool bIsFloor = Diff > -45.f;
 				bool bIsSightProvider = SightProviderHelper::IsSightProvider(HitResult.GetActor());
+				UPrimitiveComponent* HitComp = HitResult.GetComponent();
+				bool bIsNonSightBlock = HitComp && HitComp->GetCollisionProfileName() == FName("NonSightBlock");
 				
 				bool bIsFloorForDebug;
 				
-				if (bIsFloor || bIsSightProvider)
+				if (bIsFloor || bIsSightProvider || bIsNonSightBlock)
 				{
 					CurTile.Type = ETileType::Floor; // 예시로 Floor 타입으로 설정
 					bIsFloorForDebug = true;

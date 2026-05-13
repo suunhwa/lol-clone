@@ -125,10 +125,13 @@ void AFOWManager::RegisterSightProvider(UObject* SightObject)
 
 	if (SightProviderHelper::GetTeam(SightObject) == ERiftSightTag::Red)
 	{
+		// SightObject 이름과, GetTeam 결과를 로그에 출력
+		// PRINTLOG_TK(TEXT("Registering SightProvider: %s, Team=%s"), *SightObject->GetName(), TEXT("Red"));
 		RedSightProviders.Add(SightProvider);
 	}
 	else
 	{
+		// PRINTLOG_TK(TEXT("Registering SightProvider: %s, Team=%s"), *SightObject->GetName(), TEXT("Blue"));
 		BlueSightProviders.Add(SightProvider);
 	}
 }
