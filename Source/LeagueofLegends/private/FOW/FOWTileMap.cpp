@@ -123,7 +123,7 @@ void AFOWTileMap::GenerateTileMap(AFOWVolume* FOWVolume)
 				// HitResult.Location을 사용하여 타일의 높이를 결정할 수 있음
 				// 예: SetTileHeight(i, j, HitResult.Location.Z);
 				float Diff = 8600.f - HitResult.Location.Z;
-				bool bIsFloor = FMath::Abs(Diff) < 50.f;
+				bool bIsFloor = Diff > -45.f;
 				bool bIsSightProvider = SightProviderHelper::IsSightProvider(HitResult.GetActor());
 				
 				bool bIsFloorForDebug;
