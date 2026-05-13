@@ -218,7 +218,7 @@ void ALoLMinion::Tick(float DeltaTime)
                 PathUpdateTimer = 0.f;
                 
                 // [로그 추가] 경로 생성 확인
-                //PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 새 경로 요청. 남은 웨이포인트: %d"), *GetName(), CurrentPath.Num());
+                // PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 새 경로 요청. 남은 웨이포인트: %d"), *GetName(), CurrentPath.Num());
             }
             MoveAlongPath(DeltaTime);
         }
