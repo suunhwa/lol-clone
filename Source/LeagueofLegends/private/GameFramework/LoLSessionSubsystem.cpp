@@ -54,8 +54,7 @@ void ULoLSessionSubsystem::CreateSession(FString RoomName, int32 MaxPlayer)
 
 	// 3. 매칭이 온라인을 통해 노출될지 여부
 	// false이면 초대를 통해서만 입장 가능
-	// TODO: 롤에서 사용하기 (false로 설정)
-	sessionSettings.bShouldAdvertise = false;
+	sessionSettings.bShouldAdvertise = true;
 
 	// 4. 온라인 상태 (presence) 정보를 활용할지 여부
 	sessionSettings.bUsesPresence = true;
@@ -224,7 +223,7 @@ void ULoLSessionSubsystem::ExitRoom()
 void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	auto* pc = GetWorld()->GetFirstPlayerController();
-	FString url = TEXT("/Game/Maps/Lv_Lobby");
+	FString url = TEXT("/Game/Maps/Lv_MainMenu");
 	pc->ClientTravel(url, TRAVEL_Absolute);
 }
 
