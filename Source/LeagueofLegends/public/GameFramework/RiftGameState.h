@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
-#include "GameFramework/RiftTypes.h"
+#include "Type/RiftTypes.h"
 #include "RiftGameState.generated.h"
 
 class AFOWManager;
@@ -39,7 +39,7 @@ public:
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentPhase)
-	EGamePhase CurrentPhase = EGamePhase::WaitingForPlayers;
+	EGamePhase CurrentPhase = EGamePhase::Lobby;
 
 	UPROPERTY(Replicated)
 	ETeam WinningTeam = ETeam::None;

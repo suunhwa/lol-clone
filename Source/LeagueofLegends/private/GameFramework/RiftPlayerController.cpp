@@ -13,6 +13,7 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Components/CombatComponent.h"
 #include "Components/StatComponent.h"
+#include "GameFramework/RiftGameState.h"
 #include "Interfaces/Damageable.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -123,6 +124,46 @@ void ARiftPlayerController::Tick(float DeltaTime)
 	FVector NewLoc = FMath::VInterpTo(CameraActor->GetActorLocation(), TargetCameraLoc, DeltaTime, CameraInterpSpeed);
 	CameraActor->SetActorLocation(NewLoc);
 }
+// ----------------------------- Server -----------------------------------------
+void ARiftPlayerController::Server_SelectTeam_Implementation(ETeam Team)
+{
+	if (auto* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		PS->SetTeam(Team);
+	}
+}
+
+void ARiftPlayerController::Server_SelectChampion_Implementation(FName ChampionID)
+{
+	if (auto* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		PS->SetSelectedChampion(ChampionID);
+	}
+}
+
+void ARiftPlayerController::Server_SetReady_Implementation()
+{
+	if (auto* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		PS->SetReady(true);
+	}
+}
+
+void ARiftPlayerController::Server_StartChampionSelect_Implementation()
+{
+	if (!HasAuthority()) { return; }
+	if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+	{
+		GS->SetPhase(EGamePhase::ChampionSelect);
+	}
+}
+
+void ARiftPlayerController::Server_StartGame_Implementation()
+{
+	if (!HasAuthority()) { return; }
+	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_SummonerRift?listen"));
+}
+
 
 void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 {
