@@ -67,6 +67,8 @@ public:
 	IOnlineSessionPtr SessionInterface;
 
 	void CreateSession(FString RoomName, int32 MaxPlayer);
+	
+	void FindOrCreateSession(FString InNickname, int32 MaxPlayers = 10);
 
 	// session(host) 이름
 	FString MySessionName = "LoL";
@@ -120,5 +122,10 @@ public:
 	// 문자열을 uint8 배열로 만든 후 ASCII 코드로 변환
 	FString StringBase64Encode(const FString& Str);
 	FString StringBase64Decode(const FString& Str);
+	
+private:
+	bool bFindOrCreateMode = false;
+	FString PendingNickname;
+	int32 PendingMaxPlayers = 10;
 
 };

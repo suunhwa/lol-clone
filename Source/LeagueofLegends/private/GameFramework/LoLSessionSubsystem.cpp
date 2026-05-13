@@ -100,6 +100,14 @@ void ULoLSessionSubsystem::GameToStart()
 	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_SummonerRift?listen?port=7777"));
 }
 
+void ULoLSessionSubsystem::FindOrCreateSession(FString InNickname, int32 MaxPlayers)
+{
+	bFindOrCreateMode = true;
+	PendingNickname = InNickname;
+	PendingMaxPlayers = MaxPlayers;
+	FindOtherSessions();
+}
+
 void ULoLSessionSubsystem::FindOtherSessions()
 {
 	// sharedptr 사용할 때 MakeShareable로 해줘야 함
@@ -132,6 +140,23 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 	auto results = SessionSearch->SearchResults;
 	PRINTLOG_SH(TEXT("*** Search result count: %d"), results.Num());
 
+	if (bFindOrCreateMode)
+	{
+		bFindOrCreateMode = false;
+		if (results.Num() > 0 && results[0].IsValid())
+		{
+			PRINTLOG_SH(TEXT("FindOrCreate: session found, auto-joining"));
+			JoinSelectedSession(0);
+		}
+		else
+		{
+			PRINTLOG_SH(TEXT("FindOrCreate: session not found"));
+			CreateSession(PendingNickname, PendingMaxPlayers);
+		}
+		
+		return;
+	}
+	
 	// 유효성 체크
 	// for (auto sr : results)
 	for (int i = 0; i < results.Num(); i++)

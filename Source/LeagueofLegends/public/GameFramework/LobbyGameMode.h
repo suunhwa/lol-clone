@@ -18,6 +18,7 @@ class LEAGUEOFLEGENDS_API ALobbyGameMode : public AGameModeBase
 public:
 	ALobbyGameMode();
 	
+	virtual void BeginPlay();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	
 	// 팀 변경 

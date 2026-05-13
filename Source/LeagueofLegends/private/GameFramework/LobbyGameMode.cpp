@@ -14,6 +14,16 @@ ALobbyGameMode::ALobbyGameMode()
 	PlayerControllerClass = ARiftPlayerController::StaticClass();
 }
 
+void ALobbyGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (auto* GS = GetGameState<ARiftGameState>())
+	{
+		GS->SetPhase(EGamePhase::ChampionSelect);
+	}
+}
+
 void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
