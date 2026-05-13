@@ -2,14 +2,17 @@
 
 #include "Characters/LoLChampion.h"
 #include "Components/InventoryComponent.h"
+#include "Components/Widget.h"
 #include "UI/View/SkillBarWidget.h"
 #include "UI/View/ChampionPortraitWidget.h"
 #include "UI/View/GameInfoBarWidget.h"
 #include "UI/View/InventoryWidget.h"
+#include "UI/View/PlayerStatsWidget.h"
 #include "UI/ViewModel/SkillBarViewModel.h"
 #include "UI/ViewModel/ChampionPortraitViewModel.h"
 #include "UI/ViewModel/GameInfoViewModel.h"
 #include "UI/ViewModel/InventoryViewModel.h"
+#include "UI/ViewModel/PlayerStatsViewModel.h"
 
 void UMainHUDWidget::InitHUD(ALoLChampion* Champion, ARiftPlayerState* PS, ARiftGameState* GS)
 {
@@ -40,5 +43,26 @@ void UMainHUDWidget::InitHUD(ALoLChampion* Champion, ARiftPlayerState* PS, ARift
 		VM->SetInventoryComponent(Champion->GetComponentByClass<UInventoryComponent>());
 		VM->Initialize();
 		WBP_Inventory->BindViewModel(VM);
-	}		
+	}
+
+	if (PlayerStats)
+	{
+		UPlayerStatsViewModel* VM = NewObject<UPlayerStatsViewModel>(this);
+		VM->Setup(Champion);
+		PlayerStats->BindViewModel(VM);
+		PlayerStats->SetVisibility(ESlateVisibility::Hidden);
+	}
+
+	if (ChampionPortrait)
+	{
+		ChampionPortrait->OnStatsToggleRequested.AddUObject(this, &UMainHUDWidget::OnStatsToggleRequested);
+	}
+}
+
+void UMainHUDWidget::OnStatsToggleRequested()
+{
+	if (!PlayerStats) { return; }
+
+	const bool bVisible = PlayerStats->GetVisibility() == ESlateVisibility::Visible;
+	PlayerStats->SetVisibility(bVisible ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
 }

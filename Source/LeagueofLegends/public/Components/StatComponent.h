@@ -56,6 +56,10 @@ public:
 	void AddBonusAP(float Value) { BonusAP += Value; }
 	void AddBonusHP(float Value) { BonusHP += Value; CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP; }
 	void AddBonusArmor(float Value) { BonusArmor += Value; }
+	void AddAbilityHaste(float Value) { AbilityHaste = FMath::Max(0.f, AbilityHaste + Value); }
+	float GetAbilityHaste() const { return AbilityHaste; }
+	void AddCritChance(float Value) { CritChance = FMath::Clamp(CritChance + Value, 0.f, 1.f); }
+	float GetCritChance() const { return CritChance; }
 
 	// --- delegates 
 	FOnHPChanged OnHPChanged;
@@ -120,6 +124,8 @@ protected:
 	float BonusHP = 0.f;
 	float BonusAD = 0.f;
 	float BonusArmor = 0.f;
+	float AbilityHaste = 0.f;
+	float CritChance = 0.f;   // 0.0 ~ 1.0
 	// ---------------------------
 private:
 	float BonusAP = 0.f;

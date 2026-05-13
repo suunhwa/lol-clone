@@ -9,6 +9,7 @@ class UInventoryWidget;
 class USkillBarWidget;
 class UChampionPortraitWidget;
 class UGameInfoBarWidget;
+class UPlayerStatsWidget;
 class ALoLChampion;
 class ARiftPlayerState;
 class ARiftGameState;
@@ -39,4 +40,11 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMinimapWidget> WBP_Minimap;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UPlayerStatsWidget> PlayerStats;
+
+private:
+	UFUNCTION()
+	void OnStatsToggleRequested();
 };

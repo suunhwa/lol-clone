@@ -24,13 +24,13 @@ public:
 	float GetRemaining(FName Tag) const;
 	void ReduceAllCooldowns(float Amount); // Q 패시브 등 쿨다운 감소
 
-	// LoL CDR 상한 45%
-	void SetCDR(float InCDR) { CDR = FMath::Clamp(InCDR, 0.f, 0.45f); }
+	// AH → CDR 변환: CDR% = AH / (100 + AH)
+	void SetAbilityHaste(float InAH) { AbilityHaste = FMath::Max(0.f, InAH); }
 
 private:
 	TMap<FName, float> Cooldowns;
 
-	float CDR = 0.f;
+	float AbilityHaste = 0.f;
 
-	float ApplyCDR(float BaseDuration) const { return BaseDuration * (1.f - CDR); }
+	float ApplyCDR(float BaseDuration) const { return BaseDuration * (100.f / (100.f + AbilityHaste)); }
 };
