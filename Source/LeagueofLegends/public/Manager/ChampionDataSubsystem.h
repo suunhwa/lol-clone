@@ -22,6 +22,9 @@ public:
 	// ChampionID로 DataAsset 조회 (캐릭터 선택 시 사용)
 	UChampionData* GetChampionData(FName ChampionID) const;
 
+	// 전체 챔피언 목록 (챔피언 선택창 용)
+	TArray<UChampionData*> GetAllChampions() const;
+
 	// 챔피언 비주얼 적용 (메시, ABP). 서버/클라이언트 모두 호출 가능
 	void ApplyVisuals(ALoLCharacterBase* Target, UChampionData* Data) const;
 

@@ -6,7 +6,10 @@
 #include "GameFramework/RiftPlayerState.h"
 #include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
+#include "Manager/ChampionDataSubsystem.h"
 #include "Manager/ItemDataSubsystem.h"
+#include "UI/View/PickWindowWidget.h"
+#include "UI/ViewModel/PickWindowViewModel.h"
 #include "UI/View/MainHUDWidget.h"
 #include "UI/View/ShopWidget.h"
 #include "UI/View/SkillBarWidget.h"
@@ -19,24 +22,49 @@ ARiftHUD::ARiftHUD()
 void ARiftHUD::BeginPlay()
 {
 	Super::BeginPlay();
+
+	FString MapName = GetWorld()->GetMapName();
+	MapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+	if (!MapName.Equals(TEXT("Lv_PickWindow"), ESearchCase::IgnoreCase)) { return; }
+	if (!PickWindowClass) { return; }
+
+	APlayerController* PC = GetOwningPlayerController();
+	if (!PC) { return; }
+
+	auto* GS = GetWorld()->GetGameState<ARiftGameState>();
+	auto* PS = PC->GetPlayerState<ARiftPlayerState>();
+	auto* ChampSubsys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+
+	UPickWindowViewModel* PickVM = NewObject<UPickWindowViewModel>(this);
+	PickVM->Setup(GS, PS, ChampSubsys);
+	PickVM->Initialize();
+
+	PickWindowWidget = CreateWidget<UPickWindowWidget>(PC, PickWindowClass);
+	if (PickWindowWidget)
+	{
+		PickWindowWidget->BindViewModel(PickVM);
+		PickWindowWidget->AddToViewport();
+	}
 }
 
 void ARiftHUD::InitHUD(ALoLChampion* Champion)
 {
-	SetupMainHUD(Champion);	
+	SetupMainHUD(Champion);
 	SetupShopMVVM(Champion);
 }
 
 void ARiftHUD::RefreshSkillIcons(ALoLChampion* Champion)
 {
-	if (!MainHUDWidget || !Champion || !Champion->GetChampionData()) return;
+	if (!MainHUDWidget || !Champion || !Champion->GetChampionData()) { return; }
 	if (USkillBarWidget* Bar = MainHUDWidget->GetSkillBar())
+	{
 		Bar->RefreshIcons(Champion->GetChampionData());
+	}
 }
 
 void ARiftHUD::ToggleShop()
 {
-	if (!ShopWidget) return;
+	if (!ShopWidget) { return; }
 
 	if (ShopWidget->IsVisible())
 	{
@@ -58,18 +86,21 @@ void ARiftHUD::SetupMainHUD(ALoLChampion* Champion)
 		{
 			MainHUDWidget = CreateWidget<UMainHUDWidget>(PC, MainHUDClass);
 			if (MainHUDWidget)
+			{
 				MainHUDWidget->AddToViewport();
+			}
 		}
 	}
 
 	PRINTLOG_SH(TEXT("[RiftHUD] InitHUD. Widget=%s Champion=%s"),
-		*GetNameSafe(MainHUDWidget), *GetNameSafe(Champion));
+	            *GetNameSafe(MainHUDWidget),
+	            *GetNameSafe(Champion));
 
-	if (!MainHUDWidget || !Champion) return;
+	if (!MainHUDWidget || !Champion) { return; }
 
 	APlayerController* PC = GetOwningPlayerController();
 	ARiftPlayerState* PS = PC ? PC->GetPlayerState<ARiftPlayerState>() : nullptr;
-	ARiftGameState*   GS = GetWorld()->GetGameState<ARiftGameState>();
+	ARiftGameState* GS = GetWorld()->GetGameState<ARiftGameState>();
 
 	PRINTLOG_SH(TEXT("[RiftHUD] PS=%s GS=%s"), *GetNameSafe(PS), *GetNameSafe(GS));
 
@@ -89,21 +120,21 @@ void ARiftHUD::SetupShopMVVM(ALoLChampion* Champion)
 		PRINTLOG_TK(TEXT("SetupShopMVVM: ShopWidgetClass is not set"));
 		return;
 	}
-	
+
 	UInventoryComponent* InvComp = Champion->FindComponentByClass<UInventoryComponent>();
 	UItemDataSubsystem* ItemSubsystem = GetGameInstance()->GetSubsystem<UItemDataSubsystem>();
-	
+
 	if (!InvComp || !ItemSubsystem)
 	{
 		PRINTLOG_TK(TEXT("SetupShopMVVM: Missing InventoryComponent or ItemDataSubsystem"));
 		return;
 	}
-	
+
 	// ViewModel 생성 (Initialize는 아직 호출하지 않음)
 	ShopVM = NewObject<UShopViewModel>(this);
 	ShopVM->SetItemDataSubsystem(ItemSubsystem);
 	ShopVM->SetInventoryComponent(InvComp);
-	
+
 	// View를 먼저 생성하고 바인딩 → delegate가 등록된 상태에서 Initialize 호출
 	APlayerController* PC = GetOwningPlayerController();
 	ShopWidget = CreateWidget<UShopWidget>(PC, ShopWidgetClass);
@@ -114,40 +145,3 @@ void ARiftHUD::SetupShopMVVM(ALoLChampion* Champion)
 	// View 바인딩 완료 후 Initialize → BuildViewData → OnShopItemsBuilt.Broadcast 발생
 	ShopVM->Initialize();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

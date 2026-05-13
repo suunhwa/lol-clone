@@ -17,6 +17,7 @@ enum class EMatchMode : uint8
 {
 	SummonersRift UMETA(DisplayName = "소환사의 협곡"),
 	DodgeBall UMETA(DisplayName = "문도피구"),
+	EventMode UMETA(DisplayName = "이벤트 모드"),
 };
 
 UENUM(BlueprintType)

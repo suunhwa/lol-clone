@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Characters/Data/ChampionData.h"
 #include "Engine/GameInstance.h"
+#include "Type/RiftTypes.h"
 #include "LoLGameInstance.generated.h"
 
 /**
@@ -16,9 +17,12 @@ class LEAGUEOFLEGENDS_API ULoLGameInstance : public UGameInstance
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	FString Nickname;
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
+	EMatchMode SelectedMode = EMatchMode::SummonersRift;
+	
+	UPROPERTY(BlueprintReadWrite)
 	UChampionData* SelectedChampion;
 };

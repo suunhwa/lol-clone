@@ -66,9 +66,15 @@ public:
 public:
 	IOnlineSessionPtr SessionInterface;
 
+	UFUNCTION(BlueprintCallable)
 	void CreateSession(FString RoomName, int32 MaxPlayer);
 	
+	// LobbyUI에 있는 start game 버튼으로 방 없으면 생성, 있으면 join
+	UFUNCTION(BlueprintCallable)
 	void FindOrCreateSession(FString InNickname, int32 MaxPlayers = 10);
+	
+	UFUNCTION(BlueprintCallable)
+	void ExitRoom_BP() { ExitRoom(); }
 
 	// session(host) 이름
 	FString MySessionName = "LoL";

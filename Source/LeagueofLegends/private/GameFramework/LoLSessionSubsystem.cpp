@@ -90,7 +90,7 @@ void ULoLSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasS
 	PRINTLOG_SH(TEXT("Session Name : %s, bWasSuccessful : %d"), *MySessionName, bWasSuccessful);
 	if (bWasSuccessful)
 	{
-		UGameplayStatics::OpenLevel(GetWorld(), FName(TEXT("/Game/Maps/Lv_Lobby")), true, TEXT("listen?port=7777"));
+		UGameplayStatics::OpenLevel(GetWorld(), FName(TEXT("/Game/Maps/Lv_PickWindow")), true, TEXT("listen?port=7777"));
 	}
 	OnCreateSessionResult.Broadcast(bWasSuccessful);
 }
@@ -248,7 +248,7 @@ void ULoLSessionSubsystem::ExitRoom()
 void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	auto* pc = GetWorld()->GetFirstPlayerController();
-	FString url = TEXT("/Game/Maps/Lv_MainMenu");
+	FString url = TEXT("/Game/Maps/Lv_Lobby");
 	pc->ClientTravel(url, TRAVEL_Absolute);
 }
 
