@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "LeagueofLegends.h" // ETeam 정의가 포함된 헤더
-#include "GameFramework/RiftTypes.h"
+#include "Type/RiftTypes.h"
 #include "Ranged_Projectile.generated.h"
 
 UCLASS()

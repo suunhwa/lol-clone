@@ -13,6 +13,8 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Components/CombatComponent.h"
 #include "Components/StatComponent.h"
+#include "GameFramework/LoLGameInstance.h"
+#include "GameFramework/RiftGameState.h"
 #include "Interfaces/Damageable.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -28,7 +30,7 @@ void ARiftPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!IsLocalController()) return;
+	if (!IsLocalController()) { return; }
 
 	bShowMouseCursor = true;
 
@@ -36,6 +38,14 @@ void ARiftPlayerController::BeginPlay()
 	InputMode.SetHideCursorDuringCapture(false);
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
 	SetInputMode(InputMode);
+	
+	if (auto* GI = GetGameInstance<ULoLGameInstance>())
+	{
+		if (!GI->Nickname.IsEmpty())
+		{
+			ServerChangeName(GI->Nickname);
+		}
+	}
 
 	// A* 로직 완성되면
 	// GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
@@ -55,10 +65,12 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 
 	ALoLChampion* Champion = Cast<ALoLChampion>(P);
 	OwnedChamp = Champion;
-	if (!Champion) return;
+	if (!Champion) { return; }
 
 	if (ARiftHUD* HUD = GetHUD<ARiftHUD>())
+	{
 		HUD->InitHUD(OwnedChamp);
+	}
 
 	FVector CameraStartLoc = Champion->GetActorLocation();
 
@@ -123,6 +135,47 @@ void ARiftPlayerController::Tick(float DeltaTime)
 	FVector NewLoc = FMath::VInterpTo(CameraActor->GetActorLocation(), TargetCameraLoc, DeltaTime, CameraInterpSpeed);
 	CameraActor->SetActorLocation(NewLoc);
 }
+
+// ----------------------------- Server -----------------------------------------
+void ARiftPlayerController::Server_SelectTeam_Implementation(ETeam Team)
+{
+	if (auto* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		PS->SetTeam(Team);
+	}
+}
+
+void ARiftPlayerController::Server_SelectChampion_Implementation(FName ChampionID)
+{
+	if (auto* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		PS->SetSelectedChampion(ChampionID);
+	}
+}
+
+void ARiftPlayerController::Server_SetReady_Implementation()
+{
+	if (auto* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		PS->SetReady(true);
+	}
+}
+
+void ARiftPlayerController::Server_StartChampionSelect_Implementation()
+{
+	if (!HasAuthority()) { return; }
+	if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+	{
+		GS->SetPhase(EGamePhase::ChampionSelect);
+	}
+}
+
+void ARiftPlayerController::Server_StartGame_Implementation()
+{
+	if (!HasAuthority()) { return; }
+	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_SummonerRift?listen"));
+}
+
 
 void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 {

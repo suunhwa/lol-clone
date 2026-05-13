@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/LoLCameraActor.h"
-#include "GameFramework/RiftTypes.h"
+#include "Type/RiftTypes.h"
 #include "AStar/AStarGridManager.h"
 #include "Components/SkillComponent.h"
 #include "RiftPlayerController.generated.h"
@@ -31,6 +31,22 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+public:
+	UFUNCTION(Server, Reliable)
+	void Server_SelectTeam(ETeam Team);
+
+	UFUNCTION(Server, Reliable)
+	void Server_SelectChampion(FName ChampionID);
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetReady();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartChampionSelect();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartGame();
+	
 public:
 	// 로비: 소환사 주문 선택 하게
 	UFUNCTION(Server, Reliable)
