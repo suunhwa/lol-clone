@@ -113,7 +113,7 @@ void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISight
 
 void AFOWManager::RegisterSightProvider(UObject* SightObject)
 {
-	if (!SightObject || !SightProviderHelper::ImplementsSightProvider(SightObject))
+	if (!SightObject || !SightProviderHelper::IsSightProvider(SightObject))
 	{
 		PRINTLOG_TK(TEXT("RegisterSightProvider: Invalid SightObject"));
 		return;
@@ -135,7 +135,7 @@ void AFOWManager::RegisterSightProvider(UObject* SightObject)
 
 void AFOWManager::UnregisterSightProvider(UObject* SightObject)
 {
-	if (!SightObject || !SightProviderHelper::ImplementsSightProvider(SightObject))
+	if (!SightObject || !SightProviderHelper::IsSightProvider(SightObject))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UnregisterSightProvider: Invalid object"));
 		return;

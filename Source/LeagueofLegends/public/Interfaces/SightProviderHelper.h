@@ -35,7 +35,7 @@ namespace SightProviderHelper
 	}
 
 	/** UObject가 ISightProvider를 구현하는지 여부를 반환합니다. */
-	FORCEINLINE bool ImplementsSightProvider(const UObject* Object)
+	FORCEINLINE bool IsSightProvider(const UObject* Object)
 	{
 		return Object && Object->Implements<USightProvider>();
 	}
@@ -51,8 +51,8 @@ namespace SightProviderHelper
 	 */
 	inline FVector GetSightOrigin(const UObject* Object)
 	{
-		ensureMsgf(ImplementsSightProvider(Object), TEXT("GetSightOrigin: Object does not implement ISightProvider"));
-		if (!ImplementsSightProvider(Object)) return FVector::ZeroVector;
+		ensureMsgf(IsSightProvider(Object), TEXT("GetSightOrigin: Object does not implement ISightProvider"));
+		if (!IsSightProvider(Object)) return FVector::ZeroVector;
 		return ISightProvider::Execute_GetSightOrigin(Object);
 	}
 
@@ -63,8 +63,8 @@ namespace SightProviderHelper
 	 */
 	inline float GetSightRange(const UObject* Object)
 	{
-		ensureMsgf(ImplementsSightProvider(Object), TEXT("GetSightRange: Object does not implement ISightProvider"));
-		if (!ImplementsSightProvider(Object)) return 0.f;
+		ensureMsgf(IsSightProvider(Object), TEXT("GetSightRange: Object does not implement ISightProvider"));
+		if (!IsSightProvider(Object)) return 0.f;
 		return ISightProvider::Execute_GetSightRange(Object);
 	}
 
@@ -75,7 +75,7 @@ namespace SightProviderHelper
 	 */
 	inline bool IsStatic(const UObject* Object)
 	{
-		if (!ImplementsSightProvider(Object)) return false;
+		if (!IsSightProvider(Object)) return false;
 		return ISightProvider::Execute_IsStatic(Object);
 	}
 
@@ -86,8 +86,8 @@ namespace SightProviderHelper
 	 */
 	inline ERiftSightTag GetTeam(const UObject* Object)
 	{
-		ensureMsgf(ImplementsSightProvider(Object), TEXT("GetTeam: Object does not implement ISightProvider"));
-		if (!ImplementsSightProvider(Object)) return ERiftSightTag::None;
+		ensureMsgf(IsSightProvider(Object), TEXT("GetTeam: Object does not implement ISightProvider"));
+		if (!IsSightProvider(Object)) return ERiftSightTag::None;
 		return ISightProvider::Execute_GetSightTag(Object);
 	}
 
@@ -98,7 +98,7 @@ namespace SightProviderHelper
 	 */
 	inline bool IsHideable(const UObject* Object)
 	{
-		if (!ImplementsSightProvider(Object)) return false;
+		if (!IsSightProvider(Object)) return false;
 		return ISightProvider::Execute_IsHideable(Object);
 	}
 	
@@ -128,7 +128,7 @@ namespace SightProviderHelper
 	 */
 	inline bool IsSameTeam(const UObject* A, const UObject* B)
 	{
-		if (!ImplementsSightProvider(A) || !ImplementsSightProvider(B)) return false;
+		if (!IsSightProvider(A) || !IsSightProvider(B)) return false;
 		return ISightProvider::Execute_GetSightTag(A) == ISightProvider::Execute_GetSightTag(B);
 	}
 
@@ -138,7 +138,7 @@ namespace SightProviderHelper
 	 */
 	inline bool IsEnemy(const UObject* A, const UObject* B)
 	{
-		if (!ImplementsSightProvider(A) || !ImplementsSightProvider(B)) return false;
+		if (!IsSightProvider(A) || !IsSightProvider(B)) return false;
 		return ISightProvider::Execute_GetSightTag(A) != ISightProvider::Execute_GetSightTag(B);
 	}
 
@@ -155,7 +155,7 @@ namespace SightProviderHelper
 	 */
 	inline bool IsInSightRange(const UObject* Observer, const FVector& TargetLocation)
 	{
-		if (!ImplementsSightProvider(Observer)) return false;
+		if (!IsSightProvider(Observer)) return false;
 		const FVector Origin = ISightProvider::Execute_GetSightOrigin(Observer);
 		const float DX = Origin.X - TargetLocation.X;
 		const float DY = Origin.Y - TargetLocation.Y;
@@ -170,7 +170,7 @@ namespace SightProviderHelper
 	 */
 	inline bool IsInSightRange(const UObject* Observer, const UObject* Target)
 	{
-		if (!ImplementsSightProvider(Target)) return false;
+		if (!IsSightProvider(Target)) return false;
 		return IsInSightRange(Observer, GetSightOrigin(Target));
 	}
 } // namespace SightProviderHelper

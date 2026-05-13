@@ -124,14 +124,19 @@ void AFOWTileMap::GenerateTileMap(AFOWVolume* FOWVolume)
 				// 예: SetTileHeight(i, j, HitResult.Location.Z);
 				float Diff = 8600.f - HitResult.Location.Z;
 				bool bIsFloor = FMath::Abs(Diff) < 50.f;
-				if (bIsFloor)
-				// if (HitResult.Location.Z < 200.f)
+				bool bIsSightProvider = SightProviderHelper::IsSightProvider(HitResult.GetActor());
+				
+				bool bIsFloorForDebug;
+				
+				if (bIsFloor || bIsSightProvider)
 				{
 					CurTile.Type = ETileType::Floor; // 예시로 Floor 타입으로 설정
+					bIsFloorForDebug = true;
 				}
 				else
 				{
 					CurTile.Type = ETileType::Wall; // 예시로 Wall 타입으로 설정
+					bIsFloorForDebug = false;
 				}
 
 				// DebugBox 그리기
@@ -140,7 +145,7 @@ void AFOWTileMap::GenerateTileMap(AFOWVolume* FOWVolume)
 					FVector BoxCenter(TileCenterX, TileCenterY, HitResult.Location.Z);
 					FVector BoxExtent(HalfTileSize, HalfTileSize, 10.f);
 					
-					FColor BoxColor = bIsFloor ? FColor::Green : FColor::Red;
+					FColor BoxColor = bIsFloorForDebug ? FColor::Green : FColor::Red;
 					DrawDebugBox(GetWorld(), BoxCenter, BoxExtent, BoxColor, true, -1.f);
 				}
 			}
