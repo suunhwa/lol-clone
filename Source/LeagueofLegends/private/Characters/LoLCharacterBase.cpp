@@ -52,6 +52,7 @@ void ALoLCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ALoLCharacterBase, FacingRotation);
+	DOREPLIFETIME(ALoLCharacterBase, FOWVisibilityFlags);
 }
 
 void ALoLCharacterBase::FaceRotation(FRotator NewControlRotation, float DeltaTime)
@@ -90,7 +91,6 @@ void ALoLCharacterBase::BeginPlay()
 	/*auto* GS = GetWorld()->GetGameState<ARiftGameState>();                                                                                  
 	GS->GetFOWManager()->RegisterSightProvider(this);    */
 	
-
 	if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
 	{
 		if (AFOWManager* FOWManager = GS->GetFOWManager())
@@ -111,6 +111,9 @@ void ALoLCharacterBase::BeginPlay()
 	{
 		HPBar->InitWidget(StatComp);
 	}
+	
+	// 초기 가시성 상태 적용 (FOWVisibilityFlags = 0이므로 적군은 숨김 처리)
+	OnRep_FOWVisibility();
 }
 
 void ALoLCharacterBase::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
@@ -197,6 +200,84 @@ ERiftSightTag ALoLCharacterBase::GetSightTag_Implementation() const
 bool ALoLCharacterBase::IsHideable_Implementation() const
 {
 	return false; 
+}
+
+void ALoLCharacterBase::SetFOWVisibilityFlag_Implementation(ERiftSightTag Team, bool bVisible)
+{
+	if (!HasAuthority()) // 서버에서만 호출됨
+	{
+		return;
+	}
+	
+	uint8 Mask = 0;
+	if (Team == ERiftSightTag::Red)
+	{
+		Mask = 0x01;
+	}
+	else if (Team == ERiftSightTag::Blue)
+	{
+		Mask = 0x02;
+	}
+	
+	uint8 OldFlags = FOWVisibilityFlags;
+	
+	if (bVisible)
+	{
+		FOWVisibilityFlags |= Mask;
+	}
+	else
+	{
+		FOWVisibilityFlags &= ~Mask;
+	}
+	
+	// 값이 바뀌었고, Host인 경우 수동 호출
+	if (OldFlags != FOWVisibilityFlags)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[FOW] %s | Team=%d bVisible=%d OldFlags=%d NewFlags=%d"),
+		   *GetName(), (int32)Team, bVisible, OldFlags, FOWVisibilityFlags);
+		OnRep_FOWVisibility();
+	}
+}
+
+void ALoLCharacterBase::OnRep_FOWVisibility()
+{
+	// 로컬 플레이어의 팀 가져오기
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC || !PC->GetPawn()) 
+	{
+		return;
+	}
+
+	ALoLCharacterBase* LocalCharacter = Cast<ALoLCharacterBase>(PC->GetPawn());
+	if (!LocalCharacter) 
+	{
+		return;
+	}
+
+	ERiftSightTag LocalClientTeam = LocalCharacter->TagComp->GetSightTag();
+
+	if (TagComp->GetSightTag() == LocalClientTeam)
+	{
+		// 같은 팀 오브젝트는 항상 보이도록 설정
+		SetActorHiddenInGame(false);
+		return;
+	}
+	
+	// 적군만 가시성 판정
+	bool bVisibleToMe = false;
+	if (LocalClientTeam == ERiftSightTag::Red)
+	{
+		bVisibleToMe = (FOWVisibilityFlags & 0x01) != 0;
+	}
+	else if (LocalClientTeam == ERiftSightTag::Blue)
+	{
+		bVisibleToMe = (FOWVisibilityFlags & 0x02) != 0;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[FOW OnRep] %s | MyTeam=%d EnemyTeam=%d Flags=%d Hidden=%d"),
+	   *GetName(), (int32)LocalClientTeam, (int32)TagComp->GetSightTag(), FOWVisibilityFlags, !bVisibleToMe);
+	
+	SetActorHiddenInGame(!bVisibleToMe);
 }
 
 void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)

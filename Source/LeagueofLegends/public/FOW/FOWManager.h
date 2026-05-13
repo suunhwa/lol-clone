@@ -127,7 +127,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	void UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISightProvider>>& SightProviders);
+	void UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISightProvider>>& SightProviders,
+	               bool bUpdateTexture = true);
 
 	UFUNCTION(BlueprintCallable)
 	void RegisterSightProvider(UObject* SightObject);
@@ -158,6 +159,11 @@ private:
 
 	UFUNCTION()
 	void UpdateEnemyVisibility(AFOWTileMap* MyTileMap, TArray<TScriptInterface<ISightProvider>>& EnemyProviders);
+
+	// 서버 로직
+	void UpdateEnemyVisibility_Server(AFOWTileMap* TeamTileMap,
+	                                  TArray<TScriptInterface<ISightProvider>>& EnemyProviders,
+	                                  ERiftSightTag TeamTag);
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sight")

@@ -117,6 +117,12 @@ namespace SightProviderHelper
 			Actor->SetActorHiddenInGame(!bVisible);
 		}
 	}
+	
+	inline void SetFOWVisibilityFlag(UObject* Object, ERiftSightTag Team, bool bVisible)
+	{
+		if (!IsSightProvider(Object)) return;
+		ISightProvider::Execute_SetFOWVisibilityFlag(Object, Team, bVisible);
+	}
 
 	// ─────────────────────────────────────────────
 	//  팀 비교 헬퍼

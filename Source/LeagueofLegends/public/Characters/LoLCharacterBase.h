@@ -51,7 +51,16 @@ public:
 	virtual bool IsStatic_Implementation() const override;
 	virtual ERiftSightTag GetSightTag_Implementation() const override;
 	virtual bool IsHideable_Implementation() const override;
+	virtual void SetFOWVisibilityFlag_Implementation(ERiftSightTag Team, bool bVisible) override;
 
+private:
+	// 비트 플래그: bit0 = Red팀에게 보임, bit1 = Blue팀에게 보임
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_FOWVisibility)
+	uint8 FOWVisibilityFlags = 0;
+
+	UFUNCTION()
+	void OnRep_FOWVisibility();
+	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Sight")
 	float SightRange = 1000.f;

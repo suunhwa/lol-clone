@@ -31,8 +31,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	
 public:
+	// UFUNCTION(BlueprintCallable)
+	// void Generate(AFOWVolume* FOWVolume);
+	
 	UFUNCTION(BlueprintCallable)
-	void Generate(AFOWVolume* FOWVolume);
+	void Generate(AFOWVolume* FOWVolume, bool bServerOnly = false);
 	
 	UFUNCTION(BlueprintCallable)
 	void GenerateTileMap(AFOWVolume* FOWVolume);

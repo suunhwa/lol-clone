@@ -32,6 +32,9 @@ void AFOWManager::PostInitializeComponents()
 void AFOWManager::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	UE_LOG(LogTemp, Warning, TEXT("[FOWManager] LocalClientTeam=%d (0=None, 1=Blue, 2=Red)"),
+		(int32)LocalClientTeam);
 
 	// TODO: LocalPlayer의 팀을 가져와 세팅
 	if (LocalClientTeam == ERiftSightTag::None)
@@ -41,13 +44,30 @@ void AFOWManager::BeginPlay()
 	
 	if (FOWVolume)
 	{
-		if (LocalClientTeam == ERiftSightTag::Red)
+		if (HasAuthority()) // 서버는 양쪽 타일맵 모두 생성
 		{
-			RedTileMap->Generate(FOWVolume);
+			// 호스트 팀 → 렌더링 리소스 포함, 상대 팀 → 타일 데이터만
+			if (LocalClientTeam == ERiftSightTag::Red)
+			{
+				RedTileMap->Generate(FOWVolume, false);  // 비주얼 O
+				BlueTileMap->Generate(FOWVolume, true);   // 타일만
+			}
+			else
+			{
+				RedTileMap->Generate(FOWVolume, true);
+				BlueTileMap->Generate(FOWVolume, false);
+			}
 		}
 		else
 		{
-			BlueTileMap->Generate(FOWVolume);
+			if (LocalClientTeam == ERiftSightTag::Red)
+			{
+				RedTileMap->Generate(FOWVolume);
+			}
+			else
+			{
+				BlueTileMap->Generate(FOWVolume);
+			}
 		}
 	}
 	
@@ -64,20 +84,43 @@ void AFOWManager::Tick(float DeltaTime)
 #if TEST
 	UpdateFOV(TestTileMap, RedSightProviders); // 테스트용
 #else
-	if (LocalClientTeam == ERiftSightTag::Red)
+	if (HasAuthority())
 	{
-		UpdateFOV(RedTileMap, RedSightProviders);
-		UpdateEnemyVisibility(RedTileMap, BlueSightProviders);
+		UpdateFOV(RedTileMap, RedSightProviders, false);
+		UpdateFOV(BlueTileMap, BlueSightProviders, false);
+		
+		// 서버 권한 가시성 판정 (Server에서만 판정, Client는 서버 결과 받아서 적용)
+		// Blue 적들이 Red 시야에 보이는가?
+		UpdateEnemyVisibility_Server(RedTileMap, BlueSightProviders, ERiftSightTag::Red);
+		// Red 적들이 Blue 시야에 보이는가?
+		UpdateEnemyVisibility_Server(BlueTileMap, RedSightProviders, ERiftSightTag::Blue);
+		
+		// 리슨 서버 호스트: 자기 팀 텍스처만 갱신
+		if (LocalClientTeam == ERiftSightTag::Red)
+		{
+			RedTileMap->UpdateFogTexture();
+		}
+		else
+		{
+			BlueTileMap->UpdateFogTexture();
+		}
 	}
 	else
 	{
-		UpdateFOV(BlueTileMap, BlueSightProviders);
-		UpdateEnemyVisibility(BlueTileMap, RedSightProviders);
+		if (LocalClientTeam == ERiftSightTag::Red)
+		{
+			UpdateFOV(RedTileMap, RedSightProviders, true);
+		}
+		else
+		{
+			UpdateFOV(BlueTileMap, BlueSightProviders, true);
+		}
 	}
 #endif
 }
 
-void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISightProvider>>& SightProviders)
+void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISightProvider>>& SightProviders, 
+							bool bUpdateTexture)
 {
 	if (!TileMap) return;
 
@@ -106,8 +149,11 @@ void AFOWManager::UpdateFOV(AFOWTileMap* TileMap, TArray<TScriptInterface<ISight
 		ComputeFOV(Origin, TileMap, MaxDepth);
 	}
 
-	TileMap->UpdateFogTexture();
-	TileMap->UpdateSightDataTexture(SightProviders);
+	if (bUpdateTexture)
+	{
+		TileMap->UpdateFogTexture();
+		// TileMap->UpdateSightDataTexture(SightProviders);
+	}
 #endif
 }
 
@@ -273,6 +319,28 @@ void AFOWManager::UpdateEnemyVisibility(AFOWTileMap* MyTileMap, TArray<TScriptIn
 		bool bVisible = MyTileMap->IsVisibleTile(TilePoint.X, TilePoint.Y);
 		
 		SightProviderHelper::ApplyFOWVisibility(Obj, bVisible);
+	}
+}
+
+void AFOWManager::UpdateEnemyVisibility_Server(AFOWTileMap* TeamTileMap,
+	TArray<TScriptInterface<ISightProvider>>& EnemyProviders, ERiftSightTag TeamTag)
+{
+	if (!HasAuthority() || !TeamTileMap) return;
+
+	for (const TScriptInterface<ISightProvider>& Provider : EnemyProviders)
+	{
+		UObject* Obj = Provider.GetObject();
+		if (!SightProviderHelper::IsHideable(Obj))
+		{
+			continue;
+		}
+		
+		FVector Location = SightProviderHelper::GetSightOrigin(Obj);
+		FIntPoint TilePoint = TeamTileMap->WorldToTile(Location);
+		bool bIsVisible = TeamTileMap->IsVisibleTile(TilePoint.X, TilePoint.Y);
+
+		// 서버가 Replicated 변수에 기록 → OnRep으로 클라이언트 전파
+		SightProviderHelper::SetFOWVisibilityFlag(Obj, TeamTag, bIsVisible);
 	}
 }
 

@@ -42,4 +42,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Sight")
 	bool IsHideable() const;
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Sight")
+	void SetFOWVisibilityFlag(ERiftSightTag Team, bool bVisible);
 };
