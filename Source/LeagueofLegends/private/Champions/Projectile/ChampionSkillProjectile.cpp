@@ -46,7 +46,7 @@ void AChampionSkillProjectile::Tick(float DeltaTime)
 	if (!PrevLocation.IsZero() && !PrevLocation.Equals(Loc, 1.f) && DebugTrailHalfWidth <= 0.f)
 	{
 		// Q/W/E: 얇은 선 trail
-		DrawDebugLine(GetWorld(), PrevLocation, Loc, FColor::Cyan, false, 0.5f, 0, 6.f);
+		// DrawDebugLine(GetWorld(), PrevLocation, Loc, FColor::Cyan, false, 0.5f, 0, 6.f);
 	}
 
 	PrevLocation = Loc;

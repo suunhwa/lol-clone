@@ -20,6 +20,9 @@ class LEAGUEOFLEGENDS_API UChampionData : public UPrimaryDataAsset
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Champion|Info")
 	FName ChampionID;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Info")
+	FName ChampionName_KR;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Champion|Visual")
 	TObjectPtr<UTexture2D> PortraitTexture;

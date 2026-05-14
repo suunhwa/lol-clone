@@ -300,9 +300,10 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 	UWorld* World = OwnerChar->GetWorld();
 
 	// 중앙선 + 좌우 외곽선만
-	DrawDebugLine(World, Origin, Origin + Dir * RLength, FColor::Blue, false, VisualDuration, 0, 20.f);
+	/*DrawDebugLine(World, Origin, Origin + Dir * RLength, FColor::Blue, false, VisualDuration, 0, 20.f);
 	DrawDebugLine(World, Origin + Right, Origin + Right + Dir * RLength, FColor::Cyan, false, VisualDuration, 0, 6.f);
 	DrawDebugLine(World, Origin - Right, Origin - Right + Dir * RLength, FColor::Cyan, false, VisualDuration, 0, 6.f);
+	*/
 
 	// 데미지 컨텍스트
 	FDamageContext Ctx;
