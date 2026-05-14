@@ -1,6 +1,7 @@
 #include "UI/View/ChampionPortraitWidget.h"
 
 #include "LeagueofLegends.h"
+#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -9,6 +10,11 @@
 void UChampionPortraitWidget::BindViewModel(UViewModelBase* InViewModel)
 {
 	Super::BindViewModel(InViewModel);
+
+	if (Btn_Stats)
+	{
+		Btn_Stats->OnClicked.AddDynamic(this, &UChampionPortraitWidget::OnStatsClicked);
+	}
 
 	VM = Cast<UChampionPortraitViewModel>(InViewModel);
 	if (!VM) { return; }
@@ -56,6 +62,11 @@ void UChampionPortraitWidget::NativeTick(const FGeometry& MyGeometry, float InDe
 	TickAccum = 0.f;
 
 	ExpMat->SetScalarParameterValue(TEXT("Progress"), VM->GetXPProgress());
+}
+
+void UChampionPortraitWidget::OnStatsClicked()
+{
+	OnStatsToggleRequested.Broadcast();
 }
 
 void UChampionPortraitWidget::OnLevelUpdated(int32 NewLevel)

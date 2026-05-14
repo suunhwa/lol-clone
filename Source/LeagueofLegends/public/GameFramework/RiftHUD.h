@@ -8,6 +8,7 @@ class UInventoryWidget;
 class UShopViewModel;
 class UShopWidget;
 class UMainHUDWidget;
+class UPickWindowWidget;
 class ALoLChampion;
 
 UCLASS()
@@ -40,11 +41,18 @@ protected:
 	// Shop
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UShopWidget> ShopWidgetClass;
-	
+
+	// 챔피언 선택창 (Lv_Lobby에서 자동 표시)
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UPickWindowWidget> PickWindowClass;
+
 private:
 	UPROPERTY()
 	TObjectPtr<UMainHUDWidget> MainHUDWidget;
-	
+
+	UPROPERTY()
+	TObjectPtr<UPickWindowWidget> PickWindowWidget;
+
 	// Shop
 	UPROPERTY()
 	TObjectPtr<UShopWidget> ShopWidget;

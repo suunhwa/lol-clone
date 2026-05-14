@@ -6,7 +6,10 @@
 
 class UTextBlock;
 class UImage;
+class UButton;
 class UChampionPortraitViewModel;
+
+DECLARE_MULTICAST_DELEGATE(FOnStatsToggleRequested);
 
 // WBP_ChampionPortrait의 C++ 부모 클래스
 UCLASS()
@@ -17,12 +20,17 @@ class LEAGUEOFLEGENDS_API UChampionPortraitWidget : public UWidgetViewBase
 public:
 	virtual void BindViewModel(UViewModelBase* InViewModel) override;
 
+	FOnStatsToggleRequested OnStatsToggleRequested;
+
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
 	UFUNCTION()
 	void OnLevelUpdated(int32 NewLevel);
+
+	UFUNCTION()
+	void OnStatsClicked();
 
 protected:
 	UPROPERTY(meta = (BindWidgetOptional))
@@ -34,6 +42,9 @@ protected:
 	// M_Exp Progress 파라미터 제어
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> img_Exp;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> Btn_Stats;
 
 private:
 	UPROPERTY()

@@ -87,7 +87,20 @@ UChampionData* UChampionDataSubsystem::GetChampionData(FName ChampionID) const
 	return *Found;
 }
 
-// Row 조회 
+TArray<UChampionData*> UChampionDataSubsystem::GetAllChampions() const
+{
+	TArray<UChampionData*> Result;
+	for (auto& Pair : ChampionDataMap)
+	{
+		if (Pair.Value)
+		{
+			Result.Add(Pair.Value);
+		}
+	}
+	return Result;
+}
+
+// Row 조회
 template <typename T>
 const T* UChampionDataSubsystem::FindRowByID(UDataTable* Table, const FName& ID)
 {
