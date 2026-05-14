@@ -80,7 +80,7 @@ void UMinimapWidget::UpdateViewRect(APlayerController* PC, AFOWTileMap* TileMap)
 
     FVector2D UVTL = WorldToUV(GroundTL);
     FVector2D UVBR = WorldToUV(GroundBR);
-	
+	 
 	// TL/BR 정렬 (카메라 방향에 따라 뒤집힐 수 있음)
 	float MinU = FMath::Min(UVTL.X, UVBR.X);
 	float MinV = FMath::Min(UVTL.Y, UVBR.Y);
