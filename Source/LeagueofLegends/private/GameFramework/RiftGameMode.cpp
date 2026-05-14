@@ -49,16 +49,42 @@ void ARiftGameMode::Logout(AController* Exiting)
 AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
 	ARiftPlayerState* PS = Player ? Player->GetPlayerState<ARiftPlayerState>() : nullptr;
-	if (!PS) return Super::ChoosePlayerStart_Implementation(Player);
-
+	if (!PS)
+	{
+		return Super::ChoosePlayerStart_Implementation(Player);
+	}
+	
+	// 팀 None일 때 블루/레드 교대 배정
+	if (PS->GetTeam() == ETeam::None)
+	{
+		int32 Blue = 0, Red = 0;
+		for (APlayerState* OtherPS : GameState->PlayerArray)
+			if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+			{
+				if (RPS->GetTeam() == ETeam::Blue) Blue++;
+				else if (RPS->GetTeam() == ETeam::Red) Red++;
+			}
+		PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
+	}
+	
 	FName Tag = (PS->GetTeam() == ETeam::Blue) ? FName("BlueTeam") : FName("RedTeam");
 
 	TArray<APlayerStart*> ValidStarts;
 	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+	{
 		if (It->PlayerStartTag == Tag)
+		{
 			ValidStarts.Add(*It);
+		}
+        			
+	}
+		
 
-	if (ValidStarts.IsEmpty()) return Super::ChoosePlayerStart_Implementation(Player);
+	if (ValidStarts.IsEmpty())
+	{
+		return Super::ChoosePlayerStart_Implementation(Player);
+	}
+	
 	return ValidStarts[FMath::RandRange(0, ValidStarts.Num() - 1)];
 }
 
