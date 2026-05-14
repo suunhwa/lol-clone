@@ -63,7 +63,7 @@ private:
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Sight")
-	float SightRange = 1000.f;
+	float SightRange = 1200.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Sight")
 	bool bStaticSight = false;
@@ -129,4 +129,7 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_OnDeath();
+
+private:
+	void InitPlayerHUDWidget();
 };

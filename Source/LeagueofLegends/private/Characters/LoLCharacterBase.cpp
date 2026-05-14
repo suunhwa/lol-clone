@@ -19,6 +19,8 @@
 #include "GameFramework/RiftPlayerState.h"
 #include "Components/WidgetComponent.h"
 #include "UI/View/HPBarWidget.h"
+#include "UI/Widget/PlayerHUDWidget.h"
+#include "GameFramework/PlayerState.h"
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
@@ -111,6 +113,8 @@ void ALoLCharacterBase::BeginPlay()
 	{
 		HPBar->InitWidget(StatComp);
 	}
+
+	InitPlayerHUDWidget();
 	
 	// 초기 가시성 상태 적용 (FOWVisibilityFlags = 0이므로 적군은 숨김 처리)
 	OnRep_FOWVisibility();
@@ -315,3 +319,76 @@ void ALoLCharacterBase::Multicast_OnDeath_Implementation()
 		HPBarWidgetComp->SetVisibility(false);
 	}
 }
+
+void ALoLCharacterBase::InitPlayerHUDWidget()
+{
+	if (!HPBarWidgetComp) return;
+
+	UPlayerHUDWidget* HUDWidget = Cast<UPlayerHUDWidget>(HPBarWidgetComp->GetWidget());
+	if (!HUDWidget) return;
+
+	// NickName: PlayerState에서 가져오기, 없으면 액터 이름
+	FString NickName = GetName();
+	if (APlayerState* PS = GetPlayerState())
+	{
+		NickName = PS->GetPlayerName();
+	}
+	HUDWidget->SetNickName(NickName);
+
+	if (!StatComp) return;
+
+	// 초기 값 세팅
+	HUDWidget->SetLevel(StatComp->GetLevel());
+	HUDWidget->SetHP(StatComp->GetCurrentHP(), StatComp->GetMaxHP());
+	HUDWidget->SetMP(StatComp->GetCurrentMana(), StatComp->GetMaxMana());
+	HUDWidget->SetMaxHP(StatComp->GetMaxHP()); // MID 생성 + MaxHealth 파라미터 초기화
+
+	// 나 / 아군 / 적 판별 → HP바 색상 설정
+	{
+		EHPBarType HPBarType = EHPBarType::Enemy;
+		if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
+		{
+			if (APawn* LocalPawn = LocalPC->GetPawn())
+			{
+				if (LocalPawn == this)
+				{
+					HPBarType = EHPBarType::Self;
+				}
+				else if (ALoLCharacterBase* LocalChar = Cast<ALoLCharacterBase>(LocalPawn))
+				{
+					if (TagComp && LocalChar->TagComp &&
+						TagComp->GetTeam() == LocalChar->TagComp->GetTeam())
+					{
+						HPBarType = EHPBarType::Ally;
+					}
+				}
+			}
+		}
+		HUDWidget->SetHPBarType(HPBarType);
+	}
+
+	// 안전한 약참조로 람다 바인딩 (GC 시 댕글링 포인터 방지)
+	TWeakObjectPtr<UPlayerHUDWidget> WeakHUD(HUDWidget);
+
+	StatComp->OnHPChanged.AddLambda([WeakHUD](float Current, float Max)
+	{
+		if (WeakHUD.IsValid())
+		{
+			WeakHUD->SetHP(Current, Max);
+			WeakHUD->SetMaxHP(Max); // MaxHP 변화 시 Material 파라미터 갱신
+		}
+	});
+
+	StatComp->OnManaChanged.AddLambda([WeakHUD](float Current, float Max)
+	{
+		if (WeakHUD.IsValid())
+			WeakHUD->SetMP(Current, Max);
+	});
+
+	StatComp->OnLevelChanged.AddLambda([WeakHUD](int32 NewLevel)
+	{
+		if (WeakHUD.IsValid())
+			WeakHUD->SetLevel(NewLevel);
+	});
+}
+
