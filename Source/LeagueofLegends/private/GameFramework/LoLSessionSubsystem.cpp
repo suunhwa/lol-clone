@@ -256,11 +256,38 @@ void ULoLSessionSubsystem::ExitRoom()
 	SessionInterface->DestroySession(FName(*MySessionName));
 }
 
+void ULoLSessionSubsystem::QuitSession()
+{
+	if (GetWorld()->GetNetMode() == NM_ListenServer)
+	{
+		// 호스트: 세션 파괴 → OnDestroySessionComplete에서 ServerTravel
+		ExitRoom();
+	}
+	else
+	{
+		// 클라이언트: 세션 소유자가 아니므로 파괴 없이 바로 이동
+		if (auto* PC = GetWorld()->GetFirstPlayerController())
+		{
+			PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), ETravelType::TRAVEL_Absolute);
+		}
+	}
+}
+
 void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
-	auto* pc = GetWorld()->GetFirstPlayerController();
-	FString url = TEXT("/Game/Maps/Lv_Lobby");
-	pc->ClientTravel(url, TRAVEL_Absolute);
+	if (GetWorld()->GetNetMode() == NM_ListenServer)
+	{
+		// 호스트: ServerTravel → 모든 클라이언트 자동 연결 해제 후 함께 Lv_Lobby로
+		GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_Lobby?listen"));
+	}
+	else
+	{
+		// 클라이언트: 로컬에서만 Lv_Lobby로 이동
+		if (auto* PC = GetWorld()->GetFirstPlayerController())
+		{
+			PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), TRAVEL_Absolute);
+		}
+	}
 }
 
 void ULoLSessionSubsystem::OnNetworkFailure(UWorld* World,

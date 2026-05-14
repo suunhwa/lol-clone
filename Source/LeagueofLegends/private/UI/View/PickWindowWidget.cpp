@@ -5,6 +5,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/WrapBox.h"
 #include "GameFramework/RiftPlayerController.h"
+#include "GameFramework/LoLSessionSubsystem.h"
 #include "Type/RiftTypes.h"
 #include "UI/View/ChampSlotWidget.h"
 #include "UI/View/TeamSlotWidget.h"
@@ -28,6 +29,11 @@ void UPickWindowWidget::NativeConstruct()
 	if (btn_Ready)
 	{
 		btn_Ready->OnClicked.AddDynamic(this, &UPickWindowWidget::OnReadyOrStart);
+	}
+
+	if (btn_quit)
+	{
+		btn_quit->OnClicked.AddDynamic(this, &UPickWindowWidget::OnQuit);
 	}
 }
 
@@ -99,18 +105,24 @@ void UPickWindowWidget::RefreshTeamSlots()
 	auto* VM = Cast<UPickWindowViewModel>(OwnerViewModel);
 	if (!VM) return;
 
-	// 블루팀 슬롯
+	// 블루팀 슬롯 (Spacer 있어서 인식 못하는 이슈: 슬롯 카운터 따로 관리)
 	if (VB_BlueTeam)
 	{
 		TArray<FPlayerSlotViewData> BlueData = VM->GetBlueTeamPlayers();
+		int32 SlotIdx = 0;
 		for (int32 i = 0; i < VB_BlueTeam->GetChildrenCount(); i++)
 		{
 			if (auto* TeamSlot = Cast<UTeamSlotWidget>(VB_BlueTeam->GetChildAt(i)))
 			{
-				if (BlueData.IsValidIndex(i))
-					TeamSlot->SetSlotData(BlueData[i]);
+				if (BlueData.IsValidIndex(SlotIdx))
+				{
+					TeamSlot->SetSlotData(BlueData[SlotIdx]);
+				}
 				else
+				{
 					TeamSlot->ClearSlot();
+				}
+				SlotIdx++;
 			}
 		}
 	}
@@ -119,14 +131,20 @@ void UPickWindowWidget::RefreshTeamSlots()
 	if (VB_RedTeam)
 	{
 		TArray<FPlayerSlotViewData> RedData = VM->GetRedTeamPlayers();
+		int32 SlotIdx = 0;
 		for (int32 i = 0; i < VB_RedTeam->GetChildrenCount(); i++)
 		{
 			if (auto* EnemySlot = Cast<UEnemySlotWidget>(VB_RedTeam->GetChildAt(i)))
 			{
-				if (RedData.IsValidIndex(i))
-					EnemySlot->SetSlotData(RedData[i]);
+				if (RedData.IsValidIndex(SlotIdx))
+				{
+					EnemySlot->SetSlotData(RedData[SlotIdx]);
+				}
 				else
+				{
 					EnemySlot->ClearSlot();
+				}
+				SlotIdx++;
 			}
 		}
 	}
@@ -185,5 +203,16 @@ void UPickWindowWidget::OnReadyOrStart()
 	else
 	{
 		PC->Server_SetReady();
+	}
+}
+
+void UPickWindowWidget::OnQuit()
+{
+	auto* GI = GetGameInstance();
+	if (!GI) { return; }
+
+	if (auto* SessionSubsys = GI->GetSubsystem<ULoLSessionSubsystem>())
+	{
+		SessionSubsys->QuitSession();
 	}
 }

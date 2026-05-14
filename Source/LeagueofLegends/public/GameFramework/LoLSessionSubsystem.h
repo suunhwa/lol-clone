@@ -112,6 +112,8 @@ public:
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
 	void ExitRoom();
+	
+	void QuitSession();
 
 	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
 
