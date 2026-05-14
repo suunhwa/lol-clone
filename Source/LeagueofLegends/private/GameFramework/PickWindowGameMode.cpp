@@ -1,7 +1,7 @@
 #include "GameFramework/PickWindowGameMode.h"
 
+#include "GameFramework/PickWindowHUD.h"
 #include "GameFramework/RiftGameState.h"
-#include "GameFramework/RiftHUD.h"
 #include "GameFramework/RiftPlayerController.h"
 #include "GameFramework/RiftPlayerState.h"
 
@@ -11,7 +11,7 @@ APickWindowGameMode::APickWindowGameMode()
 	GameStateClass = ARiftGameState::StaticClass();
 	PlayerStateClass = ARiftPlayerState::StaticClass();
 	PlayerControllerClass = ARiftPlayerController::StaticClass();
-	HUDClass = ARiftHUD::StaticClass();
+	HUDClass = APickWindowHUD::StaticClass();
 }
 
 void APickWindowGameMode::BeginPlay()
@@ -38,16 +38,32 @@ bool APickWindowGameMode::TrySwitchTeam(APlayerController* PC, ETeam NewTeam)
 {
 	auto* PS = PC->GetPlayerState<ARiftPlayerState>();
 	if (!PS) { return false; }
-	if (PS->GetTeam() == NewTeam) { return false; }
-	if (CountTeam(NewTeam) >= MaxPerTeam) { return false; }
+	
+	if (PS->GetTeam() == NewTeam)
+	{
+		return false;
+	}
+	
+	if (CountTeam(NewTeam) >= MaxPerTeam)
+	{
+		return false;
+	}
 
 	PS->SetTeam(NewTeam);
+	
 	return true;
 }
 
 void APickWindowGameMode::TryStartGame(APlayerController* PC)
 {
 	if (!IsHost(PC)) { return; }
+
+	// 호스트가 Start 누르면 자동으로 Ready 처리
+	if (auto* PS = PC->GetPlayerState<ARiftPlayerState>())
+	{
+		PS->SetReady(true);
+	}
+
 	if (!AllPlayersReady()) { return; }
 
 	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_SummonerRift?listen"));

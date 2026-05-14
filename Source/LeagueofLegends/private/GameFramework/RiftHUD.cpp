@@ -6,10 +6,7 @@
 #include "GameFramework/RiftPlayerState.h"
 #include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
-#include "Manager/ChampionDataSubsystem.h"
 #include "Manager/ItemDataSubsystem.h"
-#include "UI/View/PickWindowWidget.h"
-#include "UI/ViewModel/PickWindowViewModel.h"
 #include "UI/View/MainHUDWidget.h"
 #include "UI/View/ShopWidget.h"
 #include "UI/View/SkillBarWidget.h"
@@ -17,34 +14,6 @@
 
 ARiftHUD::ARiftHUD()
 {
-}
-
-void ARiftHUD::BeginPlay()
-{
-	Super::BeginPlay();
-
-	FString MapName = GetWorld()->GetMapName();
-	MapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
-	if (!MapName.Equals(TEXT("Lv_PickWindow"), ESearchCase::IgnoreCase)) { return; }
-	if (!PickWindowClass) { return; }
-
-	APlayerController* PC = GetOwningPlayerController();
-	if (!PC) { return; }
-
-	auto* GS = GetWorld()->GetGameState<ARiftGameState>();
-	auto* PS = PC->GetPlayerState<ARiftPlayerState>();
-	auto* ChampSubsys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
-
-	UPickWindowViewModel* PickVM = NewObject<UPickWindowViewModel>(this);
-	PickVM->Setup(GS, PS, ChampSubsys);
-	PickVM->Initialize();
-
-	PickWindowWidget = CreateWidget<UPickWindowWidget>(PC, PickWindowClass);
-	if (PickWindowWidget)
-	{
-		PickWindowWidget->BindViewModel(PickVM);
-		PickWindowWidget->AddToViewport();
-	}
 }
 
 void ARiftHUD::InitHUD(ALoLChampion* Champion)

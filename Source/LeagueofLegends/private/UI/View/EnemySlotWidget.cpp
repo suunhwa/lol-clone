@@ -1,5 +1,6 @@
 #include "UI/View/EnemySlotWidget.h"
 
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
 
 void UEnemySlotWidget::SetSlotData(const FPlayerSlotViewData& Data)
@@ -50,15 +51,20 @@ void UEnemySlotWidget::ClearSlot()
 	{
 		txt_nick->SetText(FText::GetEmpty());
 	}
-	
+
 	if (txt_champ)
 	{
 		txt_champ->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	
+
 	if (txt_select)
 	{
 		txt_select->SetVisibility(ESlateVisibility::Visible);
 		txt_select->SetText(FText::FromString(TEXT("선택 중...")));
+	}
+
+	if (Img_ChampIcon)
+	{
+		Img_ChampIcon->SetVisibility(ESlateVisibility::Hidden);
 	}
 }

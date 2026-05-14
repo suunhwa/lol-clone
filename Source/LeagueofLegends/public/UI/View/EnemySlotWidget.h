@@ -6,6 +6,7 @@
 #include "EnemySlotWidget.generated.h"
 
 class UTextBlock;
+class UImage;
 
 UCLASS()
 class LEAGUEOFLEGENDS_API UEnemySlotWidget : public UUserWidget
@@ -26,4 +27,6 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> txt_select;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> Img_ChampIcon;
 };
