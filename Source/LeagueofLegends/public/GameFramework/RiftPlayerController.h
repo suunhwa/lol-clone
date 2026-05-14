@@ -23,6 +23,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void SeamlessTravelTo(APlayerController* NewPC) override;
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void AcknowledgePossession(APawn* P) override;
 	virtual void AutoManageActiveCameraTarget(AActor* SuggestedTarget) override;

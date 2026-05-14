@@ -131,7 +131,9 @@ public:
 	
 private:
 	bool bFindOrCreateMode = false;
-	bool bIsOperationPending = false;  // 세션 작업 중복 방지
+	bool bFindOrCreateFallback = false;
+	bool bIsOperationPending = false;
+	bool bPendingCreateAfterDestroy = false;  // 기존 세션 정리 후 재생성 대기
 	FString PendingNickname;
 	int32 PendingMaxPlayers = 10;
 

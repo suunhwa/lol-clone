@@ -8,4 +8,4 @@ start "Listen Server" %EDITOR% %PROJECT% %MAP%?listen -game -ResX=700 -ResY=580 
 
 timeout /t 5 /nobreak > nul
 
-start "Client" %EDITOR% %PROJECT% 127.0.0.1 -game -ResX=700 -ResY=580 -WinX=710 -WinY=0 -WINDOWED -log
+start "Client" %EDITOR% %PROJECT% %MAP%?listen -game -ResX=700 -ResY=580 -WinX=710 -WinY=0 -WINDOWED -log
