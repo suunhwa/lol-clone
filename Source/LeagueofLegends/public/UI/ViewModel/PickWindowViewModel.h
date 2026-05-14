@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/Texture2D.h"
 #include "UI/ViewModel/ViewModelBase.h"
 #include "Type/RiftTypes.h"
 #include "PickWindowViewModel.generated.h"
@@ -25,6 +26,16 @@ struct FPlayerSlotViewData
 	
 	UPROPERTY()
 	FName ChampionID = NAME_None;
+
+	UPROPERTY()
+	FName ChampionName_KR = NAME_None;
+
+	UPROPERTY()
+	TObjectPtr<UTexture2D> ChampPortrait = nullptr;
+
+	// 델리게이트 바인딩용
+	UPROPERTY()
+	TObjectPtr<ARiftPlayerState> PlayerState = nullptr;
 };
 
 USTRUCT()

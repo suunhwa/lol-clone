@@ -52,6 +52,22 @@ void ARiftPlayerController::BeginPlay()
 	// GridManager = Cast<AAStarGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AAStarGridManager::StaticClass()));
 }
 
+void ARiftPlayerController::SeamlessTravelTo(APlayerController* NewPC)
+{
+	Super::SeamlessTravelTo(NewPC);
+
+	// Seamless Travel 완료 후 닉네임 재전송 (BeginPlay는 재호출 안 되므로)
+	if (!IsLocalController()) { return; }
+
+	if (auto* GI = GetGameInstance<ULoLGameInstance>())
+	{
+		if (!GI->Nickname.IsEmpty())
+		{
+			ServerChangeName(GI->Nickname);
+		}
+	}
+}
+
 void ARiftPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);

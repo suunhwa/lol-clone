@@ -83,15 +83,13 @@ void USessionWidget::OnStartClicked()
 	auto* VM = Cast<USessionViewModel>(OwnerViewModel);
 	if (!VM)
 	{
-		PRINTLOG_SH(TEXT("[SessionWidget] OwnerViewModel이 NULL — BindViewModel 호출됐는지 확인"));
+		PRINTLOG_SH(TEXT("[SessionWidget] OwnerViewModel이 NULL"));
 		return;
 	}
 
 	FString Nickname;
 	if (ET_namespace)
-	{
 		Nickname = ET_namespace->GetText().ToString();
-	}
 
 	PRINTLOG_SH(TEXT("[SessionWidget] RequestFindOrCreate 호출, Nickname=%s"), *Nickname);
 	VM->RequestFindOrCreate(Nickname);
