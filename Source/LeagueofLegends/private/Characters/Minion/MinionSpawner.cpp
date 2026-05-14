@@ -19,9 +19,9 @@ void AMinionSpawner::BeginPlay()
     if (!HasAuthority()) return;
 
     // 롤 기준 첫 웨이브 1분 5초(65초) 시작, 이후 30초 간격
-    // 지금은 테스트용으로 5초에 시작, 10초 간격
+    // 지금은 테스트용으로 5초에 시작, 10초 간격 -- 제거
     GetWorldTimerManager().SetTimer(WaveTimerHandle, this, &AMinionSpawner::CheckAndSpawnWave, 
-        10.f, true, 5.f);
+        30.f, true, 65.f);
 }
 
 void AMinionSpawner::CheckAndSpawnWave()
