@@ -25,12 +25,12 @@ void AMinionSpawner::BeginPlay()
         if (InputComponent)
         {
             // N 키 바인딩
-            FInputKeyBinding& BindingN = InputComponent->BindKey(EKeys::N, IE_Pressed, this, &AMinionSpawner::OnPressNKey);
-            BindingN.bConsumeInput = false; // 중요: 입력을 소비하지 않음 (다른 스포너도 받을 수 있게)
+            FInputKeyBinding& Binding9 = InputComponent->BindKey(EKeys::Nine, IE_Pressed, this, &AMinionSpawner::OnPress9Key);
+            Binding9.bConsumeInput = false; // 중요: 입력을 소비하지 않음 (다른 스포너도 받을 수 있게)
 
             // M 키 바인딩
-            FInputKeyBinding& BindingM = InputComponent->BindKey(EKeys::M, IE_Pressed, this, &AMinionSpawner::OnPressMKey);
-            BindingM.bConsumeInput = false; // 중요: 입력을 소비하지 않음
+            FInputKeyBinding& Binding0 = InputComponent->BindKey(EKeys::Zero, IE_Pressed, this, &AMinionSpawner::OnPress0Key);
+            Binding0.bConsumeInput = false; // 중요: 입력을 소비하지 않음
         }
     }
     // ------------------------------------ 요기까지 삭제 -----------------------------
@@ -208,23 +208,23 @@ bool AMinionSpawner::IsWaveTimerActive() const
 }
 
 // 테스트 종료후 여기도 삭제 ------------------------------
-void AMinionSpawner::OnPressNKey()
+void AMinionSpawner::OnPress9Key()
 {
     StartWaveTimer();
     // 화면에 즉각적으로 피드백 표시 (선택 사항)
     if (GEngine)
     {
-        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("N Key Pressed: Wave Started"));
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("9 Key Pressed: Wave Started"));
     }
 }
 
 // M키 눌렀을 때 실행될 래퍼 함수
-void AMinionSpawner::OnPressMKey()
+void AMinionSpawner::OnPress0Key()
 {
     StopWaveTimer();
     if (GEngine)
     {
-        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("M Key Pressed: Wave Stopped"));
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("0 Key Pressed: Wave Stopped"));
     }
 }
 // ------------------- 여기까지 두 함수 삭제하면됨 헤더도 잊지말고 삭제

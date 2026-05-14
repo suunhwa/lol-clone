@@ -72,6 +72,6 @@ public:
 protected:
 
 	// 키 입력 바인딩을 위한 함수
-	void OnPressNKey();
-	void OnPressMKey();
+	void OnPress9Key();
+	void OnPress0Key();
 };
