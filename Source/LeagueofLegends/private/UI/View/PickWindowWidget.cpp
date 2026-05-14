@@ -99,13 +99,13 @@ void UPickWindowWidget::RefreshTeamSlots()
 	auto* VM = Cast<UPickWindowViewModel>(OwnerViewModel);
 	if (!VM) return;
 
-	// 내 팀 슬롯 채우기
-	if (VB_MyTeam)
+	// 블루팀 슬롯
+	if (VB_BlueTeam)
 	{
 		TArray<FPlayerSlotViewData> BlueData = VM->GetBlueTeamPlayers();
-		for (int32 i = 0; i < VB_MyTeam->GetChildrenCount(); i++)
+		for (int32 i = 0; i < VB_BlueTeam->GetChildrenCount(); i++)
 		{
-			if (auto* TeamSlot = Cast<UTeamSlotWidget>(VB_MyTeam->GetChildAt(i)))
+			if (auto* TeamSlot = Cast<UTeamSlotWidget>(VB_BlueTeam->GetChildAt(i)))
 			{
 				if (BlueData.IsValidIndex(i))
 					TeamSlot->SetSlotData(BlueData[i]);
@@ -115,13 +115,13 @@ void UPickWindowWidget::RefreshTeamSlots()
 		}
 	}
 
-	// 적 팀 슬롯 채우기
-	if (VB_EnemyTeam)
+	// 레드팀 슬롯
+	if (VB_RedTeam)
 	{
 		TArray<FPlayerSlotViewData> RedData = VM->GetRedTeamPlayers();
-		for (int32 i = 0; i < VB_EnemyTeam->GetChildrenCount(); i++)
+		for (int32 i = 0; i < VB_RedTeam->GetChildrenCount(); i++)
 		{
-			if (auto* EnemySlot = Cast<UEnemySlotWidget>(VB_EnemyTeam->GetChildAt(i)))
+			if (auto* EnemySlot = Cast<UEnemySlotWidget>(VB_RedTeam->GetChildAt(i)))
 			{
 				if (RedData.IsValidIndex(i))
 					EnemySlot->SetSlotData(RedData[i]);

@@ -46,7 +46,7 @@ private:
 	TObjectPtr<UVerticalBox> VB_MyTeam;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> VB_EnemyTeam;
+	TObjectPtr<UVerticalBox> VB_RedTeam;
 
 	// 챔피언 슬롯 WrapBox
 	UPROPERTY(meta = (BindWidget))

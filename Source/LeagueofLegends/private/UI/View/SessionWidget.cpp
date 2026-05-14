@@ -3,6 +3,7 @@
 
 #include "UI/View/SessionWidget.h"
 
+#include "LeagueofLegends.h"
 #include "Components/Button.h"
 #include "Components/CheckBox.h"
 #include "Components/EditableText.h"
@@ -77,8 +78,14 @@ void USessionWidget::NativeConstruct()
 
 void USessionWidget::OnStartClicked()
 {
+	PRINTLOG_SH(TEXT("[SessionWidget] Start 버튼 클릭됨"));
+
 	auto* VM = Cast<USessionViewModel>(OwnerViewModel);
-	if (!VM) { return; }
+	if (!VM)
+	{
+		PRINTLOG_SH(TEXT("[SessionWidget] OwnerViewModel이 NULL — BindViewModel 호출됐는지 확인"));
+		return;
+	}
 
 	FString Nickname;
 	if (ET_namespace)
@@ -86,6 +93,7 @@ void USessionWidget::OnStartClicked()
 		Nickname = ET_namespace->GetText().ToString();
 	}
 
+	PRINTLOG_SH(TEXT("[SessionWidget] RequestFindOrCreate 호출, Nickname=%s"), *Nickname);
 	VM->RequestFindOrCreate(Nickname);
 }
 

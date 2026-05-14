@@ -1,5 +1,6 @@
 #include "UI/ViewModel/SessionViewModel.h"
 
+#include "LeagueofLegends.h"
 #include "GameFramework/LoLGameInstance.h"
 #include "GameFramework/LoLSessionSubsystem.h"
 
@@ -35,9 +36,21 @@ void USessionViewModel::SetSelectedMode(EMatchMode InMode)
 
 void USessionViewModel::RequestFindOrCreate(const FString& Nickname, int32 MaxPlayers)
 {
-	if (!GameInstance || !SessionSubsystem) { return; }
+	if (!GameInstance)
+	{
+		PRINTLOG_SH(TEXT("[SessionVM] GameInstance NULL"));
+		return;
+	}
+	if (!SessionSubsystem)
+	{
+		PRINTLOG_SH(TEXT("[SessionVM] SessionSubsystem NULL"));
+		return;
+	}
 
 	GameInstance->Nickname = Nickname.IsEmpty() ? TEXT("Player") : Nickname;
+	
+	PRINTLOG_SH(TEXT("[SessionVM] FindOrCreateSession 호출"));
+	
 	SessionSubsystem->FindOrCreateSession(GameInstance->Nickname, MaxPlayers);
 
 	OnSessionStatusChanged.Broadcast(true, TEXT("Searching..."));
