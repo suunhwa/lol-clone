@@ -3,10 +3,14 @@
 #include "Characters/LoLChampion.h"
 #include "Components/InventoryComponent.h"
 #include "Components/Widget.h"
+#include "FOW/FOWManager.h"
+#include "FOW/FOWTileMap.h"
+#include "GameFramework/RiftGameState.h"
 #include "UI/View/SkillBarWidget.h"
 #include "UI/View/ChampionPortraitWidget.h"
 #include "UI/View/GameInfoBarWidget.h"
 #include "UI/View/InventoryWidget.h"
+#include "UI/View/MinimapWidget.h"
 #include "UI/View/PlayerStatsWidget.h"
 #include "UI/ViewModel/SkillBarViewModel.h"
 #include "UI/ViewModel/ChampionPortraitViewModel.h"
@@ -36,7 +40,7 @@ void UMainHUDWidget::InitHUD(ALoLChampion* Champion, ARiftPlayerState* PS, ARift
 		VM->Setup(PS, GS);
 		GameInfoBar->BindViewModel(VM);
 	}
-	
+
 	if (WBP_Inventory)
 	{
 		UInventoryViewModel* VM = NewObject<UInventoryViewModel>(this);
@@ -57,7 +61,25 @@ void UMainHUDWidget::InitHUD(ALoLChampion* Champion, ARiftPlayerState* PS, ARift
 	{
 		ChampionPortrait->OnStatsToggleRequested.AddUObject(this, &UMainHUDWidget::OnStatsToggleRequested);
 	}
-}
+
+	if (AFOWManager* FOW = GS->GetFOWManager())
+	{
+		AFOWTileMap* LocalTileMap = FOW->GetLocalTileMap();
+		
+		if (LocalTileMap)
+		{
+			WBP_Minimap->SetLocalTileMap(LocalTileMap);
+		}
+
+		FOW->OnFOWReady.AddLambda([this](UTexture2D* Tex)
+		{
+			if (WBP_Minimap && Tex)
+			{
+				WBP_Minimap->SetMinimapFOWTexture(Tex);
+			}
+		});
+	}
+ }
 
 void UMainHUDWidget::OnStatsToggleRequested()
 {

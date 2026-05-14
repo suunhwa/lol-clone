@@ -110,6 +110,7 @@ struct FRow
 	}
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnFOWReady, UTexture2D*);
 UCLASS()
 class LEAGUEOFLEGENDS_API AFOWManager : public AActor
 {
@@ -135,6 +136,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void UnregisterSightProvider(UObject* SightProvider);
+	
+	AFOWTileMap* GetLocalTileMap() const;
 
 private:
 	// 플레이어 위치를 원점으로 하는 시야 계산
@@ -174,6 +177,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sight|TileMap")
 	TObjectPtr<AFOWTileMap> BlueTileMap;
+	
+	FOnFOWReady OnFOWReady;
 
 private:
 	// TODO: Acter 캐싱 대신 interface로 변경 (ISightProvider)

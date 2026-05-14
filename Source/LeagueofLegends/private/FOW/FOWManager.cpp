@@ -75,6 +75,14 @@ void AFOWManager::BeginPlay()
 	// 현재 playerPawn을 TestActor로 할당
 	TestActor = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 #endif
+	
+	if (AFOWTileMap* LocalTileMap = GetLocalTileMap())
+	{
+		if (UTexture2D* Tex = LocalTileMap->GetFogTexture())
+		{
+			OnFOWReady.Broadcast(Tex);
+		}
+	}
 }
 
 void AFOWManager::Tick(float DeltaTime)
@@ -342,5 +350,14 @@ void AFOWManager::UpdateEnemyVisibility_Server(AFOWTileMap* TeamTileMap,
 		// 서버가 Replicated 변수에 기록 → OnRep으로 클라이언트 전파
 		SightProviderHelper::SetFOWVisibilityFlag(Obj, TeamTag, bIsVisible);
 	}
+}
+
+AFOWTileMap* AFOWManager::GetLocalTileMap() const
+{
+	if (LocalClientTeam == ERiftSightTag::Red)
+	{
+		return RedTileMap;
+	}
+	return BlueTileMap;
 }
 

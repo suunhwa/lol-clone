@@ -61,6 +61,8 @@ public:
 	{
 		return TileSize * MapSize / 2.f;
 	}
+	UTexture2D* GetFogTexture() const { return FogTexture; }
+	FVector GetWorldMin() const { return WorldMin; }
 #pragma endregion
 	
 #pragma region Utility
@@ -97,7 +99,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UTexture2D> SightDataTexture;
 	
-	static constexpr int32 MaxSightProviders = 128;
+	static constexpr int32 MaxSightProviders = 256;
 #pragma endregion
 	
 #pragma region PostProcess
