@@ -6,6 +6,7 @@
 
 ALobbyGameMode::ALobbyGameMode()
 {
+	bUseSeamlessTravel = true;
 	HUDClass = ALobbyHUD::StaticClass();
 	PlayerStateClass = ARiftPlayerState::StaticClass();
 	PlayerControllerClass = ARiftPlayerController::StaticClass();
