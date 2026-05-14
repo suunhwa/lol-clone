@@ -51,4 +51,27 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Spawner|State")
 	bool bIsInhibitorDestroyed = false;
 	
+	
+public:
+	// 웨이브 스폰을 즉시 시작 (기존 BeginPlay 로직을 이쪽으로 옮김)
+	UFUNCTION(BlueprintCallable, Category = "Spawner|Control")
+	void StartWaveTimer();
+
+	// 웨이브 스폰을 완전히 중지 (타이머 초기화)
+	UFUNCTION(BlueprintCallable, Category = "Spawner|Control")
+	void StopWaveTimer();
+
+	// 웨이브 스폰을 일시정지 또는 재개
+	UFUNCTION(BlueprintCallable, Category = "Spawner|Control")
+	void SetWavePaused(bool bPaused);
+
+	// 현재 타이머가 동작 중인지 확인
+	UFUNCTION(BlueprintPure, Category = "Spawner|Control")
+	bool IsWaveTimerActive() const;
+	
+protected:
+
+	// 키 입력 바인딩을 위한 함수
+	void OnPressNKey();
+	void OnPressMKey();
 };

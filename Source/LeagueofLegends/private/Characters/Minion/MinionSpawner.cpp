@@ -15,13 +15,33 @@ AMinionSpawner::AMinionSpawner()
 void AMinionSpawner::BeginPlay()
 {
     Super::BeginPlay();
+    
+    // 키 바인딩 --------------------------------------- 테스트 후 추후 삭제 ------------------------
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (PC)
+    {
+        this->EnableInput(PC);
 
-    if (!HasAuthority()) return;
+        if (InputComponent)
+        {
+            // N 키 바인딩
+            FInputKeyBinding& BindingN = InputComponent->BindKey(EKeys::N, IE_Pressed, this, &AMinionSpawner::OnPressNKey);
+            BindingN.bConsumeInput = false; // 중요: 입력을 소비하지 않음 (다른 스포너도 받을 수 있게)
 
-    // 롤 기준 첫 웨이브 1분 5초(65초) 시작, 이후 30초 간격
-    // 지금은 테스트용으로 5초에 시작, 10초 간격 -- 제거
-    GetWorldTimerManager().SetTimer(WaveTimerHandle, this, &AMinionSpawner::CheckAndSpawnWave, 
-        30.f, true, 65.f);
+            // M 키 바인딩
+            FInputKeyBinding& BindingM = InputComponent->BindKey(EKeys::M, IE_Pressed, this, &AMinionSpawner::OnPressMKey);
+            BindingM.bConsumeInput = false; // 중요: 입력을 소비하지 않음
+        }
+    }
+    // ------------------------------------ 요기까지 삭제 -----------------------------
+    
+    // 시작하자마자 스폰하고 싶으면 추후 StartWaveTimer) 호출
+    
+    /*if (HasAuthority())
+    {
+        StartWaveTimer();
+    }*/
+    
 }
 
 void AMinionSpawner::CheckAndSpawnWave()
@@ -156,3 +176,55 @@ TArray<int32> AMinionSpawner::ParseIDList(const FString& IDListString)
     }
     return Result;
 }
+
+void AMinionSpawner::StartWaveTimer()
+{
+    if (!HasAuthority()) return;
+
+    // 롤 기준 첫 웨이브 1분 5초(65초) 시작, 이후 30초 간격
+    // 지금은 테스트용으로 5초에 시작, 10초 간격 --> 나중에 꼭 바꿀것. 30, true, 65로
+    GetWorldTimerManager().SetTimer(WaveTimerHandle, this, &AMinionSpawner::CheckAndSpawnWave, 
+        10.f, true, 5.f);
+    PRINTLOG_HJ(TEXT("미니언 웨이브 생성이 시작되었습니다."));
+}
+
+void AMinionSpawner::StopWaveTimer()
+{
+    GetWorldTimerManager().ClearTimer(WaveTimerHandle);
+    PRINTLOG_HJ(TEXT("미니언 웨이브 생성이 완전히 중지되었습니다."));
+}
+
+void AMinionSpawner::SetWavePaused(bool bPaused)
+{
+    if (bPaused)
+        GetWorldTimerManager().PauseTimer(WaveTimerHandle);
+    else
+        GetWorldTimerManager().UnPauseTimer(WaveTimerHandle);
+}
+
+bool AMinionSpawner::IsWaveTimerActive() const
+{
+    return GetWorldTimerManager().IsTimerActive(WaveTimerHandle);
+}
+
+// 테스트 종료후 여기도 삭제 ------------------------------
+void AMinionSpawner::OnPressNKey()
+{
+    StartWaveTimer();
+    // 화면에 즉각적으로 피드백 표시 (선택 사항)
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("N Key Pressed: Wave Started"));
+    }
+}
+
+// M키 눌렀을 때 실행될 래퍼 함수
+void AMinionSpawner::OnPressMKey()
+{
+    StopWaveTimer();
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("M Key Pressed: Wave Stopped"));
+    }
+}
+// ------------------- 여기까지 두 함수 삭제하면됨 헤더도 잊지말고 삭제
