@@ -157,8 +157,7 @@ void ALoLMinion::OnDeath(AActor* DamageInstigator)
             FOW->UnregisterSightProvider(this);
         }
     }
-        
-
+    
     Super::OnDeath(DamageInstigator);
 
     // 0.3초 후 소멸

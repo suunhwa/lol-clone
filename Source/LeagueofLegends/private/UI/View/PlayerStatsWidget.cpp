@@ -1,5 +1,6 @@
 #include "UI/View/PlayerStatsWidget.h"
 
+#include "Components/TextBlock.h"
 #include "UI/View/StatItemWidget.h"
 #include "UI/ViewModel/PlayerStatsViewModel.h"
 
@@ -17,13 +18,13 @@ void UPlayerStatsWidget::BindViewModel(UViewModelBase* InViewModel)
 void UPlayerStatsWidget::RefreshAllStats()
 {
 	if (!VM) { return; }
-
-	Stat_AD->UpdateValue(VM->GetAD());
-	Stat_AP->UpdateValue(VM->GetAP());
-	Stat_Armor->UpdateValue(VM->GetArmor());
-	Stat_MR->UpdateValue(VM->GetMR());
-	Stat_AS->UpdateValue(VM->GetAS());
-	Stat_AH->UpdateValue(VM->GetAH());
-	Stat_Crit->UpdateValue(VM->GetCrit());
-	Stat_MS->UpdateValue(VM->GetMS());
+	
+	Txt_StatAD->SetText(FText::FromString(FString::Printf(TEXT("%d"), static_cast<int32>(VM->GetAD()))));
+	Txt_StatAP->SetText(FText::FromString(FString::Printf(TEXT("%d"), static_cast<int32>(VM->GetAP()))));
+	Txt_StatArmor->SetText(FText::FromString(FString::Printf(TEXT("%d"), static_cast<int32>(VM->GetArmor()))));
+	Txt_StatMR->SetText(FText::FromString(FString::Printf(TEXT("%d"), static_cast<int32>(VM->GetMR()))));
+	Txt_StatAS->SetText(FText::FromString(FString::Printf(TEXT("%.2f"), VM->GetAS())));
+	Txt_StatAH->SetText(FText::FromString(FString::Printf(TEXT("%d"), static_cast<int32>(VM->GetAH()))));
+	Txt_StatCrit->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), static_cast<int32>(VM->GetCrit()) * 100)));
+	Txt_StatMS->SetText(FText::FromString(FString::Printf(TEXT("%d"), static_cast<int32>(VM->GetMS()))));
 }

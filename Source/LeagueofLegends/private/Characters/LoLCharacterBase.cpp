@@ -233,8 +233,8 @@ void ALoLCharacterBase::SetFOWVisibilityFlag_Implementation(ERiftSightTag Team, 
 	// 값이 바뀌었고, Host인 경우 수동 호출
 	if (OldFlags != FOWVisibilityFlags)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[FOW] %s | Team=%d bVisible=%d OldFlags=%d NewFlags=%d"),
-		   *GetName(), (int32)Team, bVisible, OldFlags, FOWVisibilityFlags);
+		// UE_LOG(LogTemp, Warning, TEXT("[FOW] %s | Team=%d bVisible=%d OldFlags=%d NewFlags=%d"),
+		//    *GetName(), (int32)Team, bVisible, OldFlags, FOWVisibilityFlags);
 		OnRep_FOWVisibility();
 	}
 }
@@ -274,8 +274,8 @@ void ALoLCharacterBase::OnRep_FOWVisibility()
 		bVisibleToMe = (FOWVisibilityFlags & 0x02) != 0;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[FOW OnRep] %s | MyTeam=%d EnemyTeam=%d Flags=%d Hidden=%d"),
-	   *GetName(), (int32)LocalClientTeam, (int32)TagComp->GetSightTag(), FOWVisibilityFlags, !bVisibleToMe);
+	// UE_LOG(LogTemp, Warning, TEXT("[FOW OnRep] %s | MyTeam=%d EnemyTeam=%d Flags=%d Hidden=%d"),
+	//    *GetName(), (int32)LocalClientTeam, (int32)TagComp->GetSightTag(), FOWVisibilityFlags, !bVisibleToMe);
 	
 	SetActorHiddenInGame(!bVisibleToMe);
 }
