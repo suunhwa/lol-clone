@@ -25,10 +25,11 @@ public class LeagueofLegends : ModuleRules
 			"DeveloperSettings",
 			"OnlineSubsystem",
 			"OnlineSubsystemSteam",
+			"Niagara",
 			"OnlineSubsystemUtils"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Niagara", "Niagara", "Niagara", "Niagara" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

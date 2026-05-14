@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "LeagueofLegends.h" // ETeam 정의가 포함된 헤더
 #include "Type/RiftTypes.h"
+#include "NiagaraComponent.h"
+
 #include "Ranged_Projectile.generated.h"
 
 UCLASS()
