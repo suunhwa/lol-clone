@@ -8,6 +8,7 @@
 #include "Characters/LoLChampion.h"
 #include "Characters/LoLCharacterBase.h"
 #include "GameFramework/LoLCameraActor.h"
+#include "GameFramework/PickWindowGameMode.h"
 #include "GameFramework/RiftPlayerState.h"
 #include "GameFramework/RiftHUD.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
@@ -139,9 +140,9 @@ void ARiftPlayerController::Tick(float DeltaTime)
 // ----------------------------- Server -----------------------------------------
 void ARiftPlayerController::Server_SelectTeam_Implementation(ETeam Team)
 {
-	if (auto* PS = GetPlayerState<ARiftPlayerState>())
+	if (APickWindowGameMode* GM = GetWorld()->GetAuthGameMode<APickWindowGameMode>())
 	{
-		PS->SetTeam(Team);
+		GM->TrySwitchTeam(this, Team);
 	}
 }
 
@@ -164,16 +165,23 @@ void ARiftPlayerController::Server_SetReady_Implementation()
 void ARiftPlayerController::Server_StartChampionSelect_Implementation()
 {
 	if (!HasAuthority()) { return; }
-	if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+	
+	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_PickWindow?listen"));
+	
+	/*if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
 	{
 		GS->SetPhase(EGamePhase::ChampionSelect);
-	}
+	}*/
 }
 
 void ARiftPlayerController::Server_StartGame_Implementation()
 {
 	if (!HasAuthority()) { return; }
-	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_SummonerRift?listen"));
+	
+	if (APickWindowGameMode* PGM = GetWorld()->GetAuthGameMode<APickWindowGameMode>())
+	{
+		PGM->TryStartGame(this);
+	}
 }
 
 

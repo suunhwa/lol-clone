@@ -26,7 +26,7 @@ void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 	if (!PS) return;
 
 	PRINTLOG_SH(TEXT("Player joined game. Team: %s"),
-		PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+	            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
 
 	TryStartGame();
 }
@@ -53,7 +53,7 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	{
 		return Super::ChoosePlayerStart_Implementation(Player);
 	}
-	
+
 	// 팀 None일 때 블루/레드 교대 배정
 	if (PS->GetTeam() == ETeam::None)
 	{
@@ -66,7 +66,7 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 			}
 		PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
 	}
-	
+
 	FName Tag = (PS->GetTeam() == ETeam::Blue) ? FName("BlueTeam") : FName("RedTeam");
 
 	TArray<APlayerStart*> ValidStarts;
@@ -76,15 +76,14 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 		{
 			ValidStarts.Add(*It);
 		}
-        			
 	}
-		
+
 
 	if (ValidStarts.IsEmpty())
 	{
 		return Super::ChoosePlayerStart_Implementation(Player);
 	}
-	
+
 	return ValidStarts[FMath::RandRange(0, ValidStarts.Num() - 1)];
 }
 
@@ -110,7 +109,7 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState*
 void ARiftGameMode::TryStartGame()
 {
 	int32 Blue = 0, Red = 0;
-	
+
 	for (APlayerState* PS : GameState->PlayerArray)
 	{
 		if (auto* RPS = Cast<ARiftPlayerState>(PS))
@@ -125,7 +124,7 @@ void ARiftGameMode::TryStartGame()
 			}
 		}
 	}
-	
+
 	if (Blue >= PlayersPerTeam && Red >= PlayersPerTeam)
 	{
 		StartGame();

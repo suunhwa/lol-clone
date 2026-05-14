@@ -17,6 +17,9 @@ class LEAGUEOFLEGENDS_API ALobbyHUD : public AHUD
 {
 	GENERATED_BODY()
 	
+public:
+	ALobbyHUD();
+	
 protected:
 	virtual void BeginPlay() override;
 

@@ -82,8 +82,6 @@ public:
 	UFUNCTION()
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 
-	void GameToStart();
-
 public:
 	// 방 검색
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
@@ -114,6 +112,8 @@ public:
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
 	void ExitRoom();
+	
+	void QuitSession();
 
 	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
 
@@ -131,6 +131,7 @@ public:
 	
 private:
 	bool bFindOrCreateMode = false;
+	bool bIsOperationPending = false;  // 세션 작업 중복 방지
 	FString PendingNickname;
 	int32 PendingMaxPlayers = 10;
 

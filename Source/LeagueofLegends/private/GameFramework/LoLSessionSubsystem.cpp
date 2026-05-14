@@ -87,21 +87,24 @@ void ULoLSessionSubsystem::CreateSession(FString RoomName, int32 MaxPlayer)
 
 void ULoLSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
+	bIsOperationPending = false;
 	PRINTLOG_SH(TEXT("Session Name : %s, bWasSuccessful : %d"), *MySessionName, bWasSuccessful);
 	if (bWasSuccessful)
 	{
-		UGameplayStatics::OpenLevel(GetWorld(), FName(TEXT("/Game/Maps/Lv_PickWindow")), true, TEXT("listen?port=7777"));
+		UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Lv_PickWindow"), true, TEXT("listen?port=7777"));
 	}
 	OnCreateSessionResult.Broadcast(bWasSuccessful);
 }
 
-void ULoLSessionSubsystem::GameToStart()
-{
-	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_SummonerRift?listen?port=7777"));
-}
-
 void ULoLSessionSubsystem::FindOrCreateSession(FString InNickname, int32 MaxPlayers)
 {
+	if (bIsOperationPending)
+	{
+		PRINTLOG_SH(TEXT("FindOrCreateSession: 이미 작업 중, 무시"));
+		return;
+	}
+
+	bIsOperationPending = true;
 	bFindOrCreateMode = true;
 	PendingNickname = InNickname;
 	PendingMaxPlayers = MaxPlayers;
@@ -131,6 +134,7 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 	// 찾기 실패 시
 	if (bWasSuccessful == false)
 	{
+		bIsOperationPending = false;
 		PRINTLOG_SH(TEXT("*** Session search failed"));
 		OnFindSessionsDone.Broadcast(false);
 		return;
@@ -224,9 +228,15 @@ void ULoLSessionSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 		FString url;
 		SessionInterface->GetResolvedConnectString(SessionName, url);
 
-		PRINTLOG_SH(TEXT("Join URL : %s"), *url);
+		// NULL subsystem이 LAN 세션의 포트를 0으로 반환하는 경우 기본 포트로 교정
+		if (url.EndsWith(TEXT(":0")))
+		{
+			url = url.LeftChop(2) + TEXT(":7777");
+		}
 
-		if (url.IsEmpty() == false)
+		PRINTLOG_SH(TEXT("Join URL (fixed) : %s"), *url);
+
+		if (!url.IsEmpty())
 		{
 			pc->ClientTravel(url, ETravelType::TRAVEL_Absolute);
 		}
@@ -237,6 +247,7 @@ void ULoLSessionSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 		// ETravelType::TRAVEL_Relative;
 	}
 	
+	bIsOperationPending = false;
 	OnJoinSessionResult.Broadcast(Result == EOnJoinSessionCompleteResult::Success);
 }
 
@@ -245,11 +256,38 @@ void ULoLSessionSubsystem::ExitRoom()
 	SessionInterface->DestroySession(FName(*MySessionName));
 }
 
+void ULoLSessionSubsystem::QuitSession()
+{
+	if (GetWorld()->GetNetMode() == NM_ListenServer)
+	{
+		// 호스트: 세션 파괴 → OnDestroySessionComplete에서 ServerTravel
+		ExitRoom();
+	}
+	else
+	{
+		// 클라이언트: 세션 소유자가 아니므로 파괴 없이 바로 이동
+		if (auto* PC = GetWorld()->GetFirstPlayerController())
+		{
+			PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), ETravelType::TRAVEL_Absolute);
+		}
+	}
+}
+
 void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
-	auto* pc = GetWorld()->GetFirstPlayerController();
-	FString url = TEXT("/Game/Maps/Lv_Lobby");
-	pc->ClientTravel(url, TRAVEL_Absolute);
+	if (GetWorld()->GetNetMode() == NM_ListenServer)
+	{
+		// 호스트: ServerTravel → 모든 클라이언트 자동 연결 해제 후 함께 Lv_Lobby로
+		GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_Lobby?listen"));
+	}
+	else
+	{
+		// 클라이언트: 로컬에서만 Lv_Lobby로 이동
+		if (auto* PC = GetWorld()->GetFirstPlayerController())
+		{
+			PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), TRAVEL_Absolute);
+		}
+	}
 }
 
 void ULoLSessionSubsystem::OnNetworkFailure(UWorld* World,

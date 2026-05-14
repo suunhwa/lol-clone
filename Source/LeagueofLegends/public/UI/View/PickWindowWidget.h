@@ -38,15 +38,19 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> btn_Ready;
 	
+	// 서버: 세션 종료 후 Lobby로 돌아감, 클라이언트: 세션에서 나가고 Lobby로 돌아감.
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> btn_quit;
+	
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> txt_ready_label;
 
 	// 팀 슬롯 컨테이너
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> VB_MyTeam;
+	TObjectPtr<UVerticalBox> VB_BlueTeam;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> VB_EnemyTeam;
+	TObjectPtr<UVerticalBox> VB_RedTeam;
 
 	// 챔피언 슬롯 WrapBox
 	UPROPERTY(meta = (BindWidget))
@@ -63,6 +67,9 @@ private:
 	
 	UFUNCTION() 
 	void OnReadyOrStart();
+	
+	UFUNCTION()
+	void OnQuit();
 
 	void OnPickWindowUpdated();
 	void OnChampionListReady(const TArray<FChampSlotViewData>& ChampList);
