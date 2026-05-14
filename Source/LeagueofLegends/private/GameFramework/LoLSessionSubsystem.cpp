@@ -89,10 +89,7 @@ void ULoLSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasS
 {
 	bIsOperationPending = false;
 	PRINTLOG_SH(TEXT("Session Name : %s, bWasSuccessful : %d"), *MySessionName, bWasSuccessful);
-	if (bWasSuccessful)
-	{
-		UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Lv_PickWindow"), true, TEXT("listen?port=7777"));
-	}
+	// 세션 생성 후 Lv_Lobby에서 대기 — 클라이언트가 찾아서 접속하면 서버가 PickWindow로 이동
 	OnCreateSessionResult.Broadcast(bWasSuccessful);
 }
 
