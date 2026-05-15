@@ -1,5 +1,6 @@
 #include "AStar/AStarGridManager.h"
 #include "DrawDebugHelpers.h"
+#include "LeagueofLegends.h"
 
 AAStarGridManager::AAStarGridManager() { PrimaryActorTick.bCanEverTick = false; }
 
@@ -151,4 +152,58 @@ TArray<FIntPoint> AAStarGridManager::GetNeighbors(FIntPoint CurrentIdx)
         }
     }
     return Neighbors;
+}
+
+// 1. 액터(애니비아 벽 등)의 박스 범위를 이용한 동적 갱신
+void AAStarGridManager::UpdateArea(AActor* TargetActor, bool bIsWalkable)
+{
+    if (!TargetActor) return;
+
+    // 액터의 크기(Bounding Box) 가져오기
+    FVector Origin, Extent;
+    TargetActor->GetActorBounds(false, Origin, Extent);
+
+    FIntPoint MinIdx = WorldToGrid(Origin - Extent);
+    FIntPoint MaxIdx = WorldToGrid(Origin + Extent);
+
+    // 액터가 차지하는 영역의 그리드만 순회
+    for (int32 x = MinIdx.X; x <= MaxIdx.X; ++x)
+    {
+        for (int32 y = MinIdx.Y; y <= MaxIdx.Y; ++y)
+        {
+            FIntPoint TargetIdx(x, y);
+            if (GridMap.Contains(TargetIdx))
+            {
+                GridMap[TargetIdx].bIsWalkable = bIsWalkable;
+                
+                // [디버그] 제대로 바뀌는지 확인용 (빨간색: 벽, 초록색: 길)
+                // DrawDebugBox(GetWorld(), GridMap[TargetIdx].WorldLocation, FVector(GridSize/2.1f, GridSize/2.1f, 10.0f), bIsWalkable ? FColor::Green : FColor::Red, false, 2.0f);
+            }
+        }
+    }
+    
+    PRINTLOG_HJ(TEXT("Grid Area Updated for Actor: %s, Walkable: %s"), *TargetActor->GetName(), bIsWalkable ? TEXT("True") : TEXT("False"));
+}
+
+// 2. 자르반 궁 같은 원형 범위를 위한 갱신
+void AAStarGridManager::UpdateAreaByRadius(FVector Center, float Radius, bool bIsWalkable)
+{
+    FIntPoint MinIdx = WorldToGrid(Center - FVector(Radius));
+    FIntPoint MaxIdx = WorldToGrid(Center + FVector(Radius));
+
+    for (int32 x = MinIdx.X; x <= MaxIdx.X; ++x)
+    {
+        for (int32 y = MinIdx.Y; y <= MaxIdx.Y; ++y)
+        {
+            FIntPoint TargetIdx(x, y);
+            if (GridMap.Contains(TargetIdx))
+            {
+                float Dist = FVector::Dist(Center, GridMap[TargetIdx].WorldLocation);
+                if (Dist <= Radius)
+                {
+                    GridMap[TargetIdx].bIsWalkable = bIsWalkable;
+                }
+            }
+        }
+    }
 }
