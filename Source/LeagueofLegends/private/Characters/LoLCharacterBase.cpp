@@ -419,7 +419,30 @@ void ALoLCharacterBase::RefreshHUDDisplay()
 void ALoLCharacterBase::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-	// PlayerState가 클라이언트에 복제됐을 때 닉네임·팀 색상 갱신
+
+	if (ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		// 클라이언트: TagComp 팀 동기화 (서버는 PossessedBy에서 처리)
+		if (TagComp && PS->GetTeam() != ETeam::None)
+		{
+			TagComp->SetTeam(PS->GetTeam());
+		}
+
+		// BeginPlay 시점에 PS가 null이어서 구독 못 한 경우 여기서 보완
+		if (HPBarWidgetComp)
+		{
+			if (UPlayerHUDWidget* HUDWidget = Cast<UPlayerHUDWidget>(HPBarWidgetComp->GetWidget()))
+			{
+				TWeakObjectPtr<UPlayerHUDWidget> WeakHUD(HUDWidget);
+				PS->OnNameChanged.AddWeakLambda(this, [WeakHUD](const FString& Name)
+				{
+					if (WeakHUD.IsValid())
+						WeakHUD->SetNickName(Name);
+				});
+			}
+		}
+	}
+
 	RefreshHUDDisplay();
 }
 

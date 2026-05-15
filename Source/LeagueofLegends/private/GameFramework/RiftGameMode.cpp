@@ -166,9 +166,36 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 		return Super::ChoosePlayerStart_Implementation(Player);
 	}
 
+	// Seamless Travel은 PostLogin보다 먼저 ChoosePlayerStart를 호출하므로
+	// 팀/슬롯이 미배정이면 여기서 즉시 배정
+	if (PS->GetTeam() == ETeam::None)
+	{
+		int32 Blue = 0, Red = 0;
+		for (APlayerState* OtherPS : GameState->PlayerArray)
+		{
+			if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+			{
+				if (RPS != PS)
+				{
+					if (RPS->GetTeam() == ETeam::Blue) Blue++;
+					else if (RPS->GetTeam() == ETeam::Red) Red++;
+				}
+			}
+		}
+		PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
+		PRINTLOG_SH(TEXT("[ChoosePlayerStart] Team 즉시 배정 → %s"),
+		            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+	}
+
+	if (PS->GetTeamSlotIndex() == INDEX_NONE)
+	{
+		AssignTeamSlot(PS);
+		PRINTLOG_SH(TEXT("[ChoosePlayerStart] Slot 즉시 배정 → %d"), PS->GetTeamSlotIndex());
+	}
+
 	const bool bBlue = (PS->GetTeam() == ETeam::Blue);
 
-	// Seamless Travel 시 PostLogin이 BeginPlay보다 먼저 호출될 수 있음 → 즉시 수집
+	// 스폰 배열 비어있으면 즉시 수집
 	if (BlueSpawns.IsEmpty() && RedSpawns.IsEmpty())
 	{
 		PRINTLOG_SH(TEXT("[ChoosePlayerStart] 스폰 배열 비어있음 — 즉시 재수집"));
