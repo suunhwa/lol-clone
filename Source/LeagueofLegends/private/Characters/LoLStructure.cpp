@@ -13,6 +13,7 @@
 #include "UI/View/HPBarWidget.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "Components/DecalComponent.h"
 
 
 ALoLStructure::ALoLStructure()
@@ -37,6 +38,16 @@ ALoLStructure::ALoLStructure()
     HPBarWidgetComp->SetupAttachment(RootComponent);
     HPBarWidgetComp->SetWidgetSpace(EWidgetSpace::Screen); 
     HPBarWidgetComp->SetDrawAtDesiredSize(true);
+    
+    // 데칼 컴포넌트 생성
+    RangeIndicatorDecal = CreateDefaultSubobject<UDecalComponent>(TEXT("RangeIndicatorDecal"));
+    RangeIndicatorDecal->SetupAttachment(RootComponent);
+    
+    // 롤 사거리 1200 기준 세팅 (X: 투사 깊이, YZ: 반지름)
+    RangeIndicatorDecal->DecalSize = FVector(200.0f, 1200.0f, 1200.0f);
+    RangeIndicatorDecal->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f)); // 바닥 방향
+    RangeIndicatorDecal->SetVisibility(false); // 처음엔 숨김
+    
 }
 
 ERiftSightTag ALoLStructure::GetSightTag_Implementation() const
@@ -97,6 +108,9 @@ void ALoLStructure::BeginPlay()
     
     /*// 게임 시작 시 초기 상태 설정
     RefreshVulnerability();*/
+    
+    // 0.2초마다 플레이어 위치 체크 (성능을 위해 Tick 대신 타이머 사용)
+    GetWorldTimerManager().SetTimer(ProximityTimerHandle, this, &ALoLStructure::CheckPlayerProximity, 0.2f, true);
 }
 
 void ALoLStructure::InitializeStructureData()
@@ -219,9 +233,30 @@ void ALoLStructure::RefreshVulnerability()
     }
 }
 
+void ALoLStructure::CheckPlayerProximity()
+{
+    if (bIsDestroyed) return;
+
+    APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (!PlayerPawn) return;
+
+    // 사거리(1200)보다 조금 더 여유를 둔 범위(1500) 내에 있는지 확인
+    float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+    bool bShouldShow = (Distance <= 1500.0f);
+    
+    if (RangeIndicatorDecal && RangeIndicatorDecal->GetVisibleFlag() != bShouldShow)
+    {
+        RangeIndicatorDecal->SetVisibility(bShouldShow);
+    }
+}
+
 void ALoLStructure::OnDestroyed()
 {
     if (bIsDestroyed) return;
+    // 포탑 파괴 시 인디케이터 즉시 제거 및 타이머 중지
+    GetWorldTimerManager().ClearTimer(ProximityTimerHandle);
+    if (RangeIndicatorDecal) RangeIndicatorDecal->SetVisibility(false);
+    
     bIsDestroyed = true;
     
     // 1. UI 및 시야 정리
