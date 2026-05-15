@@ -24,10 +24,16 @@ void ARiftPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(ARiftPlayerState, TotalGold);
 	DOREPLIFETIME(ARiftPlayerState, ChampionLevel);
 	DOREPLIFETIME(ARiftPlayerState, XP);
+	DOREPLIFETIME(ARiftPlayerState, TeamSlotIndex);
 	DOREPLIFETIME(ARiftPlayerState, bIsDisconnected);
 	DOREPLIFETIME(ARiftPlayerState, bIsReady);
 	DOREPLIFETIME(ARiftPlayerState, SelectedChampionID);
 
+}
+
+void ARiftPlayerState::SetTeamSlotIndex(int32 InIndex)
+{
+	TeamSlotIndex = InIndex;
 }
 
 void ARiftPlayerState::SetTeam(ETeam InTeam)
@@ -137,11 +143,12 @@ void ARiftPlayerState::SetSelectedChampion(FName ChampionID)
 void ARiftPlayerState::SetReady(bool bReady)
 {
 	bIsReady = bReady;
+	OnReadyChanged.Broadcast(bReady);
 }
 
 void ARiftPlayerState::OnRep_IsReady()
 {
-	// UI 갱신은 BP에서 OnRep 델리게이트로 처리
+	OnReadyChanged.Broadcast(bIsReady);
 }
 
 void ARiftPlayerState::OnRep_Team()

@@ -6,6 +6,7 @@
 #include "RiftGameMode.generated.h"
 
 class ARiftPlayerState;
+class ALoLPlayerStart;
 
 UCLASS()
 class LEAGUEOFLEGENDS_API ARiftGameMode : public AGameModeBase
@@ -15,6 +16,7 @@ class LEAGUEOFLEGENDS_API ARiftGameMode : public AGameModeBase
 public:
 	ARiftGameMode();
 
+	virtual void BeginPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
@@ -42,6 +44,18 @@ private:
 	void StartGame();
 	void EndGame(ETeam WinningTeam);
 
+	// BeginPlay에서 맵의 ALoLPlayerStart를 팀별로 수집
+	void CollectSpawnPoints();
+	// 팀 내 빈 슬롯을 PlayerState에 배정
+	void AssignTeamSlot(ARiftPlayerState* PS);
+
 	UPROPERTY(EditDefaultsOnly, Category = "Game")
 	int32 PlayersPerTeam = 1;
+
+	// SlotIndex 순 정렬된 팀별 스폰 포인트
+	UPROPERTY()
+	TArray<TObjectPtr<ALoLPlayerStart>> BlueSpawns;
+
+	UPROPERTY()
+	TArray<TObjectPtr<ALoLPlayerStart>> RedSpawns;
 };

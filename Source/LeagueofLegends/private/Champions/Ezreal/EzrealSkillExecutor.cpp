@@ -37,13 +37,21 @@ UChampionDataSubsystem* UEzrealSkillExecutor::GetDataSub() const
 
 FName UEzrealSkillExecutor::GetChampionID() const
 {
-	if (!OwnerChampion || !OwnerChampion->GetChampionData()) { return NAME_None; }
+	if (!OwnerChampion || !OwnerChampion->GetChampionData())
+	{
+		return NAME_None;
+	}
+	
 	return OwnerChampion->GetChampionData()->ChampionID;
 }
 
 int32 UEzrealSkillExecutor::GetRank(ESkillSlot Slot) const
 {
-	if (!OwnerChampion || !OwnerChampion->SkillComp) { return 1; }
+	if (!OwnerChampion || !OwnerChampion->SkillComp)
+	{
+		return 1;
+	}
+	
 	return FMath::Max(1, OwnerChampion->SkillComp->GetRank(Slot));
 }
 

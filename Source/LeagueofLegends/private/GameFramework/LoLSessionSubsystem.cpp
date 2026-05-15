@@ -88,6 +88,11 @@ void ULoLSessionSubsystem::CreateSession(FString RoomName, int32 MaxPlayer)
 	                    StringBase64Encode(MySessionName),
 	                    EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
+	// 9. 고유 게임 식별자 — 내 세션만 검색되도록 필터용
+	sessionSettings.Set(FName("GAME_ID"),
+	                    FString("P1_LOL_V0.1"),
+	                    EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+
 	// netID
 	FUniqueNetIdPtr netID = GetWorld()->GetFirstLocalPlayerFromController()->GetUniqueNetIdForPlatformUser().
 	                                    GetUniqueNetId();
@@ -102,7 +107,7 @@ void ULoLSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasS
 	PRINTLOG_SH(TEXT("Session Name : %s, bWasSuccessful : %d"), *MySessionName, bWasSuccessful);
 	if (bWasSuccessful)
 	{
-		UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Lv_PickWindow"), true, TEXT("listen?port=7777"));
+		UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Lv_PickWindow"), true, TEXT("listen"));
 	}
 	OnCreateSessionResult.Broadcast(bWasSuccessful);
 }
@@ -137,8 +142,9 @@ void ULoLSessionSubsystem::FindOtherSessions()
 	// sharedptr 사용할 때 MakeShareable로 해줘야 함
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
 
-	// 1. 세션 검색 조건 설정
-	SessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
+	// 세션 생성 시 bUsesPresence=true, bUseLobbiesIfAvailable=true 이므로 PRESENCE로 검색
+	// SEARCH_LOBBIES 단독 사용 시 Steam 검색 실패 케이스 있음
+	SessionSearch->QuerySettings.Set(FName(TEXT("PRESENCESEARCH")), true, EOnlineComparisonOp::Equals);
 
 	// 2. LAN 여부
 	SessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == FName("NULL");
@@ -152,42 +158,67 @@ void ULoLSessionSubsystem::FindOtherSessions()
 
 void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 {
-	// 찾기 실패 시
-	if (bWasSuccessful == false)
+	const auto& Results = SessionSearch->SearchResults;
+
+	PRINTLOG_SH(TEXT("Find complete: Success=%d Results=%d"),
+	            bWasSuccessful,
+	            Results.Num());
+
+	// 실패 + 결과 0개 → 진짜 실패 (네트워크/Steam 오류)
+	if (!bWasSuccessful && Results.Num() == 0)
 	{
 		bIsOperationPending = false;
-		PRINTLOG_SH(TEXT("*** Session search failed"));
+		bFindOrCreateMode = false;
+		PRINTLOG_SH(TEXT("*** Session search failed and no results"));
 		OnFindSessionsDone.Broadcast(false);
 		return;
 	}
 
-	// session 검색 결과 배열
-	auto results = SessionSearch->SearchResults;
-	PRINTLOG_SH(TEXT("*** Search result count: %d"), results.Num());
+	// 실패여도 결과가 있으면 일단 검사 (Steam OSS 특성 — 결과 있는데 false 반환 케이스)
+	PRINTLOG_SH(TEXT("*** Search result count: %d"), Results.Num());
 
 	if (bFindOrCreateMode)
 	{
 		bFindOrCreateMode = false;
-		if (results.Num() > 0 && results[0].IsValid())
+
+		// 각 결과의 GAME_ID 출력 + 내 세션 필터링
+		int32 MatchIndex = -1;
+		for (int32 i = 0; i < Results.Num(); i++)
 		{
-			PRINTLOG_SH(TEXT("FindOrCreate: session found, auto-joining"));
-			bFindOrCreateFallback = true;  // 조인 실패 시 CreateSession으로 폴백
-			JoinSelectedSession(0);
+			if (!Results[i].IsValid()) { continue; }
+
+			FString GameID;
+			Results[i].Session.SessionSettings.Get(FName("GAME_ID"), GameID);
+			PRINTLOG_SH(TEXT("Result[%d] GameID=%s Owner=%s"),
+			            i,
+			            *GameID,
+			            *Results[i].Session.OwningUserName);
+
+			if (MatchIndex < 0 && GameID == TEXT("P1_LOL_V0.1"))
+			{
+				MatchIndex = i;
+			}
+		}
+
+		if (MatchIndex >= 0)
+		{
+			PRINTLOG_SH(TEXT("FindOrCreate: 내 세션 발견(Slot%d), 자동 조인"), MatchIndex);
+			bFindOrCreateFallback = true;
+			JoinSelectedSession(MatchIndex);
 		}
 		else
 		{
-			PRINTLOG_SH(TEXT("FindOrCreate: session not found, creating"));
+			PRINTLOG_SH(TEXT("FindOrCreate: 내 세션 없음 → 새 세션 생성"));
 			CreateSession(PendingNickname, PendingMaxPlayers);
 		}
-		
+
 		return;
 	}
-	
+
 	// 유효성 체크
-	// for (auto sr : results)
-	for (int i = 0; i < results.Num(); i++)
+	for (int i = 0; i < Results.Num(); i++)
 	{
-		auto sr = results[i];
+		auto sr = Results[i];
 		if (sr.IsValid() == false)
 		{
 			continue;
@@ -267,13 +298,11 @@ void ULoLSessionSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 	{
 		PRINTLOG_SH(TEXT("Join Session Failed : %d"), Result);
 
-		// 스테일 세션 조인 실패 → 내가 서버가 돼서 새 세션 생성
+		// Join 실패 → 새 세션 생성 금지 (클라가 서버가 되는 문제 방지)
 		if (bFindOrCreateFallback)
 		{
 			bFindOrCreateFallback = false;
-			PRINTLOG_SH(TEXT("Join Failed → fallback: CreateSession"));
-			CreateSession(PendingNickname, PendingMaxPlayers);
-			return;
+			PRINTLOG_SH(TEXT("Join Failed → fallback 제거됨, 실패 처리"));
 		}
 	}
 
@@ -364,4 +393,3 @@ FString ULoLSessionSubsystem::StringBase64Decode(const FString& Str)
 	std::string UTF8String(reinterpret_cast<char*>(ArrayData.GetData()), ArrayData.Num());
 	return UTF8_TO_TCHAR(UTF8String.c_str());
 }
-

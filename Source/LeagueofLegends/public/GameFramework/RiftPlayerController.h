@@ -90,10 +90,10 @@ public:
 	bool bCameraBoundsEnabled = false;
 
 	UPROPERTY(EditAnywhere, Category = "Camera|Bounds", meta = (EditCondition = "bCameraBoundsEnabled"))
-	FVector2D CameraBoundsMin = FVector2D(-5000.f, -5000.f);
+	FVector2D CameraBoundsMin = FVector2D(-6000.f, -6000.f);
 
 	UPROPERTY(EditAnywhere, Category = "Camera|Bounds", meta = (EditCondition = "bCameraBoundsEnabled"))
-	FVector2D CameraBoundsMax = FVector2D(5000.f, 5000.f);;
+	FVector2D CameraBoundsMax = FVector2D(6000.f, 6000.f);;
 
 	FVector TargetCameraLoc = FVector::ZeroVector;
 

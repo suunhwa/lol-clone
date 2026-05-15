@@ -69,6 +69,12 @@ void UPickWindowViewModel::RefreshFromGameState()
 			}
 
 			CachedPlayers.Add(Data);
+
+			// Ready 상태 변경 시 즉시 슬롯 갱신 (중복 구독 방지)
+			if (!RPS->OnReadyChanged.IsBoundToObject(this))
+			{
+				RPS->OnReadyChanged.AddUObject(this, &UPickWindowViewModel::OnPlayerReadyChanged);
+			}
 		}
 	}
 
@@ -106,4 +112,9 @@ bool UPickWindowViewModel::IsLocalPlayerHost() const
 	if (!GameState || !LocalPlayerState) { return false; }
 	if (GameState->PlayerArray.IsEmpty()) { return false; }
 	return GameState->PlayerArray[0] == LocalPlayerState;
+}
+
+bool UPickWindowViewModel::IsLocalPlayerReady() const
+{
+	return LocalPlayerState ? LocalPlayerState->GetIsReady() : false;
 }

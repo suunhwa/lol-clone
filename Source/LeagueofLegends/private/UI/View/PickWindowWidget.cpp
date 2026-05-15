@@ -1,5 +1,6 @@
 #include "UI/View/PickWindowWidget.h"
 
+#include "LeagueofLegends.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
@@ -45,6 +46,9 @@ void UPickWindowWidget::BindViewModel(UViewModelBase* InViewModel)
 	{
 		VM->OnPickWindowUpdated.AddUObject(this, &UPickWindowWidget::OnPickWindowUpdated);
 		VM->OnChampionListReady.AddUObject(this, &UPickWindowWidget::OnChampionListReady);
+		
+		// 즉시 초기 로드 — OnReadyChanged 구독도 여기서 설정됨
+		VM->RefreshFromGameState();
 	}
 
 	UpdateReadyButton();
@@ -155,6 +159,47 @@ void UPickWindowWidget::UpdateReadyButton()
 	auto* VM = Cast<UPickWindowViewModel>(OwnerViewModel);
 	if (!VM) { return; }
 
+	const bool bIsHost  = VM->IsLocalPlayerHost();
+	const bool bIsReady = VM->IsLocalPlayerReady();
+
+	if (bIsHost)
+	{
+		if (txt_ready_label)
+			txt_ready_label->SetText(FText::FromString(TEXT("Start Game")));
+		if (btn_Ready)
+			btn_Ready->SetIsEnabled(true);
+	}
+	else
+	{
+		if (bIsReady)
+		{
+			if (txt_ready_label)
+			{
+				txt_ready_label->SetText(FText::FromString(TEXT("Ready!")));
+			}
+			if (btn_Ready)
+			{
+				btn_Ready->SetIsEnabled(false); // 중복 클릭 방지
+			}
+				
+		}
+		else
+		{
+			if (txt_ready_label)
+			{
+				txt_ready_label->SetText(FText::FromString(TEXT("Ready")));
+			}
+				
+			if (btn_Ready)
+			{
+				btn_Ready->SetIsEnabled(true);
+			}
+		}
+	}
+	
+	/*auto* VM = Cast<UPickWindowViewModel>(OwnerViewModel);
+	if (!VM) { return; }
+
 	const bool bIsHost = VM->IsLocalPlayerHost();
 
 	// 호스트: "게임 시작" 버튼 활성 / 클라이언트: "준비 완료" 버튼, 게임 시작 불가
@@ -170,7 +215,7 @@ void UPickWindowWidget::UpdateReadyButton()
 				? FText::FromString(TEXT("Start Game"))
 				: FText::FromString(TEXT("Ready"))
 		);
-	}
+	}*/
 }
 
 void UPickWindowWidget::OnMoveBlueTeam()
@@ -191,17 +236,31 @@ void UPickWindowWidget::OnMoveRedTeam()
 
 void UPickWindowWidget::OnReadyOrStart()
 {
-	auto* PC = Cast<ARiftPlayerController>(GetOwningPlayer());
-	if (!PC) { return; }
+	PRINTLOG_SH(TEXT("[PickWindow] OnReadyOrStart 호출됨"));
 
-	auto* VM = Cast<UPickWindowViewModel>(OwnerViewModel);
-	if (VM && VM->IsLocalPlayerHost())
+	APlayerController* RawPC = GetOwningPlayer();
+	PRINTLOG_SH(TEXT("[PickWindow] GetOwningPlayer = %s"), *GetNameSafe(RawPC));
+
+	auto* PC = Cast<ARiftPlayerController>(RawPC);
+	if (!PC)
 	{
-		PC->Server_StartGame();
+		PRINTLOG_SH(TEXT("[PickWindow] ARiftPlayerController 캐스팅 실패"));
+		return;
 	}
 
+	auto* VM = Cast<UPickWindowViewModel>(OwnerViewModel);
+	const bool bIsHost = VM && VM->IsLocalPlayerHost();
+
+	PRINTLOG_SH(TEXT("[PickWindow] IsHost=%d"), bIsHost);
+
+	if (bIsHost)
+	{
+		PRINTLOG_SH(TEXT("[PickWindow] Server_StartGame 호출"));
+		PC->Server_StartGame();
+	}
 	else
 	{
+		PRINTLOG_SH(TEXT("[PickWindow] Server_SetReady 호출"));
 		PC->Server_SetReady();
 	}
 }

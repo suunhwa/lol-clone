@@ -1,5 +1,6 @@
 #include "GameFramework/PickWindowGameMode.h"
 
+#include "LeagueofLegends.h"
 #include "GameFramework/PickWindowHUD.h"
 #include "GameFramework/RiftGameState.h"
 #include "GameFramework/RiftPlayerController.h"
@@ -31,7 +32,13 @@ void APickWindowGameMode::PostLogin(APlayerController* NewPlayer)
 	auto* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
 	if (!PS) { return; }
 
-	PS->SetTeam(GetTeamWithFewerPlayers());
+	ETeam Assigned = GetTeamWithFewerPlayers();
+	PS->SetTeam(Assigned);
+
+	PRINTLOG_SH(TEXT("[PickWindow PostLogin] %s → Team:%s (Blue:%d Red:%d)"),
+		*PS->GetPlayerName(),
+		Assigned == ETeam::Blue ? TEXT("Blue") : TEXT("Red"),
+		CountTeam(ETeam::Blue), CountTeam(ETeam::Red));
 }
 
 bool APickWindowGameMode::TrySwitchTeam(APlayerController* PC, ETeam NewTeam)
