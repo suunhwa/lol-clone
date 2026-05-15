@@ -135,7 +135,10 @@ private:
 	bool bFindOrCreateMode = false;
 	bool bFindOrCreateFallback = false;
 	bool bIsOperationPending = false;
-	bool bPendingCreateAfterDestroy = false;  // 기존 세션 정리 후 재생성 대기
+	bool bPendingCreateAfterDestroy       = false;  // 기존 세션 정리 후 재생성 대기
+	bool bPendingFindOrCreateAfterDestroy = false;  // 기존 세션 정리 후 FindOrCreate 재시도
+	bool bPendingJoinAfterDestroy         = false;  // 기존 세션 정리 후 조인 대기
+	int32 PendingJoinIndex = -1;
 	FString PendingNickname;
 	int32 PendingMaxPlayers = 10;
 
