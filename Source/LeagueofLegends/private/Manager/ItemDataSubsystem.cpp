@@ -120,6 +120,19 @@ const FItemStatTypeRow* UItemDataSubsystem::GetStatTypeInfo(const FString& StatT
 		FName(*StatType), TEXT("GetStatTypeInfo"), false);
 }
 
+UItemDataAsset* UItemDataSubsystem::GetItemDataAssetByID(const int32 ItemID) const
+{
+	if (const TObjectPtr<UItemDataAsset>* Found = ItemAssetMap.Find(ItemID))
+	{
+		return Found->Get();
+	}
+	else
+	{
+		PRINTLOG_TK(TEXT("ItemDataAsset not found for ItemID: %d"), ItemID);
+		return nullptr;
+	}
+}
+
 void UItemDataSubsystem::LoadDataTables()
 {   
 	DT_ItemBase = LoadObject<UDataTable>(nullptr,

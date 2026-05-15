@@ -6,6 +6,7 @@
 #include "ViewModelBase.h"
 #include "ShopViewModel.generated.h"
 
+class UItemDataAsset;
 class UInventoryComponent;
 class UItemDataSubsystem;
 
@@ -39,6 +40,8 @@ public:
 	virtual void Reset() override;
 	
 	// const TArray<FItemProfileViewData>& GetShopItemViewData() const { return CachedViewData; }
+	
+	UItemDataAsset* GetItemDataAsset(int32 ItemID) const;
 
 	void SetInventoryComponent(UInventoryComponent* InInventoryComp) { InventoryComp = InInventoryComp; }
 	void SetItemDataSubsystem(UItemDataSubsystem* InItemSubsystem) { ItemSubsystem = InItemSubsystem; }

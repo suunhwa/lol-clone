@@ -30,6 +30,17 @@ void UShopViewModel::Reset()
 	Super::Reset();
 }
 
+UItemDataAsset* UShopViewModel::GetItemDataAsset(const int32 ItemID) const
+{
+	if (!ItemSubsystem)
+	{
+		PRINTLOG_TK(TEXT("Cannot get item data asset because ItemDataSubsystem is not set!"));
+		return nullptr;
+	}
+	
+	return ItemSubsystem->GetItemDataAssetByID(ItemID);
+}
+
 void UShopViewModel::RequestPurchase(int32 ItemID)
 {
 	if (InventoryComp)

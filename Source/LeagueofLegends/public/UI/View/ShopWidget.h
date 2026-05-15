@@ -6,12 +6,16 @@
 #include "WidgetViewBase.h"
 #include "ShopWidget.generated.h"
 
+class UDescStatWidget;
+class UVerticalBox;
+class UImage;
 class UCanvasPanel;
 struct FItemProfileViewData;
 class UItemProfileWidget;
 class UTextBlock;
 class UButton;
 class UWrapBox;
+class UItemDataAsset;
 /**
  * 
  */
@@ -31,7 +35,10 @@ public:
 	
 	void SetCanvasPanelHitTestInvisible();
 	
-private:	
+	void SetItemDescription(const UItemDataAsset* ItemData);
+	void ResetItemDescription();
+	
+private:
 	void PopulateItemList(const TArray<FItemProfileViewData>& ViewData);
 	void OnGoldUpdated(int32 NewGold);
 	
@@ -82,4 +89,56 @@ private:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Close;
+		
+	// ------------------- Description -------------------
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UDescStatWidget> DescStatWidgetClass;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UItemProfileWidget> WBP_Desc_ItemProfile;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Img_Desc_ItemIcon;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_Desc_ItemName;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_Desc_ItemPrice;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UVerticalBox> VBox_Desc_ItemStatList;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_Desc_ItemDescription;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

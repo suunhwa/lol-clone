@@ -7,6 +7,7 @@
 #include "Interfaces/SightProviderHelper.h"
 #include "FOW/FOWTileMap.h"
 #include "GameFramework/RiftGameState.h"
+#include "GameFramework/RiftPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 
 #define TEST 0
@@ -37,9 +38,16 @@ void AFOWManager::BeginPlay()
 		(int32)LocalClientTeam);
 
 	// TODO: LocalPlayer의 팀을 가져와 세팅
-	if (LocalClientTeam == ERiftSightTag::None)
+	if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
 	{
-		LocalClientTeam = ERiftSightTag::Red; // 임시로 Red 팀으로 설정
+		if (ARiftPlayerState* PS = LocalPC->GetPlayerState<ARiftPlayerState>())
+		{
+			if (PS->GetTeam() != ETeam::None)
+			{
+				LocalClientTeam = (PS->GetTeam() == ETeam::Blue)
+					? ERiftSightTag::Blue : ERiftSightTag::Red;
+			}
+		}
 	}
 	
 	if (FOWVolume)
@@ -360,4 +368,53 @@ AFOWTileMap* AFOWManager::GetLocalTileMap() const
 	}
 	return BlueTileMap;
 }
+
+void AFOWManager::SetLocalClientTeam(ERiftSightTag InTeam)
+{
+	if (LocalClientTeam == InTeam) { return; }
+
+	UE_LOG(LogTemp, Warning, TEXT("[FOWManager] SetLocalClientTeam %d → %d"), (int32)LocalClientTeam, (int32)InTeam);
+	LocalClientTeam = InTeam;
+
+	// 클라이언트: 이미 잘못된 팀으로 TileMap이 생성됐으므로 올바른 팀으로 재생성
+	if (!HasAuthority() && FOWVolume)
+	{
+		if (LocalClientTeam == ERiftSightTag::Red)
+		{
+			RedTileMap->Generate(FOWVolume);
+		}
+		
+		else
+		{
+			BlueTileMap->Generate(FOWVolume);
+		}
+		
+		if (AFOWTileMap* LocalTileMap = GetLocalTileMap())
+		{
+			if (UTexture2D* Tex = LocalTileMap->GetFogTexture())
+			{
+				OnFOWReady.Broadcast(Tex);
+			}
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
