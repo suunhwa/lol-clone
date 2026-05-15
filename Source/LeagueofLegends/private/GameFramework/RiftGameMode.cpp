@@ -108,6 +108,26 @@ void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 	ARiftPlayerState* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
 	if (!PS) { return; }
 
+	// Seamless Travel 실패(PIE 등)로 PlayerState 초기화된 경우 팀 재배정
+	if (PS->GetTeam() == ETeam::None)
+	{
+		int32 Blue = 0, Red = 0;
+		for (APlayerState* OtherPS : GameState->PlayerArray)
+		{
+			if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+			{
+				if (RPS != PS)
+				{
+					if (RPS->GetTeam() == ETeam::Blue) Blue++;
+					else if (RPS->GetTeam() == ETeam::Red) Red++;
+				}
+			}
+		}
+		PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
+		PRINTLOG_SH(TEXT("[PostLogin] Team 재배정 (SeamlessTravel 미작동) → %s"),
+			PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+	}
+
 	if (PS->GetTeamSlotIndex() == INDEX_NONE)
 	{
 		AssignTeamSlot(PS);
