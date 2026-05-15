@@ -426,6 +426,21 @@ void ALoLCharacterBase::OnRep_PlayerState()
 		if (TagComp && PS->GetTeam() != ETeam::None)
 		{
 			TagComp->SetTeam(PS->GetTeam());
+
+			// 로컬 플레이어면 FOWManager LocalClientTeam 갱신
+			AController* MyCtrl = GetController();
+			if (MyCtrl && MyCtrl->IsLocalController())
+			{
+				if (ARiftGameState* GS = GetWorld()->GetGameState<ARiftGameState>())
+				{
+					if (AFOWManager* FOWMgr = GS->GetFOWManager())
+					{
+						ERiftSightTag Tag = (PS->GetTeam() == ETeam::Blue)
+							? ERiftSightTag::Blue : ERiftSightTag::Red;
+						FOWMgr->SetLocalClientTeam(Tag);
+					}
+				}
+			}
 		}
 
 		// BeginPlay 시점에 PS가 null이어서 구독 못 한 경우 여기서 보완
