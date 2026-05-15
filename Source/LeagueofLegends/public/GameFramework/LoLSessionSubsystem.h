@@ -25,10 +25,10 @@ struct FLoLSessionInfo
 	FString MaxPlayer;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 PingSpeed;
+	int32 PingSpeed = 0;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 Index;
+	int32 Index = INDEX_NONE;
 
 	inline FString ToString()
 	{

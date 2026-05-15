@@ -82,7 +82,13 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 
 	ALoLChampion* Champion = Cast<ALoLChampion>(P);
 	OwnedChamp = Champion;
+	bCameraInitialized = false;
 	if (!Champion) { return; }
+
+	PRINTLOG_SH(TEXT("[AcknowledgePossession] 챔피언=%s 위치=(%.0f,%.0f,%.0f) CameraClass=%s"),
+		*GetNameSafe(Champion),
+		Champion->GetActorLocation().X, Champion->GetActorLocation().Y, Champion->GetActorLocation().Z,
+		*GetNameSafe(CameraActorClass));
 
 	if (ARiftHUD* HUD = GetHUD<ARiftHUD>())
 	{
@@ -100,7 +106,7 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 	TargetCameraLoc = CameraStartLoc;
 	SetViewTarget(CameraActor);
 
-	// 클라이언트에서 첫 위치 복제 전에 스폰될 수 있으므로 0.3초 후 교정
+	// 클라이언트에서 첫 위치 복제 전에 스폰될 수 있으므로 교정 (0.3s, 1.0s 두 번)
 	GetWorldTimerManager().SetTimer(CameraInitTimer, [this]()
 	{
 		if (CameraActor && OwnedChamp)
@@ -109,6 +115,16 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 			TargetCameraLoc = OwnedChamp->GetActorLocation();
 		}
 	}, 0.3f, false);
+
+	FTimerHandle CameraInitTimer2;
+	GetWorldTimerManager().SetTimer(CameraInitTimer2, [this]()
+	{
+		if (CameraActor && OwnedChamp)
+		{
+			CameraActor->SetActorLocation(OwnedChamp->GetActorLocation());
+			TargetCameraLoc = OwnedChamp->GetActorLocation();
+		}
+	}, 1.0f, false);
 }
 
 void ARiftPlayerController::AutoManageActiveCameraTarget(AActor* SuggestedTarget)
@@ -127,6 +143,18 @@ void ARiftPlayerController::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (!IsLocalController() || !CameraActor) { return; }
+
+	// 클라이언트: 챔피언 위치가 복제 완료되면 카메라 한 번 스냅
+	if (!bCameraInitialized && OwnedChamp)
+	{
+		FVector ChampLoc = OwnedChamp->GetActorLocation();
+		if (!ChampLoc.IsNearlyZero())
+		{
+			CameraActor->SetActorLocation(ChampLoc);
+			TargetCameraLoc = ChampLoc;
+			bCameraInitialized = true;
+		}
+	}
 
 	UpdateIndicator();
 
