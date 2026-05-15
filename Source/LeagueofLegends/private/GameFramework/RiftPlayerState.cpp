@@ -5,18 +5,18 @@
 #include "Manager/ChampionDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
-ARiftPlayerState::ARiftPlayerState()
+void ARiftPlayerState::PostInitializeComponents()
 {
-}
-
-void ARiftPlayerState::BeginPlay()
-{
-	Super::BeginPlay();
+	Super::PostInitializeComponents();
 	
 	if (bTeamDebug)
 	{
 		SetTeam(DebugTeam);
 	}
+}
+
+ARiftPlayerState::ARiftPlayerState()
+{
 }
 
 void ARiftPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

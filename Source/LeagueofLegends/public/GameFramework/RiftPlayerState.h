@@ -10,10 +10,13 @@ class LEAGUEOFLEGENDS_API ARiftPlayerState : public APlayerState
 {
 	GENERATED_BODY()
 
+protected:
+	virtual void PostInitializeComponents() override;
+	// virtual void BeginPlay() override;
+	
 public:
 	ARiftPlayerState();
 
-	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// 서버 전용 setter

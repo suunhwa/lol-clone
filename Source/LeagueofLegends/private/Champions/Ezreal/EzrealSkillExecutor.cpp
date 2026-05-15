@@ -488,7 +488,12 @@ void UEzrealSkillExecutor::FireESecondaryShot()
 		if (!Other || Other == OwnerChar) { continue; }
 
 		ALoLCharacterBase* OtherChar = Cast<ALoLCharacterBase>(Other);
-		if (!OtherChar || OtherChar->GetTeam() == OwnerChar->GetTeam() || !ITargetable::Execute_IsTargetable(OtherChar)) { continue; }
+		if (!OtherChar || 
+			ITargetable::Execute_GetTeam(OtherChar) == OwnerChar->GetTeam_Implementation() || 
+			!ITargetable::Execute_IsTargetable(OtherChar))
+		{
+			continue;
+		}
 
 		const float Dist = FVector::Dist(OwnerChar->GetActorLocation(), Other->GetActorLocation());
 		if (Dist < MinDist)
