@@ -41,6 +41,28 @@ UItemDataAsset* UShopViewModel::GetItemDataAsset(const int32 ItemID) const
 	return ItemSubsystem->GetItemDataAssetByID(ItemID);
 }
 
+UTexture2D* UShopViewModel::GetItemStatIcon(ELolStatType StatType) const
+{
+	if (!ItemSubsystem)
+	{
+		PRINTLOG_TK(TEXT("Cannot get item stat icon because ItemDataSubsystem is not set!"));
+		return nullptr;
+	}
+	
+	return ItemSubsystem->GetStatIcon(StatType);
+}
+
+FString UShopViewModel::GetStatNameKR(ELolStatType StatType) const
+{
+	if (!ItemSubsystem)
+	{
+		PRINTLOG_TK(TEXT("Cannot get stat name because ItemDataSubsystem is not set!"));
+		return FString("Unknown");
+	}
+	
+	return ItemSubsystem->GetStatNameKR(StatType);
+}
+
 void UShopViewModel::RequestPurchase(int32 ItemID)
 {
 	if (InventoryComp)

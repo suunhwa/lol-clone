@@ -112,4 +112,7 @@ struct FItemStatTypeRow : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|StatType")
 	FString Op;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|StatType")
+	FString Name_KR;
 };

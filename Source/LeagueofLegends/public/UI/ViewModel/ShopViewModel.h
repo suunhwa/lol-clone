@@ -6,6 +6,7 @@
 #include "ViewModelBase.h"
 #include "ShopViewModel.generated.h"
 
+enum class ELolStatType : uint8;
 class UItemDataAsset;
 class UInventoryComponent;
 class UItemDataSubsystem;
@@ -42,6 +43,8 @@ public:
 	// const TArray<FItemProfileViewData>& GetShopItemViewData() const { return CachedViewData; }
 	
 	UItemDataAsset* GetItemDataAsset(int32 ItemID) const;
+	UTexture2D* GetItemStatIcon(ELolStatType StatType) const;
+	FString GetStatNameKR(ELolStatType StatType) const;
 
 	void SetInventoryComponent(UInventoryComponent* InInventoryComp) { InventoryComp = InInventoryComp; }
 	void SetItemDataSubsystem(UItemDataSubsystem* InItemSubsystem) { ItemSubsystem = InItemSubsystem; }

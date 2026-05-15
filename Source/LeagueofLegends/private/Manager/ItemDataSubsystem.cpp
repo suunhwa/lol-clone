@@ -15,6 +15,7 @@ void UItemDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	LoadDataTables();
 	LoadRegistry();
 	LoadItemIcons();
+	LoadItemStatIcons();
 	BuildItemDataAssets();
 }
 
@@ -133,6 +134,35 @@ UItemDataAsset* UItemDataSubsystem::GetItemDataAssetByID(const int32 ItemID) con
 	}
 }
 
+UTexture2D* UItemDataSubsystem::GetStatIcon(ELolStatType StatType) const
+{
+	if (const TObjectPtr<UTexture2D>* Found = StatIconMap.Find(StatType))
+	{
+		return Found->Get();
+	}
+	else
+	{
+		PRINTLOG_TK(TEXT("Stat icon not found for StatType: %d"), static_cast<int32>(StatType));
+		return nullptr;
+	}
+}
+
+FString UItemDataSubsystem::GetStatNameKR(ELolStatType StatType) const
+{
+	const UEnum* EnumPtr = StaticEnum<ELolStatType>();
+	const FString StatTypeName = EnumPtr ? EnumPtr->GetNameStringByValue(static_cast<int64>(StatType)) : TEXT("");
+
+	if (const FItemStatTypeRow* Row = GetStatTypeInfo(StatTypeName))
+	{
+		return Row->Name_KR;
+	}
+	else
+	{
+		PRINTLOG_TK(TEXT("Stat type info not found for StatType: %s"), *StatTypeName);
+		return FString("Unknown");
+	}
+}
+
 void UItemDataSubsystem::LoadDataTables()
 {   
 	DT_ItemBase = LoadObject<UDataTable>(nullptr,
@@ -202,6 +232,36 @@ void UItemDataSubsystem::LoadItemIcons()
 	Library = nullptr;
 }
 
+void UItemDataSubsystem::LoadItemStatIcons()
+{
+	const UEnum* EnumPtr = StaticEnum<ELolStatType>();
+	if (!EnumPtr)
+	{
+		return;
+	}
+	
+	UTexture2D* FallbackTexture = LoadObject<UTexture2D>(nullptr,
+		TEXT("/Game/UI/Resources/PlayerStats/StatIcon_None.StatIcon_None"));
+
+	for (int32 i = 0; i < EnumPtr->NumEnums() - 1; i++) // -1은 MAX 제외
+	{
+		ELolStatType StatType = static_cast<ELolStatType>(EnumPtr->GetValueByIndex(i));
+		FString Name = EnumPtr->GetNameStringByIndex(i); // "HP", "AD" 등
+
+		FString Path = FString::Printf(
+			TEXT("/Game/UI/Resources/PlayerStats/StatIcon_%s.StatIcon_%s"),
+			*Name, *Name);
+
+		UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
+		if (!Texture)
+		{
+			PRINTLOG_TK(TEXT("StatIcon not found, using fallback: %s"), *Path);
+			Texture = FallbackTexture;
+		}
+		
+		StatIconMap.Add(StatType, Texture);
+	}
+}
 
 void UItemDataSubsystem::BuildItemDataAssets()
 {

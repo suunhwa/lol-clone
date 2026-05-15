@@ -82,3 +82,5 @@ struct FStatModifierHandle
 	bool IsValid() const { return ID != -1; }
 	bool operator==(const FStatModifierHandle& Other) const { return ID == Other.ID; }
 };
+
+

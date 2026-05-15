@@ -30,12 +30,15 @@ public:
 	const FItemStatTypeRow* GetStatTypeInfo(const FString& StatType) const;
 	TMap<int32, TObjectPtr<UItemDataAsset>> GetAllItemDataAssets() const { return ItemAssetMap; }
 	UItemDataAsset* GetItemDataAssetByID(const int32 ItemID) const;
+	UTexture2D* GetStatIcon(ELolStatType StatType) const;
+	FString GetStatNameKR(ELolStatType StatType) const;
 #pragma endregion
 	
 private:
 	void LoadDataTables();
 	void LoadRegistry();
 	void LoadItemIcons();
+	void LoadItemStatIcons();
 	
 	// RowData를 바탕으로 DataAsset 조립
 	void BuildItemDataAssets();
@@ -51,9 +54,14 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<UItemEffectRegistry> EffectRegistry;
-	
+
+#pragma region Load Texture2D by Path
 	UPROPERTY()
 	TMap<int32, TObjectPtr<UTexture2D>> IconMap;
+	
+	UPROPERTY()
+	TMap<ELolStatType, TObjectPtr<UTexture2D>> StatIconMap;
+#pragma endregion
 	
 	UPROPERTY()
 	TObjectPtr<UDataTable> DT_ItemBase;

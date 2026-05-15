@@ -24,6 +24,8 @@ void UShopWidget::NativeConstruct()
 	Btn_Close->OnClicked.AddDynamic(this, &UShopWidget::OnCloseClicked);
 	
 	SetCanvasPanelHitTestInvisible();
+	ResetItemDescription();
+	WBP_Desc_ItemProfile->BindItemButtonClick();
 }
 
 void UShopWidget::BindViewModel(UViewModelBase* InViewModel)
@@ -145,13 +147,20 @@ void UShopWidget::SetItemDescription(const UItemDataAsset* ItemData)
 	// WBP_Desc_ItemProfile
 	if (WBP_Desc_ItemProfile)
 	{
+		WBP_Desc_ItemProfile->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		
 		WBP_Desc_ItemProfile->SetItemProfile(ItemData->Icon, FString::FromInt(ItemData->Price), ItemData->ItemID);
+		WBP_Desc_ItemProfile->SetSelected(true);
 	}
 
 	// Img_Desc_ItemIcon
-	if (Img_Desc_ItemIcon && ItemData->Icon)
+	if (Img_Desc_ItemIcon)
 	{
-		Img_Desc_ItemIcon->SetBrushFromTexture(ItemData->Icon);
+		Img_Desc_ItemIcon->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		if (ItemData->Icon)
+		{
+			Img_Desc_ItemIcon->SetBrushFromTexture(ItemData->Icon);
+		}
 	}
 
 	// Txt_Desc_ItemName
@@ -170,17 +179,26 @@ void UShopWidget::SetItemDescription(const UItemDataAsset* ItemData)
 	if (VBox_Desc_ItemStatList && DescStatWidgetClass)
 	{
 		VBox_Desc_ItemStatList->ClearChildren();
-
+		
+		auto VM = Cast<UShopViewModel>(OwnerViewModel);
+		
 		for (const FStatModifier& Stat : ItemData->Stats)
 		{
 			UDescStatWidget* StatWidget = CreateWidget<UDescStatWidget>(GetOwningPlayer(), DescStatWidgetClass);
 			if (!StatWidget) continue;
 
 			const FString StatTypeName = UEnum::GetValueAsString(Stat.StatType);
-			StatWidget->SetStatName(FText::FromString(StatTypeName));
-			StatWidget->SetStatValue(FText::FromString(FString::Printf(TEXT("%.0f"), Stat.Value)));
+			auto StatName = VM->GetStatNameKR(Stat.StatType);
+			StatWidget->SetStatName(FText::FromString(StatName));
+
+			auto* StatIcon = VM->GetItemStatIcon(Stat.StatType);
+			StatWidget->SetStatIcon(StatIcon);
 			
-			// StatWidget->SetDescStatWidget(FText::FromString(StatTypeName))
+			
+			const FString StatValueStr = (Stat.Value < 1.f)
+				? FString::Printf(TEXT("%d%%"), static_cast<int32>(Stat.Value * 100.f))
+				: FString::FromInt(static_cast<int32>(Stat.Value));
+			StatWidget->SetStatValue(FText::FromString(StatValueStr));
 
 			VBox_Desc_ItemStatList->AddChild(StatWidget);
 		}
@@ -206,11 +224,13 @@ void UShopWidget::ResetItemDescription()
 {
 	if (WBP_Desc_ItemProfile)
 	{
+		WBP_Desc_ItemProfile->SetVisibility(ESlateVisibility::Hidden);
 		WBP_Desc_ItemProfile->SetItemProfile(nullptr, TEXT(""), INDEX_NONE);
 	}
 
 	if (Img_Desc_ItemIcon)
 	{
+		Img_Desc_ItemIcon->SetVisibility(ESlateVisibility::Hidden);
 		Img_Desc_ItemIcon->SetBrushFromTexture(nullptr);
 	}
 
