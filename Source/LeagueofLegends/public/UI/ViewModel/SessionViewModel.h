@@ -23,6 +23,8 @@ public:
 
 	void SetSelectedMode(EMatchMode InMode);
 	void RequestFindOrCreate(const FString& Nickname, int32 MaxPlayers = 10);
+	// Start 버튼용 — 검색 없이 즉시 방 생성 (레이스 컨디션 방지)
+	void RequestCreate(const FString& Nickname, int32 MaxPlayers = 10);
 
 	FOnSessionStatusChanged OnSessionStatusChanged;
 
