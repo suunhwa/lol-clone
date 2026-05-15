@@ -4,6 +4,8 @@
 
 #include "LeagueofLegends.h"
 #include "DrawDebugHelpers.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Champions/Projectile/ChampionSkillProjectile.h"
 #include "Engine/OverlapResult.h"
 #include "Characters/LoLCharacterBase.h"
@@ -11,6 +13,7 @@
 #include "Characters/Data/ChampionData.h"
 #include "Components/CooldownComponent.h"
 #include "Components/StatComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Manager/ChampionDataSubsystem.h"
 
 UEzrealSkillExecutor::UEzrealSkillExecutor()
@@ -120,14 +123,38 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("Ezreal.Q");
 
-	SpawnProjectile((TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-	                2000.f,
-	                1100.f,
-	                Ctx,
-	                false,
-	                true,
-	                TEXT("Socket_Q"));
+	AChampionSkillProjectile* Proj = SpawnProjectile((TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
+	                                                 2000.f,
+	                                                 1100.f,
+	                                                 Ctx,
+	                                                 false,
+	                                                 true,
+	                                                 TEXT("Socket_Q")
+	                                                 );
 
+	if (Proj && Q_MuzzleEffect)
+	{
+		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			Q_MuzzleEffect,
+			Proj->GetRootComponent(),
+			NAME_None,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget,
+			false); // bAutoDestroy = false, 발사체 수명에 맞춰 같이 사라짐
+		
+		if (NiagaraComp)
+		{
+			NiagaraComp->SetWorldScale3D(FVector(0.4f));
+		}
+	}
+	
+	if (Q_CastSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(), Q_CastSound, OwnerChar->GetActorLocation());
+	}
+	
 	/* TODO: 몽타주에 ExitRun/ExitIdle 섹션 추가 후 활성화
 	bool bMoving = OwnerChar->GetVelocity().SizeSquared2D() > 100.f;
 	FName ExitSection = bMoving ? TEXT("ExitRun") : TEXT("ExitIdle");
@@ -195,13 +222,35 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("Ezreal.W");
 
-	SpawnProjectile((TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-	                1600.f,
-	                1000.f,
-	                Ctx,
-	                true,
-	                false,
-	                TEXT("Socket_Q"));
+	AChampionSkillProjectile* WProj = SpawnProjectile(
+		(TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
+		1600.f,
+		1000.f,
+		Ctx,
+		true,
+		false,
+		TEXT("Socket_Q"));
+
+	if (WProj && W_MuzzleEffect)
+	{
+		if (UNiagaraComponent* WFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			W_MuzzleEffect,
+			WProj->GetRootComponent(),
+			NAME_None,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget,
+			false))
+		{
+			WFX->SetWorldScale3D(FVector(0.5f));
+		}
+	}
+
+	if (W_CastSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(), W_CastSound, OwnerChar->GetActorLocation());
+	}
 }
 
 // E
@@ -271,8 +320,35 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	const FVector CurLoc = OwnerChar->GetActorLocation();
 	const FVector Dir2D = (TargetLoc - CurLoc).GetSafeNormal2D();
 	const float Dist = FMath::Min(FVector::Dist2D(TargetLoc, CurLoc), BlinkRange);
+	const FVector ArriveLoc = CurLoc + Dir2D * Dist;
 
-	OwnerChar->TeleportTo(CurLoc + Dir2D * Dist, OwnerChar->GetActorRotation());
+	// 출발지 이펙트
+	if (E_DepartEffect)
+	{
+		if (UNiagaraComponent* DepartFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), E_DepartEffect, CurLoc, FRotator::ZeroRotator))
+		{
+			DepartFX->SetWorldScale3D(FVector(0.5f));
+		}
+	}
+
+	if (E_BlinkSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(), E_BlinkSound, CurLoc);
+	}
+
+	OwnerChar->TeleportTo(ArriveLoc, OwnerChar->GetActorRotation());
+
+	// 도착지 이펙트
+	if (E_ArriveEffect)
+	{
+		if (UNiagaraComponent* ArriveFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), E_ArriveEffect, ArriveLoc, FRotator::ZeroRotator))
+		{
+			ArriveFX->SetWorldScale3D(FVector(0.5f));
+		}
+	}
 
 	/* TODO: 몽타주에 ExitRun/ExitIdle 섹션 추가 후 활성화
 	bool bMoving = OwnerChar->GetVelocity().SizeSquared2D() > 100.f;
@@ -337,6 +413,12 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 
 	PRINTLOG_SH(TEXT("[R] Charge ─ 데미지:%.1f"), Ctx.RawDamage);
 
+	if (R_CastSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(), R_CastSound, OwnerChar->GetActorLocation());
+	}
+
 	// 애니메이션 차지 후 발사 (1초 딜레이)
 	FTimerHandle RTimer;
 	OwnerChar->GetWorldTimerManager().SetTimer(RTimer,
@@ -352,7 +434,24 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 			                                           true,
 			                                           false,
 			                                           TEXT("Socket_Q")))
-			                                           Proj->DebugTrailHalfWidth = 160.f;
+			                                           {
+			                                           	Proj->DebugTrailHalfWidth = 160.f;
+
+			                                           	if (R_MuzzleEffect)
+			                                           	{
+			                                           		if (UNiagaraComponent* RFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			                                           			R_MuzzleEffect,
+			                                           			Proj->GetRootComponent(),
+			                                           			NAME_None,
+			                                           			FVector::ZeroVector,
+			                                           			FRotator::ZeroRotator,
+			                                           			EAttachLocation::SnapToTarget,
+			                                           			false))
+			                                           		{
+			                                           			RFX->SetWorldScale3D(FVector(0.4f));
+			                                           		}
+			                                           	}
+			                                           }
 	                                           },
 	                                           1.0f,
 	                                           false);
@@ -381,7 +480,7 @@ void UEzrealSkillExecutor::FireESecondaryShot()
 		if (!Other || Other == OwnerChar) { continue; }
 
 		ALoLCharacterBase* OtherChar = Cast<ALoLCharacterBase>(Other);
-		if (!OtherChar || OtherChar->GetTeam() == OwnerChar->GetTeam() || !OtherChar->IsTargetable()) { continue; }
+		if (!OtherChar || OtherChar->GetTeam() == OwnerChar->GetTeam() || !ITargetable::Execute_IsTargetable(OtherChar)) { continue; }
 
 		const float Dist = FVector::Dist(OwnerChar->GetActorLocation(), Other->GetActorLocation());
 		if (Dist < MinDist)
