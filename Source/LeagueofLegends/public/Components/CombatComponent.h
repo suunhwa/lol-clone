@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Type/RiftTypes.h"
+#include "GameFramework/RiftPlayerState.h"
 #include "CombatComponent.generated.h"
+
 
 USTRUCT(BlueprintType)
 struct FDamageContext
@@ -44,7 +46,20 @@ public:
 	FOnDamageDealt OnDamageDealt;
 	FOnDamageReceived OnDamageReceived;
 	FOnDeath OnDeath;
+	
+	// 어시스트 추적 — 이 컴포넌트 소유자(피해자)를 공격한 플레이어 기록
+	void RegisterAttacker(ARiftPlayerState* Attacker);
+	TArray<ARiftPlayerState*> GetAssisters(ARiftPlayerState* Killer) const;
+	void ClearAssisters();
 
 private:
 	float CalculateFinalDamage(const FDamageContext& Ctx, AActor* Target) const;
+	
+	struct FAssistEntry
+	{
+		TWeakObjectPtr<ARiftPlayerState> Attacker;
+		float Timestamp = 0.f;
+	};
+	static constexpr float AssistWindowSeconds = 10.f;
+	TArray<FAssistEntry> RecentAttackers;
 };

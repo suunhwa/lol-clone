@@ -6,6 +6,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Struct/ChampionStatStruct.h"
 #include "Struct/ChampionSkillStruct.h"
+#include "Struct/ExpStruct.h"
 #include "ChampionDataSubsystem.generated.h"
 
 class ALoLCharacterBase;
@@ -32,14 +33,22 @@ public:
 	void ApplyStats(ALoLCharacterBase* Target, UChampionData* Data) const;
 
 	// --- 챔피언 스탯 Row 조회 ---
-	const FChampionBaseRow*   GetBaseRow(FName ChampionID)   const;
-	const FChampionStatRow*   GetStatRow(FName ChampionID)   const;
+	const FChampionBaseRow* GetBaseRow(FName ChampionID) const;
+	const FChampionStatRow* GetStatRow(FName ChampionID) const;
 	const FChampionGrowthRow* GetGrowthRow(FName ChampionID) const;
 
 	// --- 스킬 데이터 조회 ---
 	// SkillKey: "Q", "W", "E", "R"  /  Step: 스킬 랭크 (1~5)
 	const FDetailSkillStatsRow* GetSkillStats(FName ChampionID, const FString& SkillKey, int32 Step) const;
-	const FSkillMechanicsRow*   GetSkillMechanics(FName ChampionID, const FString& SkillKey) const;
+	const FSkillMechanicsRow* GetSkillMechanics(FName ChampionID, const FString& SkillKey) const;
+	
+	// --- 경험치 데이터 조회 ---
+	// Level: 현재 레벨 (1~17) → 해당 레벨에서 다음 레벨까지 필요 경험치
+	const FPlayerLevelExpRow* GetPlayerLevelExpRow(int32 Level) const;
+	// UnitType: DataTable Row Name (ex. "Minion", "Tower", "Nexus")
+	const FUnitRewardExpRow* GetUnitRewardRow(FName UnitType) const;
+	// EnemyLevel: 처치한 적 챔피언 레벨 (1~18)
+	const FChampionKillExpRow* GetChampionKillExpRow(int32 EnemyLevel) const;
 
 private:
 	template <typename T>
@@ -68,4 +77,14 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UDataTable> MechanicsTable;
+	
+	// 경험치 Datatable
+	UPROPERTY()
+	TObjectPtr<UDataTable> PlayerLevelExpTable;
+	
+	UPROPERTY()
+	TObjectPtr<UDataTable> UnitRewardTable;
+	
+	UPROPERTY()
+	TObjectPtr<UDataTable> ChampionKillTable;
 };

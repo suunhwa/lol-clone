@@ -21,4 +21,5 @@ public:
 protected:
 	// 전사 미니언만의 특별한 시작 로직이 필요할 경우 사용
 	virtual void BeginPlay() override;
+	
 };

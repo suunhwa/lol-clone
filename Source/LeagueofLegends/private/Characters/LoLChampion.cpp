@@ -267,7 +267,17 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 			ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator);
 			ARiftPlayerState* KillerPS = KillerChamp ? KillerChamp->GetPlayerState<ARiftPlayerState>() : nullptr;
 			ARiftPlayerState* VictimPS = GetPlayerState<ARiftPlayerState>();
-			GM->OnChampionKilled(KillerPS, VictimPS);
+			// GM->OnChampionKilled(KillerPS, VictimPS);
+			
+			// 사망 직전 10초 이내에 공격한 적 플레이어 수집
+			TArray<ARiftPlayerState*> Assisters;
+			if (CombatComp)
+			{
+				Assisters = CombatComp->GetAssisters(KillerPS);
+				CombatComp->ClearAssisters();
+			}
+
+			GM->OnChampionKilled(KillerPS, VictimPS, Assisters);
 		}
 	}
 

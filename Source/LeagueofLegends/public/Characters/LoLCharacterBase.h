@@ -101,9 +101,9 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UWidgetComponent> HPBarWidgetComp;
 
-	// TODO : 이거 없어져야 하는 값 같음.
+	/*// TODO : 이거 없어져야 하는 값 같음.
 	UPROPERTY(EditAnywhere, Category = "Team")
-	ETeam InitialTeam = ETeam::Blue;
+	ETeam InitialTeam = ETeam::Blue;*/
 
 	// 모든 클라이언트에 몽타주 재생 (서버에서 호출)
 	UFUNCTION(NetMulticast, Reliable)

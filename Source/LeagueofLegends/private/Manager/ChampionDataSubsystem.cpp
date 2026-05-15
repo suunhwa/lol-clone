@@ -73,6 +73,28 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 스킬 DataTable 로드 실패. 경로 확인 필요"));
 	}
+
+	PlayerLevelExpTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+	                                                        nullptr,
+	                                                        TEXT(
+		                                                        "/Script/Engine.DataTable'/Game/DataTables/PlayerLevelExp.PlayerLevelExp'")));
+	
+	UnitRewardTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+															nullptr,
+															TEXT(
+																"/Script/Engine.DataTable'/Game/DataTables/UnitRewardExp.UnitRewardExp'")));
+	
+	ChampionKillTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+															nullptr,
+															TEXT(
+																"/Script/Engine.DataTable'/Game/DataTables/ChampionKillExp.ChampionKillExp'")));
+	
+	if (!PlayerLevelExpTable || !UnitRewardTable || !ChampionKillTable)
+	{
+		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 경험치 DataTable 로드 실패. 경로 확인 필요"));
+	}
+	
+	
 }
 
 // DataAsset 조회 
@@ -179,6 +201,26 @@ const FSkillMechanicsRow* UChampionDataSubsystem::GetSkillMechanics(FName Champi
 	return MechanicsTable->FindRow<FSkillMechanicsRow>(FName(*EffectTag), TEXT(""));
 }
 
+// 경험치 테이블 조회
+const FPlayerLevelExpRow* UChampionDataSubsystem::GetPlayerLevelExpRow(int32 Level) const
+{
+	if (!PlayerLevelExpTable) { return nullptr; }
+	// Row Name은 레벨 숫자 문자열 ("1", "2", ..., "17")
+	return PlayerLevelExpTable->FindRow<FPlayerLevelExpRow>(FName(*FString::FromInt(Level)), TEXT(""));
+}
+
+const FUnitRewardExpRow* UChampionDataSubsystem::GetUnitRewardRow(FName UnitType) const
+{
+	if (!UnitRewardTable) { return nullptr; }
+	return UnitRewardTable->FindRow<FUnitRewardExpRow>(UnitType, TEXT(""));
+}
+
+const FChampionKillExpRow* UChampionDataSubsystem::GetChampionKillExpRow(int32 EnemyLevel) const
+{
+	if (!ChampionKillTable) { return nullptr; }
+	return ChampionKillTable->FindRow<FChampionKillExpRow>(FName(*FString::FromInt(EnemyLevel)), TEXT(""));
+}
+
 // 초기화
 void UChampionDataSubsystem::ApplyVisuals(ALoLCharacterBase* Target, UChampionData* Data) const
 {
@@ -230,3 +272,6 @@ void UChampionDataSubsystem::ApplyStats(ALoLCharacterBase* Target, UChampionData
 	            Target->StatComp->GetArmor(),
 	            Target->StatComp->GetMoveSpeed());
 }
+
+
+

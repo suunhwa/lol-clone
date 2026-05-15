@@ -121,7 +121,12 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 	Ctx.SourceTag = TEXT("Ezreal.Q");
 
 	SpawnProjectile((TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-	                2000.f, 1100.f, Ctx, false, true, TEXT("Socket_Q"));
+	                2000.f,
+	                1100.f,
+	                Ctx,
+	                false,
+	                true,
+	                TEXT("Socket_Q"));
 
 	/* TODO: 몽타주에 ExitRun/ExitIdle 섹션 추가 후 활성화
 	bool bMoving = OwnerChar->GetVelocity().SizeSquared2D() > 100.f;
@@ -155,9 +160,13 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 		PRINTLOG_SH(
 			TEXT("[W] 테이블 ─ Rank:%d Base:%.1f FactorStat1:%s Coeff1:%s FactorStat2:%s Coeff2:%s Cost:%.1f CD:%.2f"),
 			GetRank(ESkillSlot::W),
-			Stats->Base_Value, *Stats->Factor_Stat1, *Stats->Coefficient1,
-			*Stats->Factor_Stat2, *Stats->Coefficient2,
-			Stats->Cost, Stats->CoolDown);
+			Stats->Base_Value,
+			*Stats->Factor_Stat1,
+			*Stats->Coefficient1,
+			*Stats->Factor_Stat2,
+			*Stats->Coefficient2,
+			Stats->Cost,
+			Stats->CoolDown);
 	}
 	else
 	{
@@ -177,14 +186,22 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 	Ctx.RawDamage = Stats ? ComputeScaledDamage(*Stats, StatComp) : 80.f;
 
 	PRINTLOG_SH(TEXT("[W] 계산 ─ AD:%.1f AP:%.1f  최종데미지:%.1f  마나차감:%.1f  쿨타임:%.2f"),
-	            StatComp ? StatComp->GetAD() : 0.f, StatComp ? StatComp->GetAP() : 0.f,
-	            Ctx.RawDamage, ManaCost, Cooldown);
+	            StatComp ? StatComp->GetAD() : 0.f,
+	            StatComp ? StatComp->GetAP() : 0.f,
+	            Ctx.RawDamage,
+	            ManaCost,
+	            Cooldown);
 	Ctx.DamageType = EDamageType::Magical;
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("Ezreal.W");
 
 	SpawnProjectile((TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-	                1600.f, 1000.f, Ctx, true, false, TEXT("Socket_Q"));
+	                1600.f,
+	                1000.f,
+	                Ctx,
+	                true,
+	                false,
+	                TEXT("Socket_Q"));
 }
 
 // E
@@ -225,7 +242,10 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	if (Stats)
 	{
 		PRINTLOG_SH(TEXT("[E] 테이블 ─ Rank:%d Base:%.1f Cost:%.1f CD:%.2f"),
-		            GetRank(ESkillSlot::E), Stats->Base_Value, Stats->Cost, Stats->CoolDown);
+		            GetRank(ESkillSlot::E),
+		            Stats->Base_Value,
+		            Stats->Cost,
+		            Stats->CoolDown);
 	}
 	else
 	{
@@ -233,7 +253,10 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	}
 
 	PRINTLOG_SH(TEXT("[E] 계산 ─ BlinkRange:%.1f (%s)  마나차감:%.1f  쿨타임:%.2f"),
-	            BlinkRange, Mech ? TEXT("테이블") : TEXT("fallback"), ManaCost, Cooldown);
+	            BlinkRange,
+	            Mech ? TEXT("테이블") : TEXT("fallback"),
+	            ManaCost,
+	            Cooldown);
 
 	if (StatComp)
 	{
@@ -263,7 +286,7 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	}, 0.3f, false);
 	*/
 
-	// FireESecondaryShot(); // TODO: 나중에 활성화
+	FireESecondaryShot();
 }
 
 // R
@@ -322,19 +345,31 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 		                                           if (!OwnerChar) return;
 		                                           PRINTLOG_SH(TEXT("[R] 발사!"));
 		                                           if (AChampionSkillProjectile* Proj = SpawnProjectile(
-			                                           Dir, 2000.f, 40000.f, Ctx, true, false, TEXT("Socket_Q")))
+			                                           Dir,
+			                                           2000.f,
+			                                           40000.f,
+			                                           Ctx,
+			                                           true,
+			                                           false,
+			                                           TEXT("Socket_Q")))
 			                                           Proj->DebugTrailHalfWidth = 160.f;
-	                                           }, 1.0f, false);
+	                                           },
+	                                           1.0f,
+	                                           false);
 }
 
+// TODO: E 스킬 후 평타 (자동, 범위 내에 가장 가까운 적. 범위는 하드코딩)
 void UEzrealSkillExecutor::FireESecondaryShot()
 {
 	constexpr float SearchRadius = 750.f;
 
 	TArray<FOverlapResult> Overlaps;
 	OwnerChar->GetWorld()->OverlapMultiByChannel(
-		Overlaps, OwnerChar->GetActorLocation(), FQuat::Identity,
-		ECC_Pawn, FCollisionShape::MakeSphere(SearchRadius),
+		Overlaps,
+		OwnerChar->GetActorLocation(),
+		FQuat::Identity,
+		ECC_Pawn,
+		FCollisionShape::MakeSphere(SearchRadius),
 		FCollisionQueryParams(NAME_None, false, OwnerChar));
 
 	AActor* NearestEnemy = nullptr;
@@ -371,5 +406,8 @@ void UEzrealSkillExecutor::FireESecondaryShot()
 
 	SpawnProjectile(
 		(NearestEnemy->GetActorLocation() - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-		2000.f, 750.f, Ctx, false);
+		2000.f,
+		750.f,
+		Ctx,
+		false);
 }

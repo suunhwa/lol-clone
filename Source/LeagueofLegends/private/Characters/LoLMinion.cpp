@@ -11,6 +11,7 @@
 #include "AStar/AStarGridManager.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/RiftGameMode.h"
 #include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -112,10 +113,10 @@ void ALoLMinion::BeginPlay()
     if (TagComp)
     {
         TagComp->SetUnitType(EUnitType::Minion);
-        if (TagComp->GetTeam() == ETeam::None)
+        /*if (TagComp->GetTeam() == ETeam::None)
         {
             TagComp->SetTeam(InitialTeam);
-        }
+        }*/
         // [수정] 팀 설정 확인 로그 추가
         PRINTLOG_HJ(TEXT("[%s] 소환됨 - 팀: %d (0:None, 1:Blue, 2:Red)"), 
             *GetName(), (int32)TagComp->GetTeam());
@@ -136,14 +137,28 @@ void ALoLMinion::BeginPlay()
 
 void ALoLMinion::OnDeath(AActor* DamageInstigator)
 {
-    // CS 추적: 챔피언이 죽인 경우 PlayerState에 CS 추가
-    if (ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator))
+    if (HasAuthority())
     {
-        if (ARiftPlayerState* PS = KillerChamp->GetPlayerState<ARiftPlayerState>())
+        // CS 추적: 챔피언이 죽인 경우
+        if (ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator))
         {
-            PS->AddCS(1);
+            if (ARiftPlayerState* PS = KillerChamp->GetPlayerState<ARiftPlayerState>())
+            {
+                PS->AddCS(1);
+            }
         }
-          
+
+        // XP 분배
+        FName RowName = GetExpRowName();
+        if (!RowName.IsNone())
+        {
+            if (ARiftGameMode* GM = GetWorld()->GetAuthGameMode<ARiftGameMode>())
+            {
+                ETeam MyTeam = ITargetable::Execute_GetTeam(this);
+                ETeam KillerTeam = (MyTeam == ETeam::Blue) ? ETeam::Red : ETeam::Blue;
+                GM->OnUnitKilled(RowName, GetActorLocation(), KillerTeam);
+            }
+        }
     }
 
     CurrentTarget = nullptr;
@@ -157,10 +172,8 @@ void ALoLMinion::OnDeath(AActor* DamageInstigator)
             FOW->UnregisterSightProvider(this);
         }
     }
-    
-    Super::OnDeath(DamageInstigator);
 
-    // 0.3초 후 소멸
+    Super::OnDeath(DamageInstigator);
     SetLifeSpan(0.3f);
 }
 
@@ -415,6 +428,32 @@ void ALoLMinion::ExecuteAttack()
     //PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
 }
 
+FName ALoLMinion::GetExpRowName() const
+{
+    if (UMinionDataSubsystem* DataSub = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>())
+    {
+        if (const FMinionBaseRow* Row = DataSub->GetBaseRowByID(MinionID))
+        {
+            // return Row->ExpRowName;
+            if (!Row->ExpRowName.IsNone())
+            {
+                return Row->ExpRowName;
+            }
+        }
+    }
+    // return NAME_None;
+    
+    // DataTable에 ExpRowName 미설정 시 MinionID 기반 폴백
+    switch (MinionID)
+    {
+    case 3001: return FName("Minion_Melee");
+    case 3002: return FName("Minion_Ranged");
+    case 3003: return FName("Minion_Siege");
+    case 3004: return FName("Minion_Super");
+    default:   return NAME_None;
+    }
+}
+
 void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
 {
     // 죽은 상태면 무시
@@ -471,7 +510,12 @@ float ALoLMinion::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
 void ALoLMinion::Die(AActor* Killer)
 {
     // 1. 태그 변경 (사망 상태 표시)
-    if (TagComp) TagComp->AddTag(UnitTags::Dead);
+    // if (TagComp) TagComp->AddTag(UnitTags::Dead);
+    if (TagComp)
+    {
+        TagComp->AddTag(UnitTags::Dead);
+        TagComp->AddTag(UnitTags::Untargetable);
+    }
     
     // 죽는 순간 즉시 충돌을 꺼버려서 길막/튕김 원천 봉쇄
     if (auto* Capsule = GetCapsuleComponent())
@@ -479,7 +523,7 @@ void ALoLMinion::Die(AActor* Killer)
         Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
         Capsule->SetCollisionResponseToAllChannels(ECR_Ignore);
     }
-    // 2. 골드 보상 로직 (미니언스탯컴포넌트 참조)
+    /*// 2. 골드 보상 로직 (미니언스탯컴포넌트 참조)
     if (UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp))
     {
         // Killer에게 골드 지급 로직 수행 (GetBaseGoldReward() 사용)
@@ -488,7 +532,10 @@ void ALoLMinion::Die(AActor* Killer)
 
     // 3. 소멸 (애니메이션이 있다면 딜레이 후 소멸)
     PRINTLOG_HJ(TEXT("[%s] 사망했습니다."), *GetName());
-    Destroy();
+    Destroy();*/
+    
+    // OnDeath 체인 실행 (CS, XP, FOW 해제 등 처리)
+    CombatComp->OnDeath.Broadcast(Killer);
 }
 
 // --- Interface 구현부 ---

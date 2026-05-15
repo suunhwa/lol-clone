@@ -26,7 +26,7 @@ public:
 	void AddCS(int32 Amount = 1);
 	void AddGold(int32 Amount);
 	void AddXP(float Amount);
-	
+
 	void SetSelectedChampion(FName ChampionID);
 	void SetReady(bool bReady);
 
@@ -35,6 +35,10 @@ public:
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerLevelUp, int32 /*NewLevel*/);
 	FOnPlayerLevelUp OnLevelUp;
+
+	// UI 바인딩용 — 클라이언트 포함 레벨/XP 변경 시 호출
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnXPChanged, float /*XP*/, int32 /*Level*/);
+	FOnXPChanged OnXPChanged;
 
 	ETeam GetTeam() const { return Team; }
 	ELane GetLane() const { return Lane; }
@@ -79,15 +83,15 @@ private:
 	UPROPERTY(Replicated)
 	int32 TotalGold = 0;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_ChampionLevel)
 	int32 ChampionLevel = 1;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_XP)
 	float XP = 0.0f;
 
 	UPROPERTY(Replicated)
 	bool bIsDisconnected = false;
-	
+
 	UPROPERTY(ReplicatedUsing = OnRep_IsReady)
 	bool bIsReady = false;
 
@@ -99,4 +103,10 @@ private:
 
 	UFUNCTION()
 	void OnRep_Team();
+
+	UFUNCTION()
+	void OnRep_ChampionLevel();
+
+	UFUNCTION()
+	void OnRep_XP();
 };

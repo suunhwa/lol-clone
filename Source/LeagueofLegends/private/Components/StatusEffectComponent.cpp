@@ -1,7 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/StatusEffectComponent.h"
+
+#include "Components/CombatComponent.h"
 #include "Components/TagComponent.h"
+#include "GameFramework/RiftPlayerState.h"
 
 static FName GetTagForEffect(EStatusEffect Type)
 {
@@ -37,7 +40,7 @@ void UStatusEffectComponent::TickComponent(float DeltaTime,
 	}
 }
 
-void UStatusEffectComponent::ApplyEffect(EStatusEffect Type, float Duration, float Magnitude)
+void UStatusEffectComponent::ApplyEffect(EStatusEffect Type, float Duration, float Magnitude, AActor* Instigator)
 {
 	for (FActiveStatusEffect& Effect : ActiveEffects)
 	{
@@ -46,6 +49,7 @@ void UStatusEffectComponent::ApplyEffect(EStatusEffect Type, float Duration, flo
 			Effect.Remaining = FMath::Max(Effect.Remaining, Duration);
 			Effect.Duration = FMath::Max(Effect.Duration, Duration);
 			Effect.Magnitude = FMath::Max(Effect.Magnitude, Magnitude);
+			RegisterCCAssist(Instigator);
 			return;
 		}
 	}
@@ -63,6 +67,8 @@ void UStatusEffectComponent::ApplyEffect(EStatusEffect Type, float Duration, flo
 		UTagComponent* TagComp = GetOwner()->FindComponentByClass<UTagComponent>();
 		if (TagComp) TagComp->AddTag(Tag);
 	}
+	
+	RegisterCCAssist(Instigator);
 }
 
 void UStatusEffectComponent::RemoveEffect(EStatusEffect Type)
@@ -131,4 +137,21 @@ bool UStatusEffectComponent::CanCastSkill() const
 	return !TagComp->HasTag(UnitTags::Stunned)
 		&& !TagComp->HasTag(UnitTags::Silenced)
 		&& !TagComp->HasTag(UnitTags::Knockup);
+}
+
+void UStatusEffectComponent::RegisterCCAssist(AActor* Instigator)
+{
+	if (!Instigator) { return; }
+
+	APawn* InstigatorPawn = Cast<APawn>(Instigator);
+	if (!InstigatorPawn) { return; }
+
+	ARiftPlayerState* AttackerPS = InstigatorPawn->GetPlayerState<ARiftPlayerState>();
+	if (!AttackerPS) { return; }
+
+	UCombatComponent* OwnerCombat = GetOwner()->FindComponentByClass<UCombatComponent>();
+	if (OwnerCombat)
+	{
+		OwnerCombat->RegisterAttacker(AttackerPS);
+	}
 }

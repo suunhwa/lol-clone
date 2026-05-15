@@ -57,6 +57,10 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Minion|Base")
 	FString Name_EN;
+	
+	// UnitRewardExp DataTable Row Name (ex. "Minion_Melee")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Minion|Base")
+	FName ExpRowName;
 };
 
 // MinionGrowth 시트용 

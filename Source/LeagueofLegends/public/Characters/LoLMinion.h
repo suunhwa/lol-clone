@@ -94,6 +94,9 @@ protected:
 	
 	// 실제 공격 실행 함수
 	virtual void ExecuteAttack();
+	
+	// UnitRewardExp DataTable Row Name 반환 (MinionDataSubsystem에서 조회)
+	FName GetExpRowName() const;
 };
 
 	/*UPROPERTY(VisibleAnywhere, Category = "Minion|Base")

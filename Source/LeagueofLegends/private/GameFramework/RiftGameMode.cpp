@@ -8,6 +8,7 @@
 #include "EngineUtils.h"
 #include "LeagueofLegends.h"
 #include "Characters/LoLChampion.h"
+#include "Manager/ChampionDataSubsystem.h"
 
 ARiftGameMode::ARiftGameMode()
 {
@@ -93,7 +94,117 @@ void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)
 	EndGame(Winner);
 }
 
-void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState* Victim)
+void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
+	ARiftPlayerState* Victim,
+	const TArray<ARiftPlayerState*>& Assisters)
+{
+	if (!Victim) { return; }
+	Victim->AddDeath();
+
+	if (!Killer || Killer == Victim) { return; }
+	Killer->AddKill();
+	
+	for (ARiftPlayerState* A : Assisters)
+	{
+		if (A && A != Killer) { A->AddAssist(); }
+	}
+
+	ARiftGameState* GS = GetGameState<ARiftGameState>();
+	if (GS) { GS->AddTeamKill(Killer->GetTeam()); }
+
+	// XP 분배
+	UChampionDataSubsystem* ExpSys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+	if (!ExpSys) { return; }
+
+	const FChampionKillExpRow* Row = ExpSys->GetChampionKillExpRow(Victim->GetChampionLevel());
+	if (!Row) { return; }
+
+	// 킬러 + 어시스터를 하나의 수령자 목록으로 합산
+	TArray<ARiftPlayerState*> Participants = {Killer};
+	for (ARiftPlayerState* A : Assisters)
+	{
+		if (A && A != Killer) { Participants.Add(A); }
+	}
+
+	for (ARiftPlayerState* Participant : Participants)
+	{
+		if (!Participant) { continue; }
+		// 레벨 보정 → 참여자 수로 균등 분배
+		float XP = CalcChampionKillXP(Row->RewardXP, Participant->GetChampionLevel(), Victim->GetChampionLevel());
+		Participant->AddXP(XP / Participants.Num());
+	}
+}
+
+void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam KillerTeam)
+{
+	UChampionDataSubsystem* ExpSys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+	if (!ExpSys) { return; }
+
+	const FUnitRewardExpRow* Row = ExpSys->GetUnitRewardRow(UnitRowName);
+	if (!Row) { return; }
+
+	ARiftGameState* GS = GetGameState<ARiftGameState>();
+	float GameMinutes = GS ? GS->GetElapsedSeconds() / 60.0f : 0.0f;
+
+	float UnitXP = CalcUnitXP(*Row, GameMinutes);
+	TArray<ARiftPlayerState*> Nearby = FindNearbyAllies(KillLocation, Row->ExpRadius, KillerTeam);
+	if (Nearby.IsEmpty()) { return; }
+
+	// 단독이면 100%, 복수면 SharingMultiplier 보정 후 균등 분배
+	float XPEach = Nearby.Num() == 1
+		? UnitXP
+		: UnitXP * Row->SharingMultiplier / Nearby.Num();
+
+	for (ARiftPlayerState* PS : Nearby)
+	{
+		PS->AddXP(XPEach);
+	}
+
+}
+
+float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 VictimLevel)
+{
+	int32 LevelDiff = VictimLevel - KillerLevel; // 양수: 적이 더 높음, 음수: 적이 더 낮음
+	float Multiplier;
+	if (LevelDiff > 0)
+	{
+		Multiplier = 1.0f + LevelDiff * 0.16f;
+	}
+	else if (LevelDiff < 0)
+	{
+		// 하한 20% 보장
+		Multiplier = FMath::Max(0.2f, 1.0f + LevelDiff * 0.10f);
+	}
+	else
+	{
+		Multiplier = 1.0f;
+	}
+	return BaseXP * Multiplier;
+}
+
+float ARiftGameMode::CalcUnitXP(const struct FUnitRewardExpRow& Row, float GameMinutes)
+{
+	return FMath::Min(Row.BaseXP + Row.GrowthPerMinute * GameMinutes, Row.MaxXP);
+}
+
+TArray<ARiftPlayerState*> ARiftGameMode::FindNearbyAllies(FVector Location, float Radius, ETeam Team) const
+{
+	TArray<ARiftPlayerState*> Result;
+	for (APlayerState* PS : GameState->PlayerArray)
+	{
+		ARiftPlayerState* RPS = Cast<ARiftPlayerState>(PS);
+		if (!RPS || RPS->GetTeam() != Team) { continue; }
+
+		APawn* Pawn = RPS->GetPawn();
+		if (Pawn && FVector::Dist(Pawn->GetActorLocation(), Location) <= Radius)
+		{
+			Result.Add(RPS);
+		}
+	}
+	return Result;
+}
+
+/*void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState* Victim)
 {
 	if (!Victim) { return; }
 	Victim->AddDeath();
@@ -104,7 +215,7 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState*
 	ARiftGameState* GS = GetGameState<ARiftGameState>();
 	if (!GS) { return; }
 	GS->AddTeamKill(Killer->GetTeam());
-}
+}*/
 
 void ARiftGameMode::TryStartGame()
 {
@@ -149,3 +260,4 @@ void ARiftGameMode::EndGame(ETeam WinningTeam)
 	gs->SetWinningTeam(WinningTeam);
 	gs->StopGameTimer();
 }
+

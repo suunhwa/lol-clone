@@ -31,8 +31,8 @@ protected:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
 public:
-	// 서버에서만 호출
-	void ApplyEffect(EStatusEffect Type, float Duration, float Magnitude = 1.f);
+	// 서버에서만 호출. Instigator: CC를 건 챔피언 액터 (어시스트 기록용)
+	void ApplyEffect(EStatusEffect Type, float Duration, float Magnitude = 1.f, AActor* Instigator = nullptr);
 	void RemoveEffect(EStatusEffect Type);
 	void RemoveAll();
 
@@ -46,4 +46,7 @@ public:
 
 private:
 	TArray<FActiveStatusEffect> ActiveEffects;
+	
+	// CC 적용 시 가해자를 Owner의 CombatComp에 어시스트로 기록
+	void RegisterCCAssist(AActor* Instigator);
 };

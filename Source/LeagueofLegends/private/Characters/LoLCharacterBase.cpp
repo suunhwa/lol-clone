@@ -84,7 +84,7 @@ void ALoLCharacterBase::BeginPlay()
 
 	if (HasAuthority())
 	{
-		TagComp->SetTeam(InitialTeam);
+		// TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
 	}
 
