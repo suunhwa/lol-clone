@@ -85,6 +85,15 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 	bCameraInitialized = false;
 	if (!Champion) { return; }
 
+	// 닉네임 재전송 — Seamless Travel 후 PlayerState가 새로 생성될 수 있으므로 여기서 확실히 보냄
+	if (auto* GI = GetGameInstance<ULoLGameInstance>())
+	{
+		if (!GI->Nickname.IsEmpty())
+		{
+			ServerChangeName(GI->Nickname);
+		}
+	}
+
 	PRINTLOG_SH(TEXT("[AcknowledgePossession] 챔피언=%s 위치=(%.0f,%.0f,%.0f) CameraClass=%s"),
 		*GetNameSafe(Champion),
 		Champion->GetActorLocation().X, Champion->GetActorLocation().Y, Champion->GetActorLocation().Z,
@@ -101,6 +110,13 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 	{
 		CameraActor = GetWorld()->SpawnActor<ALoLCameraActor>(CameraActorClass,
 		                                                      FTransform(FRotator::ZeroRotator, CameraStartLoc));
+	}
+
+	if (!CameraActor)
+	{
+		PRINTLOG_SH(TEXT("[AcknowledgePossession] CameraActor 스폰 실패. CameraActorClass=%s"),
+			*GetNameSafe(CameraActorClass));
+		return;
 	}
 
 	TargetCameraLoc = CameraStartLoc;
@@ -131,7 +147,7 @@ void ARiftPlayerController::AutoManageActiveCameraTarget(AActor* SuggestedTarget
 {
 	if (CameraActor)
 	{
-		// SetViewTarget(CameraActor);
+		SetViewTarget(CameraActor);
 		return;
 	}
 
