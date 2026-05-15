@@ -38,18 +38,7 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UTagComponent> TagComp;
-
-/*public:
-    // --- IDamageable Interface ---
-    virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
-    virtual bool IsDead_Implementation() const override { return bIsDestroyed; }
-
-    // --- ITargetable Interface ---
-    virtual bool IsTargetable_Implementation() const override { return !bIsDestroyed; }
-    virtual FVector GetTargetLocation_Implementation() const override { return GetActorLocation(); }
-    virtual ETeam GetTeam_Implementation() const override { return Team; }
-*/
-
+    
     UPROPERTY(EditAnywhere, Category = "Config")
     int32 ObjectID;
 
@@ -83,4 +72,22 @@ public:
     virtual EUnitType GetUnitType_Implementation() const override;
     virtual AActor* GetCurrentCombatTarget_Implementation() const override { return nullptr; }
     
+    
+    
+    // [에디터 설정] 이 타워가 공격받기 위해 먼저 파괴되어야 하는 실제 타워 액터들
+    UPROPERTY(EditAnywhere, Category = "Config | Sequence")
+    TArray<TSoftObjectPtr<ALoLStructure>> ParentActors;
+
+    // True(AND): 모든 부모가 파괴되어야 함 (일반 타워용)
+    // False(OR): 부모 중 하나라도 파괴되면 됨 (넥서스 타워용)
+    UPROPERTY(EditAnywhere, Category = "Config | Sequence")
+    bool bRequireAllParentsDead = true;
+
+    // 현재 공격 가능한 상태인지 저장
+    UPROPERTY(VisibleInstanceOnly, Category = "Status")
+    bool bIsVulnerable = false;
+
+    // 무적 상태 업데이트 함수 (UFUNCTION을 붙여야 dynamic 델리게이트 바인딩이 가능합니다)
+    UFUNCTION()
+    void RefreshVulnerability();
 };

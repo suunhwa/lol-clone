@@ -7,6 +7,9 @@
 
 class AFOWManager;
 
+// 구조물 상태 변화를 알리기 위한 델리게이트 선언
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStructureStateChanged);
+
 UCLASS()
 class LEAGUEOFLEGENDS_API ARiftGameState : public AGameStateBase
 {
@@ -37,6 +40,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetFOWManager(AFOWManager* Manager) { FOWManager = Manager; }
 
+	
+	// 타워가 깨지거나 억제기가 재생성될 때 호출될 이벤트
+	UPROPERTY(BlueprintAssignable, Category = "GameEvents")
+	FOnStructureStateChanged OnStructureStateChanged;
+
+	// 편의를 위해 이벤트 호출 함수 추가
+	void BroadcastStructureStateChanged() { OnStructureStateChanged.Broadcast(); }
+	
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentPhase)
 	EGamePhase CurrentPhase = EGamePhase::Lobby;
