@@ -250,7 +250,7 @@ void ALoLStructure::OnDestroyed()
         MeshComp->RefreshBoneTransforms();
         MeshComp->UpdateComponentToWorld();
         // 역재생
-        MeshComp->SetPlayRate(-1.0f); // 재생 속도를 -1로 설정 (역재생)
+        MeshComp->SetPlayRate(-2.0f); // 재생 속도를 -1로 설정 (역재생)
         MeshComp->SetPosition(BreakAnim->GetPlayLength());
         
         float AnimDuration = BreakAnim->GetPlayLength();
