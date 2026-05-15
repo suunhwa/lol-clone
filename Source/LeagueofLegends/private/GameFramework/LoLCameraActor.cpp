@@ -20,13 +20,13 @@ ALoLCameraActor::ALoLCameraActor()
 
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 2000.0f;
-	CameraBoom->SetRelativeRotation(FRotator(-55.0f, 130.0f, 0.0f));
+	CameraBoom->SetRelativeRotation(FRotator(-55.0f, 90.0f, 0.0f));
 	CameraBoom->bDoCollisionTest = false;
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	CameraComp->bUsePawnControlRotation = false;
-	CameraComp->FieldOfView = 70.0f;
+	CameraComp->FieldOfView = 60.0f;
 }
 
 // Called when the game starts or when spawned

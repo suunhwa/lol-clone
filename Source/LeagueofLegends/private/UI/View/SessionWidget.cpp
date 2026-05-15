@@ -89,7 +89,10 @@ void USessionWidget::OnStartClicked()
 
 	FString Nickname;
 	if (ET_namespace)
+	{
 		Nickname = ET_namespace->GetText().ToString();
+	}
+		
 
 	PRINTLOG_SH(TEXT("[SessionWidget] RequestFindOrCreate 호출, Nickname=%s"), *Nickname);
 	VM->RequestFindOrCreate(Nickname);
