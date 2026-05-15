@@ -56,6 +56,18 @@ void USessionViewModel::RequestFindOrCreate(const FString& Nickname, int32 MaxPl
 	OnSessionStatusChanged.Broadcast(true, TEXT("Searching..."));
 }
 
+void USessionViewModel::RequestCreate(const FString& Nickname, int32 MaxPlayers)
+{
+	if (!GameInstance || !SessionSubsystem) { return; }
+
+	GameInstance->Nickname = Nickname.IsEmpty() ? TEXT("Player") : Nickname;
+
+	PRINTLOG_SH(TEXT("[SessionVM] CreateSession 직접 호출 (방 만들기)"));
+	SessionSubsystem->CreateSession(GameInstance->Nickname, MaxPlayers);
+
+	OnSessionStatusChanged.Broadcast(true, TEXT("Creating room..."));
+}
+
 void USessionViewModel::HandleCreateResult(bool bWasSuccessful)
 {
 	if (!bWasSuccessful)

@@ -67,10 +67,12 @@ public:
 	void Setup(ARiftGameState* InGS, ARiftPlayerState* InLocalPS, UChampionDataSubsystem* InChampSubsys);
 	
 	void RefreshFromGameState();
+	void OnPlayerReadyChanged(bool /*bReady*/) { RefreshFromGameState(); }
 
 	TArray<FPlayerSlotViewData> GetBlueTeamPlayers() const;
 	TArray<FPlayerSlotViewData> GetRedTeamPlayers() const;
 	bool IsLocalPlayerHost() const;
+	bool IsLocalPlayerReady() const;
 
 	FOnPickWindowUpdated OnPickWindowUpdated;
 	FOnChampionListReady OnChampionListReady;

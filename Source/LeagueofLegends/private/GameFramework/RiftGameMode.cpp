@@ -5,10 +5,12 @@
 #include "GameFramework/RiftPlayerController.h"
 #include "GameFramework/RiftHUD.h"
 #include "GameFramework/PlayerStart.h"
+#include "Characters/LoLPlayerStart.h"
 #include "EngineUtils.h"
 #include "LeagueofLegends.h"
 #include "Characters/LoLChampion.h"
 #include "Manager/ChampionDataSubsystem.h"
+#include "Struct/ExpStruct.h"
 
 ARiftGameMode::ARiftGameMode()
 {
@@ -19,15 +21,70 @@ ARiftGameMode::ARiftGameMode()
 	DefaultPawnClass = ALoLChampion::StaticClass();
 }
 
+void ARiftGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+	CollectSpawnPoints();
+}
+
+void ARiftGameMode::CollectSpawnPoints()
+{
+	BlueSpawns.Reset();
+	RedSpawns.Reset();
+
+	for (TActorIterator<ALoLPlayerStart> It(GetWorld()); It; ++It)
+	{
+		if (It->Team == ETeam::Blue)     { BlueSpawns.Add(*It); }
+		else if (It->Team == ETeam::Red) { RedSpawns.Add(*It); }
+	}
+
+	BlueSpawns.Sort([](const ALoLPlayerStart& A, const ALoLPlayerStart& B) { return A.SlotIndex < B.SlotIndex; });
+	RedSpawns.Sort([](const ALoLPlayerStart& A, const ALoLPlayerStart& B)  { return A.SlotIndex < B.SlotIndex; });
+
+	PRINTLOG_SH(TEXT("[SpawnPoints] Blue:%d Red:%d"), BlueSpawns.Num(), RedSpawns.Num());
+}
+
+void ARiftGameMode::AssignTeamSlot(ARiftPlayerState* PS)
+{
+	if (!PS || !GameState) { return; }
+
+	TSet<int32> UsedSlots;
+	for (APlayerState* OtherPS : GameState->PlayerArray)
+	{
+		if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+		{
+			if (RPS != PS && RPS->GetTeam() == PS->GetTeam() && RPS->GetTeamSlotIndex() != INDEX_NONE)
+			{
+				UsedSlots.Add(RPS->GetTeamSlotIndex());
+			}
+		}
+	}
+
+	for (int32 i = 0; i < 5; ++i)
+	{
+		if (!UsedSlots.Contains(i))
+		{
+			PS->SetTeamSlotIndex(i);
+			return;
+		}
+	}
+}
+
 void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
 	ARiftPlayerState* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
-	if (!PS) return;
+	if (!PS) { return; }
 
-	PRINTLOG_SH(TEXT("Player joined game. Team: %s"),
-	            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+	if (PS->GetTeamSlotIndex() == INDEX_NONE)
+	{
+		AssignTeamSlot(PS);
+	}
+
+	PRINTLOG_SH(TEXT("[PostLogin] Team:%s Slot:%d"),
+		PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"),
+		PS->GetTeamSlotIndex());
 
 	TryStartGame();
 }
@@ -50,42 +107,58 @@ void ARiftGameMode::Logout(AController* Exiting)
 AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
 	ARiftPlayerState* PS = Player ? Player->GetPlayerState<ARiftPlayerState>() : nullptr;
-	if (!PS)
+	if (!PS) { return Super::ChoosePlayerStart_Implementation(Player); }
+
+	const bool bBlue = (PS->GetTeam() == ETeam::Blue);
+
+	// Seamless Travel 시 PostLogin이 BeginPlay보다 먼저 호출될 수 있음 → 즉시 수집
+	if (BlueSpawns.IsEmpty() && RedSpawns.IsEmpty())
 	{
-		return Super::ChoosePlayerStart_Implementation(Player);
+		PRINTLOG_SH(TEXT("[ChoosePlayerStart] 스폰 배열 비어있음 — 즉시 재수집"));
+		CollectSpawnPoints();
 	}
 
-	// 팀 None일 때 블루/레드 교대 배정
-	if (PS->GetTeam() == ETeam::None)
-	{
-		int32 Blue = 0, Red = 0;
-		for (APlayerState* OtherPS : GameState->PlayerArray)
-			if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
-			{
-				if (RPS->GetTeam() == ETeam::Blue) Blue++;
-				else if (RPS->GetTeam() == ETeam::Red) Red++;
-			}
-		PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
-	}
+	TArray<TObjectPtr<ALoLPlayerStart>>& Spawns = bBlue ? BlueSpawns : RedSpawns;
 
-	FName Tag = (PS->GetTeam() == ETeam::Blue) ? FName("BlueTeam") : FName("RedTeam");
-
-	TArray<APlayerStart*> ValidStarts;
-	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+	if (!Spawns.IsEmpty())
 	{
-		if (It->PlayerStartTag == Tag)
+		const int32 SlotIndex = PS->GetTeamSlotIndex();
+		for (ALoLPlayerStart* S : Spawns)
 		{
-			ValidStarts.Add(*It);
+			if (S && S->SlotIndex == SlotIndex)
+			{
+				PRINTLOG_SH(TEXT("[ChoosePlayerStart] %s팀 Slot%d → %s"),
+					bBlue ? TEXT("Blue") : TEXT("Red"), SlotIndex, *GetNameSafe(S));
+				return S;
+			}
 		}
+		return Spawns[0];
 	}
 
+	// ── ALoLPlayerStart 미배치 시 기존 태그 기반 폴백 ───────────────────────
+	// if (PS->GetTeam() == ETeam::None)
+	// {
+	// 	int32 Blue = 0, Red = 0;
+	// 	for (APlayerState* OtherPS : GameState->PlayerArray)
+	// 		if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+	// 		{
+	// 			if (RPS->GetTeam() == ETeam::Blue) Blue++;
+	// 			else if (RPS->GetTeam() == ETeam::Red) Red++;
+	// 		}
+	// 	PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
+	// }
+	// FName Tag = (PS->GetTeam() == ETeam::Blue) ? FName("BlueTeam") : FName("RedTeam");
+	// TArray<APlayerStart*> ValidStarts;
+	// for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+	// {
+	// 	if (It->PlayerStartTag == Tag) ValidStarts.Add(*It);
+	// }
+	// if (!ValidStarts.IsEmpty())
+	// 	return ValidStarts[FMath::RandRange(0, ValidStarts.Num() - 1)];
+	// ────────────────────────────────────────────────────────────────────────
 
-	if (ValidStarts.IsEmpty())
-	{
-		return Super::ChoosePlayerStart_Implementation(Player);
-	}
-
-	return ValidStarts[FMath::RandRange(0, ValidStarts.Num() - 1)];
+	PRINTLOG_SH(TEXT("[ChoosePlayerStart] ALoLPlayerStart 없음 — 맵에 배치 필요"));
+	return Super::ChoosePlayerStart_Implementation(Player);
 }
 
 void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)
@@ -106,11 +179,17 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 	
 	for (ARiftPlayerState* A : Assisters)
 	{
-		if (A && A != Killer) { A->AddAssist(); }
+		if (A && A != Killer)
+		{
+			A->AddAssist();
+		}
 	}
 
 	ARiftGameState* GS = GetGameState<ARiftGameState>();
-	if (GS) { GS->AddTeamKill(Killer->GetTeam()); }
+	if (GS)
+	{
+		GS->AddTeamKill(Killer->GetTeam());
+	}
 
 	// XP 분배
 	UChampionDataSubsystem* ExpSys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
@@ -123,7 +202,10 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 	TArray<ARiftPlayerState*> Participants = {Killer};
 	for (ARiftPlayerState* A : Assisters)
 	{
-		if (A && A != Killer) { Participants.Add(A); }
+		if (A && A != Killer)
+		{
+			Participants.Add(A);
+		}
 	}
 
 	for (ARiftPlayerState* Participant : Participants)
@@ -179,6 +261,7 @@ float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 V
 	{
 		Multiplier = 1.0f;
 	}
+	
 	return BaseXP * Multiplier;
 }
 

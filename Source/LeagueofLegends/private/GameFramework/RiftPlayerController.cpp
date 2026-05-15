@@ -172,9 +172,13 @@ void ARiftPlayerController::Server_SelectChampion_Implementation(FName ChampionI
 
 void ARiftPlayerController::Server_SetReady_Implementation()
 {
+	PRINTLOG_SH(TEXT("[Server_SetReady] 서버 도착. PS=%s"),
+		*GetNameSafe(GetPlayerState<ARiftPlayerState>()));
+
 	if (auto* PS = GetPlayerState<ARiftPlayerState>())
 	{
 		PS->SetReady(true);
+		PRINTLOG_SH(TEXT("[Server_SetReady] SetReady(true) 완료"));
 	}
 }
 
