@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "TileData.h"
 #include "FOW/FOWUpscaler.h"
+#include "Engine/StaticMeshActor.h"
 #include "FOWTileMap.generated.h"
 
 class ISightProvider;
