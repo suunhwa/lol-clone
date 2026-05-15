@@ -76,9 +76,17 @@ void UInventoryWidget::InitSlots()
 		UItemSlotWidget* SlotWidget = CreateWidget<UItemSlotWidget>(GetOwningPlayer(), ItemSlotWidgetClass);
 		Box->AddChild(SlotWidget);
 
-		SlotWidget->SetSlotIndex(i + 1);
+		SlotWidget->SetSlotIndex(i); // 0-based index 저장, 표시는 i+1
+		SlotWidget->BindSlotButtonClick();
+		SlotWidget->OnSlotClicked.AddUObject(this, &UInventoryWidget::HandleInventorySlotClicked);
 		
 		SlotWidgets.Add(SlotWidget);
 		SlotWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
 }
+
+void UInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex)
+{
+	OnInventorySlotSelected.Broadcast(SlotIndex);
+}
+

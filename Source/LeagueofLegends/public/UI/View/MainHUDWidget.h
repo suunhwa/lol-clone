@@ -24,6 +24,7 @@ class LEAGUEOFLEGENDS_API UMainHUDWidget : public UUserWidget
 public:
 	void InitHUD(ALoLChampion* Champion, ARiftPlayerState* PS, ARiftGameState* GS);
 	USkillBarWidget* GetSkillBar() const { return SkillBar; }
+	UInventoryWidget* GetInventoryWidget() const { return WBP_Inventory; }
 
 protected:
 	UPROPERTY(meta = (BindWidget))

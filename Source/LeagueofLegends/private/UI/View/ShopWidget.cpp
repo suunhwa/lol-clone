@@ -4,6 +4,7 @@
 #include "UI/View/ShopWidget.h"
 
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
 #include "Components/TextBlock.h"
 #include "Components/WrapBox.h"
 #include "UI/View/ItemProfileWidget.h"
@@ -17,6 +18,8 @@ void UShopWidget::NativeConstruct()
 	Btn_Sell->OnClicked.AddDynamic(this, &UShopWidget::OnSellClicked);
 	Btn_Undo->OnClicked.AddDynamic(this, &UShopWidget::OnUndoClicked);
 	Btn_Close->OnClicked.AddDynamic(this, &UShopWidget::OnCloseClicked);
+	
+	SetCanvasPanelHitTestInvisible();
 }
 
 void UShopWidget::BindViewModel(UViewModelBase* InViewModel)
@@ -39,6 +42,22 @@ void UShopWidget::UnbindViewModel()
 	}
 
 	Super::UnbindViewModel();
+}
+
+void UShopWidget::SetSelectedSlotIndex(int32 InSlotIndex)
+{
+	if (!IsVisible()) return;
+	SelectedSlotIndex = InSlotIndex;
+}
+
+void UShopWidget::SetCanvasPanelHitTestInvisible()
+{
+	if (!RootCanvas)
+	{
+		return;
+	}
+
+	RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 }
 
 void UShopWidget::PopulateItemList(const TArray<FItemProfileViewData>& ViewData)

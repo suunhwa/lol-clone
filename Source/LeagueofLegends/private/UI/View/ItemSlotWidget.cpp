@@ -18,7 +18,8 @@ void UItemSlotWidget::SetItemIcon(UTexture2D* Icon)
 
 void UItemSlotWidget::SetSlotIndex(int32 InSlotIndex)
 {
-	Txt_Index->SetText(FText::AsNumber(InSlotIndex));
+	SlotIndex = InSlotIndex;
+	Txt_Stack->SetText(FText::AsNumber(InSlotIndex + 1));
 }
 
 void UItemSlotWidget::BindSlotButtonClick()

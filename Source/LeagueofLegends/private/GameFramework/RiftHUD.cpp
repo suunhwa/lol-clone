@@ -7,6 +7,7 @@
 #include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Manager/ItemDataSubsystem.h"
+#include "UI/View/InventoryWidget.h"
 #include "UI/View/MainHUDWidget.h"
 #include "UI/View/ShopWidget.h"
 #include "UI/View/SkillBarWidget.h"
@@ -20,6 +21,15 @@ void ARiftHUD::InitHUD(ALoLChampion* Champion)
 {
 	SetupMainHUD(Champion);
 	SetupShopMVVM(Champion);
+
+	// InventoryWidget 슬롯 클릭 → ShopWidget에 SelectedSlotIndex 전달
+	if (MainHUDWidget && ShopWidget)
+	{
+		if (UInventoryWidget* InvWidget = MainHUDWidget->GetInventoryWidget())
+		{
+			InvWidget->OnInventorySlotSelected.AddUObject(ShopWidget, &UShopWidget::SetSelectedSlotIndex);
+		}
+	}
 }
 
 void ARiftHUD::RefreshSkillIcons(ALoLChampion* Champion)
@@ -41,7 +51,8 @@ void ARiftHUD::ToggleShop()
 	}
 	else
 	{
-		ShopWidget->SetVisibility(ESlateVisibility::Visible);
+		ShopWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		ShopWidget->SetCanvasPanelHitTestInvisible();
 	}
 }
 

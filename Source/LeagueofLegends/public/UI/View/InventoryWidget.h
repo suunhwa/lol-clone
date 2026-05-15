@@ -10,6 +10,9 @@ struct FInventorySlotViewData;
 class UItemSlotWidget;
 class UTextBlock;
 class UScaleBox;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventorySlotSelected, int32);
+
 /**
  * 
  */
@@ -24,10 +27,13 @@ protected:
 public:
 	virtual void BindViewModel(UViewModelBase* InViewModel) override;
 	virtual void UnbindViewModel() override;
+
+	FOnInventorySlotSelected OnInventorySlotSelected;
 	
 private:
 	void HandleSlotChanged(const FInventorySlotViewData& SlotData);
 	void HandleGoldChanged(int32 NewGold);
+	void HandleInventorySlotClicked(int32 SlotIndex);
 	
 	void InitSlots();
 	

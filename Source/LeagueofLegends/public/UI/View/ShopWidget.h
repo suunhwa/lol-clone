@@ -6,6 +6,7 @@
 #include "WidgetViewBase.h"
 #include "ShopWidget.generated.h"
 
+class UCanvasPanel;
 struct FItemProfileViewData;
 class UItemProfileWidget;
 class UTextBlock;
@@ -25,6 +26,10 @@ protected:
 public:
 	virtual void BindViewModel(UViewModelBase* InViewModel) override;
 	virtual void UnbindViewModel() override;
+	
+	void SetSelectedSlotIndex(int32 InSlotIndex);
+	
+	void SetCanvasPanelHitTestInvisible();
 	
 private:	
 	void PopulateItemList(const TArray<FItemProfileViewData>& ViewData);
@@ -56,6 +61,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UItemProfileWidget> ItemProfileWidgetClass;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCanvasPanel> RootCanvas;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWrapBox> WrapBox_ItemList;
