@@ -19,6 +19,10 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	// Seamless Travel 시 커스텀 프로퍼티 보존
+	virtual void CopyProperties(APlayerState* PlayerState) override;
+	virtual void OverrideWith(APlayerState* PlayerState) override;
+
 	// 서버 전용 setter
 	void SetTeam(ETeam InTeam);
 	void SetLane(ELane InLane);

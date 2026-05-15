@@ -125,7 +125,7 @@ void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 			}
 			PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
 			PRINTLOG_SH(TEXT("[PostLogin] Team 재배정 (SeamlessTravel 미작동) → %s"),
-				PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+			            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
 		}
 
 		if (PS->GetTeamSlotIndex() == INDEX_NONE)
@@ -138,14 +138,53 @@ void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 		            PS->GetTeamSlotIndex());
 	}
 
-	Super::PostLogin(NewPlayer);  // 이 안에서 ChoosePlayerStart 호출됨
+	Super::PostLogin(NewPlayer); // 이 안에서 ChoosePlayerStart 호출됨
 
 	TryStartGame();
 }
 
 void ARiftGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
 {
-	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
+	// CopyProperties로 PickWindow 팀/슬롯이 넘어왔어야 함.
+	// CopyProperties 미동작 등 예외 상황의 폴백 처리
+	ARiftPlayerState* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
+	if (PS)
+	{
+		PRINTLOG_SH(TEXT("[HandleStartingNewPlayer] Before Team=%d Slot=%d Name=%s"),
+		            (int32)PS->GetTeam(),
+		            PS->GetTeamSlotIndex(),
+		            *PS->GetPlayerName());
+
+		if (PS->GetTeam() == ETeam::None)
+		{
+			// CopyProperties 정상이면 이 로그 안 찍혀야 함
+			PRINTLOG_SH(TEXT("[HandleStartingNewPlayer] ★ Team=None — CopyProperties 미동작"));
+			int32 Blue = 0, Red = 0;
+			for (APlayerState* OtherPS : GameState->PlayerArray)
+			{
+				if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+				{
+					if (RPS != PS)
+					{
+						if (RPS->GetTeam() == ETeam::Blue) Blue++;
+						else if (RPS->GetTeam() == ETeam::Red) Red++;
+					}
+				}
+			}
+			PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
+		}
+
+		if (PS->GetTeamSlotIndex() == INDEX_NONE)
+		{
+			AssignTeamSlot(PS);
+		}
+
+		PRINTLOG_SH(TEXT("[HandleStartingNewPlayer] After  Team=%d Slot=%d → 스폰"),
+		            (int32)PS->GetTeam(),
+		            PS->GetTeamSlotIndex());
+	}
+
+	Super::HandleStartingNewPlayer_Implementation(NewPlayer); // → RestartPlayer → ChoosePlayerStart
 }
 
 void ARiftGameMode::Logout(AController* Exiting)
@@ -164,33 +203,6 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	if (!PS)
 	{
 		return Super::ChoosePlayerStart_Implementation(Player);
-	}
-
-	// Seamless Travel은 PostLogin보다 먼저 ChoosePlayerStart를 호출하므로
-	// 팀/슬롯이 미배정이면 여기서 즉시 배정
-	if (PS->GetTeam() == ETeam::None)
-	{
-		int32 Blue = 0, Red = 0;
-		for (APlayerState* OtherPS : GameState->PlayerArray)
-		{
-			if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
-			{
-				if (RPS != PS)
-				{
-					if (RPS->GetTeam() == ETeam::Blue) Blue++;
-					else if (RPS->GetTeam() == ETeam::Red) Red++;
-				}
-			}
-		}
-		PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
-		PRINTLOG_SH(TEXT("[ChoosePlayerStart] Team 즉시 배정 → %s"),
-		            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
-	}
-
-	if (PS->GetTeamSlotIndex() == INDEX_NONE)
-	{
-		AssignTeamSlot(PS);
-		PRINTLOG_SH(TEXT("[ChoosePlayerStart] Slot 즉시 배정 → %d"), PS->GetTeamSlotIndex());
 	}
 
 	const bool bBlue = (PS->GetTeam() == ETeam::Blue);
@@ -222,7 +234,8 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 			}
 		}
 		PRINTLOG_SH(TEXT("[ChoosePlayerStart] %s팀 Slot%d 없음 — Spawns[0] 폴백"),
-		            bBlue ? TEXT("Blue") : TEXT("Red"), SlotIndex);
+		            bBlue ? TEXT("Blue") : TEXT("Red"),
+		            SlotIndex);
 		return Spawns[0];
 	}
 
