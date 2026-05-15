@@ -221,13 +221,63 @@ void ALoLStructure::OnDestroyed()
     if (bIsDestroyed) return;
     bIsDestroyed = true;
     
-    PRINTLOG_HJ(TEXT("[%s] 포탑 파괴 로직 실행!"), *GetName());
-    
-    // 충돌 끄기 (더 이상 타겟팅 안 되게)
-    SetActorEnableCollision(false);
+    // 1. UI 및 시야 정리
+    if (HPBarWidgetComp) HPBarWidgetComp->SetVisibility(false);
     Tags.Empty();
-    
-    // 내가 파괴되었음을 알림 (다른 타워들의 RefreshVulnerability 유도)
+
+    // 2. 부숴지는 연출 단계 (두 번째 뼈대)
+    if (MeshComp && BreakingMesh && BreakAnim)
+    {
+        // [핵심] 뼈대가 다르므로 컴포넌트를 아예 '미등록 -> 메쉬교체 -> 재등록' 합니다.
+        // 이렇게 해야 언리얼이 새로운 뼈대 구조(Skeleton)를 완벽하게 인지합니다.
+        MeshComp->UnregisterComponent(); 
+        
+        // bReinitPose를 true로 주어 이전 뼈대 흔적을 지웁니다.
+        MeshComp->SetSkeletalMesh(BreakingMesh, true); 
+        
+        // 애니메이션 모드와 틱 옵션 강제 설정
+        MeshComp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+        MeshComp->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+        
+        // 컴포넌트 재등록
+        MeshComp->RegisterComponent();
+
+        // [재생] 이제 새로운 뼈대 위에서 애니메이션을 돌립니다.
+        MeshComp->PlayAnimation(BreakAnim, false);
+        
+        // 즉시 렌더링 업데이트
+        MeshComp->SetPosition(0.0f);
+        MeshComp->RefreshBoneTransforms();
+        MeshComp->UpdateComponentToWorld();
+        // 역재생
+        MeshComp->SetPlayRate(-2.0f); // 재생 속도를 -1로 설정 (역재생)
+        MeshComp->SetPosition(BreakAnim->GetPlayLength());
+        
+        float AnimDuration = BreakAnim->GetPlayLength();
+        PRINTLOG_HJ(TEXT("[%s] 연출 메쉬 교체 및 애니메이션 재생 시작"), *GetName());
+
+        // 3. 마지막 단계: 파괴된 잔해 고정 (세 번째 뼈대)
+        GetWorldTimerManager().SetTimer(MeshSwapTimerHandle, [this]()
+        {
+            if (MeshComp && DestroyedMesh)
+            {
+                // 잔해 메쉬도 뼈대가 다르므로 다시 한번 재등록 절차
+                MeshComp->UnregisterComponent();
+                MeshComp->SetSkeletalMesh(DestroyedMesh, true);
+                MeshComp->RegisterComponent();
+                
+                MeshComp->Stop(); // 잔해는 움직이지 않음
+                PRINTLOG_HJ(TEXT("[%s] 최종 잔해 메쉬 고정 완료"), *GetName());
+            }
+        }, AnimDuration, false);
+    }
+    else if (MeshComp && DestroyedMesh)
+    {
+        // 연출용 에셋이 없을 경우 바로 잔해로 점프
+        MeshComp->SetSkeletalMesh(DestroyedMesh, true);
+    }
+
+    // 게임 상태 업데이트 (무적 해제 등)
     if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
     {
         GS->BroadcastStructureStateChanged();
