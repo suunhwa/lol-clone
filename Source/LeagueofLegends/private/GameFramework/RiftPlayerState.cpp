@@ -9,6 +9,16 @@ ARiftPlayerState::ARiftPlayerState()
 {
 }
 
+void ARiftPlayerState::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (bTeamDebug)
+	{
+		SetTeam(DebugTeam);
+	}
+}
+
 void ARiftPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
