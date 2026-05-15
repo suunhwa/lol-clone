@@ -11,6 +11,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Manager/MinionDataSubsystem.h"
 #include "UI/View/HPBarWidget.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+
 
 ALoLStructure::ALoLStructure()
 {
@@ -228,6 +231,21 @@ void ALoLStructure::OnDestroyed()
     // 2. 부숴지는 연출 단계 (두 번째 뼈대)
     if (MeshComp && BreakingMesh && BreakAnim)
     {
+        // --- [추가] 나이아가라 폭발 이펙트 생성 ---
+        if (ExplosionEffect)
+        {
+            // 포탑 위치에서 팡! 터지게 함
+            UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                GetWorld(), 
+                ExplosionEffect, 
+                GetActorLocation() + FVector(0, 0, 100), 
+                GetActorRotation(),
+                FVector(0.05f)
+            );
+            PRINTLOG_HJ(TEXT("[%s] 나이아가라 폭발 이펙트 스폰 완료!"), *GetName());
+        }
+        
+        
         // [핵심] 뼈대가 다르므로 컴포넌트를 아예 '미등록 -> 메쉬교체 -> 재등록' 합니다.
         // 이렇게 해야 언리얼이 새로운 뼈대 구조(Skeleton)를 완벽하게 인지합니다.
         MeshComp->UnregisterComponent(); 

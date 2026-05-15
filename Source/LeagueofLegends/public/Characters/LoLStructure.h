@@ -12,6 +12,8 @@
 class UObjectStatComponent;
 class UTagComponent;
 class USkeletalMeshComponent;
+class UNiagaraSystem;
+
 
 UCLASS()
 class LEAGUEOFLEGENDS_API ALoLStructure : public AActor, public IDamageable, public ITargetable, public ISightProvider
@@ -113,5 +115,9 @@ protected:
 
     // 메쉬 교체용 타이머 핸들
     FTimerHandle MeshSwapTimerHandle;
+    
+    // 파괴 시 뿜어져 나올 나이아가라 시스템 (아까 만든 NS_Explosion)
+    UPROPERTY(EditAnywhere, Category = "Design|Effect")
+    TObjectPtr<UNiagaraSystem> ExplosionEffect;
     
 };
