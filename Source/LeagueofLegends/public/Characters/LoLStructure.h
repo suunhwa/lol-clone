@@ -12,6 +12,9 @@
 class UObjectStatComponent;
 class UTagComponent;
 class USkeletalMeshComponent;
+class UNiagaraSystem;
+class UDecalComponent;
+
 
 UCLASS()
 class LEAGUEOFLEGENDS_API ALoLStructure : public AActor, public IDamageable, public ITargetable, public ISightProvider
@@ -113,5 +116,19 @@ protected:
 
     // 메쉬 교체용 타이머 핸들
     FTimerHandle MeshSwapTimerHandle;
+    
+    // 파괴 시 뿜어져 나올 나이아가라 시스템 (아까 만든 NS_Explosion)
+    UPROPERTY(EditAnywhere, Category = "Design|Effect")
+    TObjectPtr<UNiagaraSystem> ExplosionEffect;
+
+    
+protected:
+    // 사거리 표시용 데칼 (바닥 링)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UDecalComponent> RangeIndicatorDecal;
+
+    // 플레이어 감지용 함수 및 타이머
+    void CheckPlayerProximity();
+    FTimerHandle ProximityTimerHandle;
     
 };
