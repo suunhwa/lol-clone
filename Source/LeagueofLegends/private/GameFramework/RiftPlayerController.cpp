@@ -222,8 +222,9 @@ void ARiftPlayerController::Server_SetReady_Implementation()
 	if (auto* PS = GetPlayerState<ARiftPlayerState>())
 	{
 		PS->SetReady(true);
-		PRINTLOG_SH(TEXT("[Server_SetReady] SetReady(true) 완료"));
+		PRINTLOG_SH(TEXT("[Server_SetReady] SetReady(true) 완료 → 이후 Travel 없음 (Host Start 대기)"));
 	}
+	// 절대 여기서 TryStartGame/Travel 호출 없음 — Host가 Start 눌렀을 때만
 }
 
 void ARiftPlayerController::Server_StartChampionSelect_Implementation()
