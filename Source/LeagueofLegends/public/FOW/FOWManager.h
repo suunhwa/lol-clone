@@ -138,7 +138,6 @@ public:
 	void UnregisterSightProvider(UObject* SightProvider);
 	
 	AFOWTileMap* GetLocalTileMap() const;
-	void SetLocalClientTeam(ERiftSightTag InTeam);
 
 private:
 	// 플레이어 위치를 원점으로 하는 시야 계산
