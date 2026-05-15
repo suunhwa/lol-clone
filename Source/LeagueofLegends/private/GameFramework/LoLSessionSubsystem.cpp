@@ -119,12 +119,6 @@ void ULoLSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasS
 
 void ULoLSessionSubsystem::FindOrCreateSession(FString InNickname, int32 MaxPlayers)
 {
-	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
-	{
-		PRINTLOG_SH(TEXT("FindOrCreateSession: already has session"));
-		return;
-	}
-	
 	if (bIsOperationPending)
 	{
 		PRINTLOG_SH(TEXT("FindOrCreateSession: 이미 작업 중, 무시"));
@@ -134,6 +128,15 @@ void ULoLSessionSubsystem::FindOrCreateSession(FString InNickname, int32 MaxPlay
 	bIsOperationPending = true;
 	PendingNickname = InNickname;
 	PendingMaxPlayers = MaxPlayers;
+
+	// 로컬에 기존 세션 남아있으면 정리 후 재시도
+	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
+	{
+		PRINTLOG_SH(TEXT("FindOrCreateSession: 기존 세션 정리 후 재시도"));
+		bPendingFindOrCreateAfterDestroy = true;
+		SessionInterface->DestroySession(FName(*MySessionName));
+		return;
+	}
 
 	/*// 리슨 서버는 세션 검색 없이 직접 생성 — FindOrCreate 쓰면 스테일 세션에 조인해버림
 	if (GetWorld()->GetNetMode() == NM_ListenServer)
@@ -386,6 +389,25 @@ void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWas
 	bIsOperationPending = false;
 	bFindOrCreateMode = false;
 	bFindOrCreateFallback = false;
+
+	// FindOrCreate 재시도 대기
+	if (bPendingFindOrCreateAfterDestroy)
+	{
+		bPendingFindOrCreateAfterDestroy = false;
+		bIsOperationPending = false;
+		PRINTLOG_SH(TEXT("OnDestroySessionComplete: 정리 완료 → FindOrCreate 재시도"));
+		FindOrCreateSession(PendingNickname, PendingMaxPlayers);
+		return;
+	}
+
+	// 조인 대기
+	if (bPendingJoinAfterDestroy)
+	{
+		bPendingJoinAfterDestroy = false;
+		PRINTLOG_SH(TEXT("OnDestroySessionComplete: 정리 완료 → JoinSelectedSession(%d)"), PendingJoinIndex);
+		JoinSelectedSession(PendingJoinIndex);
+		return;
+	}
 
 	if (bPendingCreateAfterDestroy)
 	{
