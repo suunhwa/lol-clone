@@ -48,6 +48,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnXPChanged, float /*XP*/, int32 /*Level*/);
 	FOnXPChanged OnXPChanged;
 
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerNameChanged, const FString& /*Name*/);
+	FOnPlayerNameChanged OnNameChanged;
+
 	ETeam GetTeam() const { return Team; }
 	ELane GetLane() const { return Lane; }
 	int32 GetKills() const { return Kills; }
@@ -116,6 +119,8 @@ private:
 
 	UFUNCTION()
 	void OnRep_Team();
+
+	virtual void OnRep_PlayerName() override;
 
 	UFUNCTION()
 	void OnRep_ChampionLevel();

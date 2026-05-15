@@ -1,6 +1,7 @@
 #include "GameFramework/RiftPlayerState.h"
 
 #include "LeagueofLegends.h"
+#include "Characters/LoLCharacterBase.h"
 #include "Components/StatComponent.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
@@ -163,7 +164,20 @@ void ARiftPlayerState::OnRep_IsReady()
 
 void ARiftPlayerState::OnRep_Team()
 {
-	// TODO
+	// 팀이 복제되면 이 캐릭터의 HP바 색상을 재평가
+	if (APawn* Pawn = GetPawn())
+	{
+		if (ALoLCharacterBase* Char = Cast<ALoLCharacterBase>(Pawn))
+		{
+			Char->RefreshHUDDisplay();
+		}
+	}
+}
+
+void ARiftPlayerState::OnRep_PlayerName()
+{
+	Super::OnRep_PlayerName();
+	OnNameChanged.Broadcast(GetPlayerName());
 }
 
 void ARiftPlayerState::OnRep_ChampionLevel()

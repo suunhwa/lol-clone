@@ -103,39 +103,42 @@ void ARiftGameMode::AssignTeamSlot(ARiftPlayerState* PS)
 
 void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 {
-	Super::PostLogin(NewPlayer);
-
+	// Super::PostLogin 안에서 HandleStartingNewPlayer → RestartPlayer → ChoosePlayerStart가 호출되므로
+	// 팀/슬롯 배정은 반드시 Super 호출 전에 완료해야 함
 	ARiftPlayerState* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
-	if (!PS) { return; }
-
-	// Seamless Travel 실패(PIE 등)로 PlayerState 초기화된 경우 팀 재배정
-	if (PS->GetTeam() == ETeam::None)
+	if (PS)
 	{
-		int32 Blue = 0, Red = 0;
-		for (APlayerState* OtherPS : GameState->PlayerArray)
+		// Seamless Travel 실패(PIE 등)로 PlayerState 초기화된 경우 팀 재배정
+		if (PS->GetTeam() == ETeam::None)
 		{
-			if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+			int32 Blue = 0, Red = 0;
+			for (APlayerState* OtherPS : GameState->PlayerArray)
 			{
-				if (RPS != PS)
+				if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
 				{
-					if (RPS->GetTeam() == ETeam::Blue) Blue++;
-					else if (RPS->GetTeam() == ETeam::Red) Red++;
+					if (RPS != PS)
+					{
+						if (RPS->GetTeam() == ETeam::Blue) Blue++;
+						else if (RPS->GetTeam() == ETeam::Red) Red++;
+					}
 				}
 			}
+			PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
+			PRINTLOG_SH(TEXT("[PostLogin] Team 재배정 (SeamlessTravel 미작동) → %s"),
+				PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
 		}
-		PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
-		PRINTLOG_SH(TEXT("[PostLogin] Team 재배정 (SeamlessTravel 미작동) → %s"),
-			PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+
+		if (PS->GetTeamSlotIndex() == INDEX_NONE)
+		{
+			AssignTeamSlot(PS);
+		}
+
+		PRINTLOG_SH(TEXT("[PostLogin] Team:%s Slot:%d (Super 호출 전)"),
+		            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"),
+		            PS->GetTeamSlotIndex());
 	}
 
-	if (PS->GetTeamSlotIndex() == INDEX_NONE)
-	{
-		AssignTeamSlot(PS);
-	}
-
-	PRINTLOG_SH(TEXT("[PostLogin] Team:%s Slot:%d"),
-	            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"),
-	            PS->GetTeamSlotIndex());
+	Super::PostLogin(NewPlayer);  // 이 안에서 ChoosePlayerStart 호출됨
 
 	TryStartGame();
 }
@@ -191,6 +194,8 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 				return S;
 			}
 		}
+		PRINTLOG_SH(TEXT("[ChoosePlayerStart] %s팀 Slot%d 없음 — Spawns[0] 폴백"),
+		            bBlue ? TEXT("Blue") : TEXT("Red"), SlotIndex);
 		return Spawns[0];
 	}
 
