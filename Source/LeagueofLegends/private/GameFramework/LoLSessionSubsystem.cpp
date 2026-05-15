@@ -10,6 +10,7 @@
 #include "OnlineSessionSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "Online/OnlineSessionNames.h"
+#include "Misc/CoreDelegates.h"
 
 void ULoLSessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -33,10 +34,14 @@ void ULoLSessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		GEngine->OnNetworkFailure().AddUObject(this, &ULoLSessionSubsystem::OnNetworkFailure);
 	}
+
+	FCoreDelegates::OnPreExit.AddUObject(this, &ULoLSessionSubsystem::HandlePreExit);
 }
 
 void ULoLSessionSubsystem::Deinitialize()
 {
+	FCoreDelegates::OnPreExit.RemoveAll(this);
+
 	Super::Deinitialize();
 }
 
@@ -114,6 +119,12 @@ void ULoLSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasS
 
 void ULoLSessionSubsystem::FindOrCreateSession(FString InNickname, int32 MaxPlayers)
 {
+	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
+	{
+		PRINTLOG_SH(TEXT("FindOrCreateSession: already has session"));
+		return;
+	}
+	
 	if (bIsOperationPending)
 	{
 		PRINTLOG_SH(TEXT("FindOrCreateSession: 이미 작업 중, 무시"));
@@ -318,7 +329,7 @@ void ULoLSessionSubsystem::ExitRoom()
 
 void ULoLSessionSubsystem::QuitSession()
 {
-	if (GetWorld()->GetNetMode() == NM_ListenServer)
+	/*if (GetWorld()->GetNetMode() == NM_ListenServer)
 	{
 		// 호스트: 세션 파괴 → OnDestroySessionComplete에서 ServerTravel
 		ExitRoom();
@@ -331,11 +342,64 @@ void ULoLSessionSubsystem::QuitSession()
 			PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), ETravelType::TRAVEL_Absolute);
 		}
 	}
+	*/
+
+	if (!SessionInterface.IsValid())
+	{
+		return;
+	}
+
+	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
+	{
+		PRINTLOG_SH(TEXT("QuitSession: DestroySession"));
+		SessionInterface->DestroySession(FName(*MySessionName));
+		return;
+	}
+
+	// 세션이 없으면 그냥 로비로 이동
+	if (auto* PC = GetWorld()->GetFirstPlayerController())
+	{
+		PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), ETravelType::TRAVEL_Absolute);
+	}
+}
+
+void ULoLSessionSubsystem::HandlePreExit()
+{
+	if (!SessionInterface.IsValid())
+	{
+		return;
+	}
+
+	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
+	{
+		PRINTLOG_SH(TEXT("PreExit: DestroySession"));
+		SessionInterface->DestroySession(FName(*MySessionName));
+	}
 }
 
 void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
-	// 세션 정리 후 재생성 대기 중이면 맵 이동 없이 바로 생성
+	PRINTLOG_SH(TEXT("DestroySession Complete: %s, Success=%d"),
+	            *SessionName.ToString(),
+	            bWasSuccessful);
+
+	bIsOperationPending = false;
+	bFindOrCreateMode = false;
+	bFindOrCreateFallback = false;
+
+	if (bPendingCreateAfterDestroy)
+	{
+		bPendingCreateAfterDestroy = false;
+		CreateSession(PendingNickname, PendingMaxPlayers);
+		return;
+	}
+
+	if (auto* PC = GetWorld()->GetFirstPlayerController())
+	{
+		PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), ETravelType::TRAVEL_Absolute);
+	}
+	
+	/*// 세션 정리 후 재생성 대기 중이면 맵 이동 없이 바로 생성
 	if (bPendingCreateAfterDestroy)
 	{
 		bPendingCreateAfterDestroy = false;
@@ -356,7 +420,7 @@ void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWas
 		{
 			PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), TRAVEL_Absolute);
 		}
-	}
+	}*/
 }
 
 void ULoLSessionSubsystem::OnNetworkFailure(UWorld* World,

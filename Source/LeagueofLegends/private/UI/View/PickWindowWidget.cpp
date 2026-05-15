@@ -268,10 +268,11 @@ void UPickWindowWidget::OnReadyOrStart()
 void UPickWindowWidget::OnQuit()
 {
 	auto* GI = GetGameInstance();
-	if (!GI) { return; }
-
-	if (auto* SessionSubsys = GI->GetSubsystem<ULoLSessionSubsystem>())
+	if (GI)
 	{
-		SessionSubsys->QuitSession();
+		if (auto* SessionSubsys = GI->GetSubsystem<ULoLSessionSubsystem>())
+		{
+			SessionSubsys->QuitSession();
+		}
 	}
 }
