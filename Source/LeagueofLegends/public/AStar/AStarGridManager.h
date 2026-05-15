@@ -51,4 +51,12 @@ private:
 
 	TMap<FIntPoint, FAStarNode> GridMap;
 	uint32 CurrentSessionID = 0;
+	
+public:
+	// 특정 액터의 범위를 기반으로 길찾기 가능 여부를 업데이트하는 함수
+	void UpdateArea(AActor* TargetActor, bool bIsWalkable);
+    
+	// 특정 위치와 반경을 기반으로 업데이트하는 함수 (자르반 궁 등)
+	void UpdateAreaByRadius(FVector Center, float Radius, bool bIsWalkable);
+	
 };

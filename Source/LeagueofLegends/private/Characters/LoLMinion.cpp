@@ -188,6 +188,13 @@ void ALoLMinion::Tick(float DeltaTime)
 
     if (CurrentTarget.IsValid())
     {
+        if (IDamageable::Execute_IsDead(CurrentTarget.Get()))
+        {
+            CurrentTarget = nullptr;
+            CurrentPath.Empty();
+            return;
+            
+        }
         float Dist = FVector::Dist2D(GetActorLocation(), CurrentTarget->GetActorLocation());
 
         // 어그로 해제 거리 체크 (너무 멀어지면 타겟 상실)
@@ -214,8 +221,12 @@ void ALoLMinion::Tick(float DeltaTime)
             float CurrentTime = GetWorld()->GetTimeSeconds();
             if (CurrentTime - LastAttackTime >= GetAttackCooldown())
             {
-                ExecuteAttack();
-                LastAttackTime = CurrentTime;
+                // 여기서 ExecuteAttack 호출 전 한 번 더 검증
+                if (IsValid(CurrentTarget.Get()))
+                {
+                    ExecuteAttack();
+                    LastAttackTime = CurrentTime;
+                }
             }
             // [로그 추가] 공격 범위 진입 확인
             PRINTLOG_HJ(TEXT("[%s] 공격 사거리 도달!"), *GetName());
@@ -398,34 +409,41 @@ float ALoLMinion::GetAttackCooldown() const
 
 void ALoLMinion::ExecuteAttack()
 {   
-    // if (!CurrentTarget.IsValid() || !StatComp) { return; }
-    if (!CurrentTarget.IsValid() || !CombatComp) { return; }
+    // 1. 모든 필수 요소가 유효한지 한 번에 검사 (가장 안전함)
+    if (!IsValid(this) || !CombatComp || !StatComp || !CurrentTarget.IsValid())
+    {
+        return; 
+    }
 
-    
-    // StatComp에서 AD 가져오기
+    // 2. 타겟이 월드에서 제거 중이거나 죽었는지 검사
+    AActor* TargetActor = CurrentTarget.Get();
+    if (!IsValid(TargetActor) || IDamageable::Execute_IsDead(TargetActor))
+    {
+        CurrentTarget = nullptr;
+        return;
+    }
+
     float Damage = StatComp->GetAD();
 
-    // 원거리/근거리 판정은 StatComp의 GetAttackRange() 활용
     if (StatComp->GetAttackRange() > 200.f)
     {
-        // TODO: 원거리 투사체 소환 (ProjectileClass 사용)
+        // TODO: 원거리 투사체 소환
         PRINTLOG_HJ(TEXT("[%s] 원거리 투사체 발사! 데미지: %.1f"), *GetName(), Damage);
     }
     else
     {
-        if (CurrentTarget->GetClass()->ImplementsInterface(UDamageable::StaticClass()))
+        // [수정] 대상이 Damageable 인터페이스를 구현했는지 안전하게 확인 후 호출
+        if (CurrentTarget->Implements<UDamageable>())
         {
             IDamageable::Execute_ReceiveDamage(CurrentTarget.Get(), Damage, EDamageType::Physical, this);
-            PRINTLOG_HJ(TEXT("[%s] 근접 공격! %s에게 %.1f 데미지"), *GetName(), *CurrentTarget->GetName(), Damage);
+            //PRINTLOG_HJ(TEXT("[%s] 근접 공격! %s에게 %.1f 데미지"), *GetName(), *CurrentTarget->GetName(), Damage);
         }
     }
+
     LastAttackTime = GetWorld()->GetTimeSeconds();
-    // 애니메이션 재생 (공격 속도에 맞춰 배속 조절 필요)
-    // PlayAnimMontage(AttackMontage, StatComp->GetAttackSpeed());*/
     
-    // CombatComponent로 데미지 적용
+    // CombatComponent를 통한 실제 공격 로직 수행
     CombatComp->PerformBasicAttack(CurrentTarget.Get());
-    //PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
 }
 
 FName ALoLMinion::GetExpRowName() const
@@ -542,18 +560,3 @@ void ALoLMinion::Die(AActor* Killer)
 ETeam ALoLMinion::GetTeam_Implementation() const { return TagComp ? TagComp->GetTeam() : ETeam::None; }
 EUnitType ALoLMinion::GetUnitType_Implementation() const { return EUnitType::Minion; }
 AActor* ALoLMinion::GetCurrentCombatTarget_Implementation() const { return CurrentTarget.Get(); }
-/*// 포탑이 호출하는 ReceiveDamage를 미니언의 HP 로직으로 연결
-void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
-{
-	// 부모 클래스의 HasAuthority() 체크를 우회하여 즉시 대미지 적용
-	// 미니언 클래스에 이미 만들어둔 TakeDamageSimple 함수를 호출합니다.
-	TakeDamageSimple(Amount);
-}
-
-// 태그를 기반으로 정확한 팀 정보를 반환
-ETeam ALoLMinion::GetTeam_Implementation() const
-{
-	if (Tags.Contains(TEXT("RedTeam"))) return ETeam::Red;
-	if (Tags.Contains(TEXT("BlueTeam"))) return ETeam::Blue;
-	return ETeam::None;
-}*/

@@ -4,6 +4,7 @@
 #include "Characters/Minion/MinionSpawner.h"
 #include "Components/ObjectStatComponent.h"
 #include "Components/TagComponent.h"
+#include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
 
 ALoLInhibitor::ALoLInhibitor()
@@ -26,7 +27,9 @@ void ALoLInhibitor::OnDestroyed()
 	float RespawnTime = (MechData.Respawn_Time > 0.f) ? MechData.Respawn_Time : 300.f;
 	GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &ALoLInhibitor::Respawn, RespawnTime, false);
     
-	PRINTLOG_HJ(TEXT("[억제기] 파괴됨! %s팀의 슈퍼 미니언 소환 시작."), (GetTeam() == ETeam::Red) ? TEXT("Blue") : TEXT("Red"));
+	// GetTeam() 직접 호출 대신 Execute_GetTeam 사용 (튕김 방지)
+	ETeam CurrentTeam = ITargetable::Execute_GetTeam(this);
+	PRINTLOG_HJ(TEXT("[억제기] 파괴됨! %s팀의 슈퍼 미니언 소환 시작."), (CurrentTeam == ETeam::Red) ? TEXT("Blue") : TEXT("Red"));
 }
 
 void ALoLInhibitor::Respawn()
@@ -41,6 +44,12 @@ void ALoLInhibitor::Respawn()
 	// 2. 다시 일반 미니언 소환으로 복구
 	UpdateSpawner(false);
 
+	// 부활했음을 알림 -> 넥서스 타워 등이 다시 무적이 됨
+	if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+	{
+		GS->BroadcastStructureStateChanged();
+	}
+	
 	PRINTLOG_HJ(TEXT("[억제기] 부활 완료! 일반 미니언 생성으로 복구됩니다."));
 }
 

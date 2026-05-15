@@ -23,7 +23,7 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	if (Registry)
 	{
-		for (UChampionData* Data : Registry->AllChampions)
+		for (UChampionData* Data : Registry->AllChampions) 
 		{
 			if (Data && !Data->ChampionID.IsNone())
 			{
