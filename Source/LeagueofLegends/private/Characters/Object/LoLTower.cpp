@@ -141,9 +141,9 @@ void ALoLTower::OnDestroyed()
     // 2. 타워 공격 타이머 끄기
     GetWorldTimerManager().ClearTimer(AttackTimerHandle);
 
-    // 3. 타워는 다시 살아나지 않으므로 파괴
+    /*// 3. 타워는 다시 살아나지 않으므로 파괴
     if (HasAuthority())
     {
         Destroy();
-    }
+    }*/
 }
