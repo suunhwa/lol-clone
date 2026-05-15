@@ -164,11 +164,19 @@ void ARiftPlayerController::Tick(float DeltaTime)
 	if (!bCameraInitialized && OwnedChamp)
 	{
 		FVector ChampLoc = OwnedChamp->GetActorLocation();
+
+		PRINTLOG_SH(TEXT("[Camera] Local=%d OwnedChamp=%s ChampLoc=%s CameraLoc=%s"),
+			IsLocalController() ? 1 : 0,
+			*GetNameSafe(OwnedChamp),
+			*ChampLoc.ToString(),
+			*CameraActor->GetActorLocation().ToString());
+
 		if (!ChampLoc.IsNearlyZero())
 		{
 			CameraActor->SetActorLocation(ChampLoc);
 			TargetCameraLoc = ChampLoc;
 			bCameraInitialized = true;
+			PRINTLOG_SH(TEXT("[Camera] 스냅 완료 → %s"), *ChampLoc.ToString());
 		}
 	}
 
