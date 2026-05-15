@@ -327,47 +327,15 @@ void ALoLCharacterBase::InitPlayerHUDWidget()
 	UPlayerHUDWidget* HUDWidget = Cast<UPlayerHUDWidget>(HPBarWidgetComp->GetWidget());
 	if (!HUDWidget) return;
 
-	// NickName: PlayerState에서 가져오기, 없으면 액터 이름
-	FString NickName = GetName();
-	if (APlayerState* PS = GetPlayerState())
-	{
-		NickName = PS->GetPlayerName();
-	}
-	HUDWidget->SetNickName(NickName);
-
 	if (!StatComp) return;
 
 	// 초기 값 세팅
 	HUDWidget->SetLevel(StatComp->GetLevel());
 	HUDWidget->SetHP(StatComp->GetCurrentHP(), StatComp->GetMaxHP());
 	HUDWidget->SetMP(StatComp->GetCurrentMana(), StatComp->GetMaxMana());
-	HUDWidget->SetMaxHP(StatComp->GetMaxHP()); // MID 생성 + MaxHealth 파라미터 초기화
+	HUDWidget->SetMaxHP(StatComp->GetMaxHP());
 
-	// 나 / 아군 / 적 판별 → HP바 색상 설정
-	{
-		EHPBarType HPBarType = EHPBarType::Enemy;
-		if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
-		{
-			if (APawn* LocalPawn = LocalPC->GetPawn())
-			{
-				if (LocalPawn == this)
-				{
-					HPBarType = EHPBarType::Self;
-				}
-				else if (ALoLCharacterBase* LocalChar = Cast<ALoLCharacterBase>(LocalPawn))
-				{
-					if (TagComp && LocalChar->TagComp &&
-						TagComp->GetTeam() == LocalChar->TagComp->GetTeam())
-					{
-						HPBarType = EHPBarType::Ally;
-					}
-				}
-			}
-		}
-		HUDWidget->SetHPBarType(HPBarType);
-	}
-
-	// 안전한 약참조로 람다 바인딩 (GC 시 댕글링 포인터 방지)
+	// 안전한 약참조로 람다 바인딩 (중복 구독 방지: BeginPlay에서 1회만 호출)
 	TWeakObjectPtr<UPlayerHUDWidget> WeakHUD(HUDWidget);
 
 	StatComp->OnHPChanged.AddLambda([WeakHUD](float Current, float Max)
@@ -375,7 +343,7 @@ void ALoLCharacterBase::InitPlayerHUDWidget()
 		if (WeakHUD.IsValid())
 		{
 			WeakHUD->SetHP(Current, Max);
-			WeakHUD->SetMaxHP(Max); // MaxHP 변화 시 Material 파라미터 갱신
+			WeakHUD->SetMaxHP(Max);
 		}
 	});
 
@@ -390,5 +358,91 @@ void ALoLCharacterBase::InitPlayerHUDWidget()
 		if (WeakHUD.IsValid())
 			WeakHUD->SetLevel(NewLevel);
 	});
+
+	// PlayerState가 이미 있으면 즉시 갱신, 없으면 OnRep_PlayerState에서 갱신
+	RefreshHUDDisplay();
+
+	// 닉네임 변경 구독 (ServerChangeName RPC 결과가 늦게 도착하는 경우 대응)
+	if (ARiftPlayerState* MyPS = GetPlayerState<ARiftPlayerState>())
+	{
+		MyPS->OnNameChanged.AddWeakLambda(this, [WeakHUD](const FString& Name)
+		{
+			if (WeakHUD.IsValid())
+				WeakHUD->SetNickName(Name);
+		});
+	}
+}
+
+void ALoLCharacterBase::RefreshHUDDisplay()
+{
+	if (!HPBarWidgetComp) return;
+	UPlayerHUDWidget* HUDWidget = Cast<UPlayerHUDWidget>(HPBarWidgetComp->GetWidget());
+	if (!HUDWidget) return;
+
+	// 닉네임: PlayerState에서 현재 값 읽기 (구독은 InitPlayerHUDWidget에서 1회만)
+	if (ARiftPlayerState* MyPS = GetPlayerState<ARiftPlayerState>())
+	{
+		const FString Name = MyPS->GetPlayerName();
+		if (!Name.IsEmpty())
+		{
+			HUDWidget->SetNickName(Name);
+		}
+	}
+
+	// HP바 색상: 컨트롤러 기반으로 Self 판별, PlayerState 팀으로 Ally/Enemy 판별
+	EHPBarType HPBarType = EHPBarType::Enemy;
+
+	AController* MyCtrl = GetController();
+	if (MyCtrl && MyCtrl->IsLocalController())
+	{
+		HPBarType = EHPBarType::Self;
+	}
+	else
+	{
+		ARiftPlayerState* MyPS = GetPlayerState<ARiftPlayerState>();
+		APlayerController* LocalPC = GetWorld()->GetFirstPlayerController();
+		APawn* LocalPawn = LocalPC ? LocalPC->GetPawn() : nullptr;
+		ARiftPlayerState* LocalPS = LocalPawn ? LocalPawn->GetPlayerState<ARiftPlayerState>() : nullptr;
+
+		if (MyPS && LocalPS &&
+			MyPS->GetTeam() != ETeam::None &&
+			LocalPS->GetTeam() != ETeam::None &&
+			MyPS->GetTeam() == LocalPS->GetTeam())
+		{
+			HPBarType = EHPBarType::Ally;
+		}
+	}
+
+	HUDWidget->SetHPBarType(HPBarType);
+}
+
+void ALoLCharacterBase::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	if (ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		// 클라이언트: TagComp 팀 동기화 (서버는 PossessedBy에서 처리)
+		if (TagComp && PS->GetTeam() != ETeam::None)
+		{
+			TagComp->SetTeam(PS->GetTeam());
+		}
+
+		// BeginPlay 시점에 PS가 null이어서 구독 못 한 경우 여기서 보완
+		if (HPBarWidgetComp)
+		{
+			if (UPlayerHUDWidget* HUDWidget = Cast<UPlayerHUDWidget>(HPBarWidgetComp->GetWidget()))
+			{
+				TWeakObjectPtr<UPlayerHUDWidget> WeakHUD(HUDWidget);
+				PS->OnNameChanged.AddWeakLambda(this, [WeakHUD](const FString& Name)
+				{
+					if (WeakHUD.IsValid())
+						WeakHUD->SetNickName(Name);
+				});
+			}
+		}
+	}
+
+	RefreshHUDDisplay();
 }
 

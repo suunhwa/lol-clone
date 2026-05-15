@@ -79,3 +79,8 @@ DerivedDataCache/*
 
 # Rider
 *.DotSettings.user
+
+# Packaged builds
+Builds/
+Packaged/
+Windows/

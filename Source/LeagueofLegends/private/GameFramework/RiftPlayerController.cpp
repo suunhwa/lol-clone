@@ -82,7 +82,22 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 
 	ALoLChampion* Champion = Cast<ALoLChampion>(P);
 	OwnedChamp = Champion;
+	bCameraInitialized = false;
 	if (!Champion) { return; }
+
+	// 닉네임 재전송 — Seamless Travel 후 PlayerState가 새로 생성될 수 있으므로 여기서 확실히 보냄
+	if (auto* GI = GetGameInstance<ULoLGameInstance>())
+	{
+		if (!GI->Nickname.IsEmpty())
+		{
+			ServerChangeName(GI->Nickname);
+		}
+	}
+
+	PRINTLOG_SH(TEXT("[AcknowledgePossession] 챔피언=%s 위치=(%.0f,%.0f,%.0f) CameraClass=%s"),
+		*GetNameSafe(Champion),
+		Champion->GetActorLocation().X, Champion->GetActorLocation().Y, Champion->GetActorLocation().Z,
+		*GetNameSafe(CameraActorClass));
 
 	if (ARiftHUD* HUD = GetHUD<ARiftHUD>())
 	{
@@ -97,10 +112,17 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 		                                                      FTransform(FRotator::ZeroRotator, CameraStartLoc));
 	}
 
+	if (!CameraActor)
+	{
+		PRINTLOG_SH(TEXT("[AcknowledgePossession] CameraActor 스폰 실패. CameraActorClass=%s"),
+			*GetNameSafe(CameraActorClass));
+		return;
+	}
+
 	TargetCameraLoc = CameraStartLoc;
 	SetViewTarget(CameraActor);
 
-	// 클라이언트에서 첫 위치 복제 전에 스폰될 수 있으므로 0.3초 후 교정
+	// 클라이언트에서 첫 위치 복제 전에 스폰될 수 있으므로 교정 (0.3s, 1.0s 두 번)
 	GetWorldTimerManager().SetTimer(CameraInitTimer, [this]()
 	{
 		if (CameraActor && OwnedChamp)
@@ -109,13 +131,23 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 			TargetCameraLoc = OwnedChamp->GetActorLocation();
 		}
 	}, 0.3f, false);
+
+	FTimerHandle CameraInitTimer2;
+	GetWorldTimerManager().SetTimer(CameraInitTimer2, [this]()
+	{
+		if (CameraActor && OwnedChamp)
+		{
+			CameraActor->SetActorLocation(OwnedChamp->GetActorLocation());
+			TargetCameraLoc = OwnedChamp->GetActorLocation();
+		}
+	}, 1.0f, false);
 }
 
 void ARiftPlayerController::AutoManageActiveCameraTarget(AActor* SuggestedTarget)
 {
 	if (CameraActor)
 	{
-		// SetViewTarget(CameraActor);
+		SetViewTarget(CameraActor);
 		return;
 	}
 
@@ -127,6 +159,26 @@ void ARiftPlayerController::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (!IsLocalController() || !CameraActor) { return; }
+
+	// 클라이언트: 챔피언 위치가 복제 완료되면 카메라 한 번 스냅
+	if (!bCameraInitialized && OwnedChamp)
+	{
+		FVector ChampLoc = OwnedChamp->GetActorLocation();
+
+		PRINTLOG_SH(TEXT("[Camera] Local=%d OwnedChamp=%s ChampLoc=%s CameraLoc=%s"),
+			IsLocalController() ? 1 : 0,
+			*GetNameSafe(OwnedChamp),
+			*ChampLoc.ToString(),
+			*CameraActor->GetActorLocation().ToString());
+
+		if (!ChampLoc.IsNearlyZero())
+		{
+			CameraActor->SetActorLocation(ChampLoc);
+			TargetCameraLoc = ChampLoc;
+			bCameraInitialized = true;
+			PRINTLOG_SH(TEXT("[Camera] 스냅 완료 → %s"), *ChampLoc.ToString());
+		}
+	}
 
 	UpdateIndicator();
 
@@ -178,8 +230,9 @@ void ARiftPlayerController::Server_SetReady_Implementation()
 	if (auto* PS = GetPlayerState<ARiftPlayerState>())
 	{
 		PS->SetReady(true);
-		PRINTLOG_SH(TEXT("[Server_SetReady] SetReady(true) 완료"));
+		PRINTLOG_SH(TEXT("[Server_SetReady] SetReady(true) 완료 → 이후 Travel 없음 (Host Start 대기)"));
 	}
+	// 절대 여기서 TryStartGame/Travel 호출 없음 — Host가 Start 눌렀을 때만
 }
 
 void ARiftPlayerController::Server_StartChampionSelect_Implementation()

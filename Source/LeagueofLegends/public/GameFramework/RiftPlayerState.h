@@ -19,6 +19,10 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	// Seamless Travel 시 커스텀 프로퍼티 보존
+	virtual void CopyProperties(APlayerState* PlayerState) override;
+	virtual void OverrideWith(APlayerState* PlayerState) override;
+
 	// 서버 전용 setter
 	void SetTeam(ETeam InTeam);
 	void SetLane(ELane InLane);
@@ -47,6 +51,9 @@ public:
 	// UI 바인딩용 — 클라이언트 포함 레벨/XP 변경 시 호출
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnXPChanged, float /*XP*/, int32 /*Level*/);
 	FOnXPChanged OnXPChanged;
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerNameChanged, const FString& /*Name*/);
+	FOnPlayerNameChanged OnNameChanged;
 
 	ETeam GetTeam() const { return Team; }
 	ELane GetLane() const { return Lane; }
@@ -116,6 +123,8 @@ private:
 
 	UFUNCTION()
 	void OnRep_Team();
+
+	virtual void OnRep_PlayerName() override;
 
 	UFUNCTION()
 	void OnRep_ChampionLevel();

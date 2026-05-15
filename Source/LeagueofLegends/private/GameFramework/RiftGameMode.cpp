@@ -34,14 +34,45 @@ void ARiftGameMode::CollectSpawnPoints()
 
 	for (TActorIterator<ALoLPlayerStart> It(GetWorld()); It; ++It)
 	{
-		if (It->Team == ETeam::Blue)     { BlueSpawns.Add(*It); }
-		else if (It->Team == ETeam::Red) { RedSpawns.Add(*It); }
+		if (It->Team == ETeam::Blue)
+		{
+			BlueSpawns.Add(*It);
+		}
+		else if (It->Team == ETeam::Red)
+		{
+			RedSpawns.Add(*It);
+		}
 	}
 
 	BlueSpawns.Sort([](const ALoLPlayerStart& A, const ALoLPlayerStart& B) { return A.SlotIndex < B.SlotIndex; });
-	RedSpawns.Sort([](const ALoLPlayerStart& A, const ALoLPlayerStart& B)  { return A.SlotIndex < B.SlotIndex; });
+	RedSpawns.Sort([](const ALoLPlayerStart& A, const ALoLPlayerStart& B) { return A.SlotIndex < B.SlotIndex; });
 
 	PRINTLOG_SH(TEXT("[SpawnPoints] Blue:%d Red:%d"), BlueSpawns.Num(), RedSpawns.Num());
+
+	for (ALoLPlayerStart* S : BlueSpawns)
+	{
+		if (S)
+		{
+			PRINTLOG_SH(TEXT("  [Blue] Slot%d → %s  (%.0f, %.0f, %.0f)"),
+			            S->SlotIndex,
+			            *GetNameSafe(S),
+			            S->GetActorLocation().X,
+			            S->GetActorLocation().Y,
+			            S->GetActorLocation().Z);
+		}
+	}
+	for (ALoLPlayerStart* S : RedSpawns)
+	{
+		if (S)
+		{
+			PRINTLOG_SH(TEXT("  [Red]  Slot%d → %s  (%.0f, %.0f, %.0f)"),
+			            S->SlotIndex,
+			            *GetNameSafe(S),
+			            S->GetActorLocation().X,
+			            S->GetActorLocation().Y,
+			            S->GetActorLocation().Z);
+		}
+	}
 }
 
 void ARiftGameMode::AssignTeamSlot(ARiftPlayerState* PS)
@@ -72,26 +103,88 @@ void ARiftGameMode::AssignTeamSlot(ARiftPlayerState* PS)
 
 void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 {
-	Super::PostLogin(NewPlayer);
-
+	// Super::PostLogin 안에서 HandleStartingNewPlayer → RestartPlayer → ChoosePlayerStart가 호출되므로
+	// 팀/슬롯 배정은 반드시 Super 호출 전에 완료해야 함
 	ARiftPlayerState* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
-	if (!PS) { return; }
-
-	if (PS->GetTeamSlotIndex() == INDEX_NONE)
+	if (PS)
 	{
-		AssignTeamSlot(PS);
+		// Seamless Travel 실패(PIE 등)로 PlayerState 초기화된 경우 팀 재배정
+		if (PS->GetTeam() == ETeam::None)
+		{
+			int32 Blue = 0, Red = 0;
+			for (APlayerState* OtherPS : GameState->PlayerArray)
+			{
+				if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+				{
+					if (RPS != PS)
+					{
+						if (RPS->GetTeam() == ETeam::Blue) Blue++;
+						else if (RPS->GetTeam() == ETeam::Red) Red++;
+					}
+				}
+			}
+			PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
+			PRINTLOG_SH(TEXT("[PostLogin] Team 재배정 (SeamlessTravel 미작동) → %s"),
+			            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+		}
+
+		if (PS->GetTeamSlotIndex() == INDEX_NONE)
+		{
+			AssignTeamSlot(PS);
+		}
+
+		PRINTLOG_SH(TEXT("[PostLogin] Team:%s Slot:%d (Super 호출 전)"),
+		            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"),
+		            PS->GetTeamSlotIndex());
 	}
 
-	PRINTLOG_SH(TEXT("[PostLogin] Team:%s Slot:%d"),
-		PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"),
-		PS->GetTeamSlotIndex());
+	Super::PostLogin(NewPlayer); // 이 안에서 ChoosePlayerStart 호출됨
 
 	TryStartGame();
 }
 
 void ARiftGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
 {
-	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
+	// CopyProperties로 PickWindow 팀/슬롯이 넘어왔어야 함.
+	// CopyProperties 미동작 등 예외 상황의 폴백 처리
+	ARiftPlayerState* PS = NewPlayer->GetPlayerState<ARiftPlayerState>();
+	if (PS)
+	{
+		PRINTLOG_SH(TEXT("[HandleStartingNewPlayer] Before Team=%d Slot=%d Name=%s"),
+		            (int32)PS->GetTeam(),
+		            PS->GetTeamSlotIndex(),
+		            *PS->GetPlayerName());
+
+		if (PS->GetTeam() == ETeam::None)
+		{
+			// CopyProperties 정상이면 이 로그 안 찍혀야 함
+			PRINTLOG_SH(TEXT("[HandleStartingNewPlayer] ★ Team=None — CopyProperties 미동작"));
+			int32 Blue = 0, Red = 0;
+			for (APlayerState* OtherPS : GameState->PlayerArray)
+			{
+				if (auto* RPS = Cast<ARiftPlayerState>(OtherPS))
+				{
+					if (RPS != PS)
+					{
+						if (RPS->GetTeam() == ETeam::Blue) Blue++;
+						else if (RPS->GetTeam() == ETeam::Red) Red++;
+					}
+				}
+			}
+			PS->SetTeam(Blue <= Red ? ETeam::Blue : ETeam::Red);
+		}
+
+		if (PS->GetTeamSlotIndex() == INDEX_NONE)
+		{
+			AssignTeamSlot(PS);
+		}
+
+		PRINTLOG_SH(TEXT("[HandleStartingNewPlayer] After  Team=%d Slot=%d → 스폰"),
+		            (int32)PS->GetTeam(),
+		            PS->GetTeamSlotIndex());
+	}
+
+	Super::HandleStartingNewPlayer_Implementation(NewPlayer); // → RestartPlayer → ChoosePlayerStart
 }
 
 void ARiftGameMode::Logout(AController* Exiting)
@@ -107,11 +200,14 @@ void ARiftGameMode::Logout(AController* Exiting)
 AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
 	ARiftPlayerState* PS = Player ? Player->GetPlayerState<ARiftPlayerState>() : nullptr;
-	if (!PS) { return Super::ChoosePlayerStart_Implementation(Player); }
+	if (!PS)
+	{
+		return Super::ChoosePlayerStart_Implementation(Player);
+	}
 
 	const bool bBlue = (PS->GetTeam() == ETeam::Blue);
 
-	// Seamless Travel 시 PostLogin이 BeginPlay보다 먼저 호출될 수 있음 → 즉시 수집
+	// 스폰 배열 비어있으면 즉시 수집
 	if (BlueSpawns.IsEmpty() && RedSpawns.IsEmpty())
 	{
 		PRINTLOG_SH(TEXT("[ChoosePlayerStart] 스폰 배열 비어있음 — 즉시 재수집"));
@@ -127,11 +223,19 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 		{
 			if (S && S->SlotIndex == SlotIndex)
 			{
-				PRINTLOG_SH(TEXT("[ChoosePlayerStart] %s팀 Slot%d → %s"),
-					bBlue ? TEXT("Blue") : TEXT("Red"), SlotIndex, *GetNameSafe(S));
+				PRINTLOG_SH(TEXT("[ChoosePlayerStart] %s팀 Slot%d → %s  위치:(%.0f, %.0f, %.0f)"),
+				            bBlue ? TEXT("Blue") : TEXT("Red"),
+				            SlotIndex,
+				            *GetNameSafe(S),
+				            S->GetActorLocation().X,
+				            S->GetActorLocation().Y,
+				            S->GetActorLocation().Z);
 				return S;
 			}
 		}
+		PRINTLOG_SH(TEXT("[ChoosePlayerStart] %s팀 Slot%d 없음 — Spawns[0] 폴백"),
+		            bBlue ? TEXT("Blue") : TEXT("Red"),
+		            SlotIndex);
 		return Spawns[0];
 	}
 
@@ -168,15 +272,15 @@ void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)
 }
 
 void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
-	ARiftPlayerState* Victim,
-	const TArray<ARiftPlayerState*>& Assisters)
+                                     ARiftPlayerState* Victim,
+                                     const TArray<ARiftPlayerState*>& Assisters)
 {
 	if (!Victim) { return; }
 	Victim->AddDeath();
 
 	if (!Killer || Killer == Victim) { return; }
 	Killer->AddKill();
-	
+
 	for (ARiftPlayerState* A : Assisters)
 	{
 		if (A && A != Killer)
@@ -234,14 +338,13 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
 
 	// 단독이면 100%, 복수면 SharingMultiplier 보정 후 균등 분배
 	float XPEach = Nearby.Num() == 1
-		? UnitXP
-		: UnitXP * Row->SharingMultiplier / Nearby.Num();
+		               ? UnitXP
+		               : UnitXP * Row->SharingMultiplier / Nearby.Num();
 
 	for (ARiftPlayerState* PS : Nearby)
 	{
 		PS->AddXP(XPEach);
 	}
-
 }
 
 float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 VictimLevel)
@@ -261,7 +364,7 @@ float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 V
 	{
 		Multiplier = 1.0f;
 	}
-	
+
 	return BaseXP * Multiplier;
 }
 
@@ -343,4 +446,3 @@ void ARiftGameMode::EndGame(ETeam WinningTeam)
 	gs->SetWinningTeam(WinningTeam);
 	gs->StopGameTimer();
 }
-

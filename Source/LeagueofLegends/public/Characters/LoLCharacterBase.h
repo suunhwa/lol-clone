@@ -31,6 +31,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f) override;
+	virtual void OnRep_PlayerState() override;
 
 public:
 	// --- IDamageable
@@ -129,6 +130,9 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_OnDeath();
+
+public:
+	void RefreshHUDDisplay(); // 팀 색상 + 닉네임만 갱신 (델리게이트 재구독 없음)
 
 private:
 	void InitPlayerHUDWidget();

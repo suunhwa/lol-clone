@@ -144,6 +144,7 @@ protected:
 
 public:
 	bool bCameraLocked = false;
+	bool bCameraInitialized = false; // 클라이언트 카메라 초기 스냅 완료 여부
 
 	// y키
 	// 고정시점

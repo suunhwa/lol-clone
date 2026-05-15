@@ -1,6 +1,7 @@
 #include "GameFramework/RiftPlayerState.h"
 
 #include "LeagueofLegends.h"
+#include "Characters/LoLCharacterBase.h"
 #include "Components/StatComponent.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
@@ -8,7 +9,7 @@
 void ARiftPlayerState::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	
+
 	if (bTeamDebug)
 	{
 		SetTeam(DebugTeam);
@@ -17,6 +18,36 @@ void ARiftPlayerState::PostInitializeComponents()
 
 ARiftPlayerState::ARiftPlayerState()
 {
+}
+
+void ARiftPlayerState::CopyProperties(APlayerState* PlayerState)
+{
+	Super::CopyProperties(PlayerState);
+
+	if (ARiftPlayerState* Dest = Cast<ARiftPlayerState>(PlayerState))
+	{
+		Dest->Team = Team;
+		Dest->TeamSlotIndex = TeamSlotIndex;
+		Dest->Lane = Lane;
+		Dest->SummonerSpell1 = SummonerSpell1;
+		Dest->SummonerSpell2 = SummonerSpell2;
+		Dest->SelectedChampionID = SelectedChampionID;
+	}
+}
+
+void ARiftPlayerState::OverrideWith(APlayerState* PlayerState)
+{
+	Super::OverrideWith(PlayerState);
+
+	if (ARiftPlayerState* Src = Cast<ARiftPlayerState>(PlayerState))
+	{
+		Team = Src->Team;
+		TeamSlotIndex = Src->TeamSlotIndex;
+		Lane = Src->Lane;
+		SummonerSpell1 = Src->SummonerSpell1;
+		SummonerSpell2 = Src->SummonerSpell2;
+		SelectedChampionID = Src->SelectedChampionID;
+	}
 }
 
 void ARiftPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -38,7 +69,6 @@ void ARiftPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(ARiftPlayerState, bIsDisconnected);
 	DOREPLIFETIME(ARiftPlayerState, bIsReady);
 	DOREPLIFETIME(ARiftPlayerState, SelectedChampionID);
-
 }
 
 void ARiftPlayerState::SetTeamSlotIndex(int32 InIndex)
@@ -111,7 +141,7 @@ void ARiftPlayerState::AddXP(float Amount)
 
 	XP += Amount;
 	OnXPChanged.Broadcast(XP, ChampionLevel);
-	
+
 	PRINTLOG_SH(TEXT("[AddXP] +%.1f → 누적 XP: %.1f / 현재 레벨: %d"), Amount, XP, ChampionLevel);
 
 	while (ChampionLevel < 18)
@@ -126,14 +156,14 @@ void ARiftPlayerState::AddXP(float Amount)
 			break;
 		}
 		if (XP < Row->RequiredXP) { break; }
-		
+
 		XP -= Row->RequiredXP;
 		ChampionLevel++;
-		
+
 		PRINTLOG_SH(TEXT("[AddXP] 레벨업! → %d"), ChampionLevel);
-		
+
 		OnLevelUp.Broadcast(ChampionLevel);
-		
+
 		// StatComp 레벨 동기화 — UI와 스탯 성장이 여기서 읽음
 		if (APawn* Pawn = GetPawn())
 		{
@@ -163,13 +193,35 @@ void ARiftPlayerState::OnRep_IsReady()
 
 void ARiftPlayerState::OnRep_Team()
 {
-	// TODO
+	// 팀이 복제되면 이 캐릭터의 HP바 색상을 재평가
+	if (APawn* Pawn = GetPawn())
+	{
+		if (ALoLCharacterBase* Char = Cast<ALoLCharacterBase>(Pawn))
+		{
+			Char->RefreshHUDDisplay();
+		}
+	}
+}
+
+void ARiftPlayerState::OnRep_PlayerName()
+{
+	Super::OnRep_PlayerName();
+	OnNameChanged.Broadcast(GetPlayerName());
+
+	// 구독 타이밍이 맞지 않을 경우를 대비한 직접 갱신
+	if (APawn* Pawn = GetPawn())
+	{
+		if (ALoLCharacterBase* Char = Cast<ALoLCharacterBase>(Pawn))
+		{
+			Char->RefreshHUDDisplay();
+		}
+	}
 }
 
 void ARiftPlayerState::OnRep_ChampionLevel()
 {
 	OnXPChanged.Broadcast(XP, ChampionLevel);
-	
+
 	// 클라이언트 StatComp 레벨 동기화
 	if (APawn* Pawn = GetPawn())
 	{
@@ -184,5 +236,3 @@ void ARiftPlayerState::OnRep_XP()
 {
 	OnXPChanged.Broadcast(XP, ChampionLevel);
 }
-
-

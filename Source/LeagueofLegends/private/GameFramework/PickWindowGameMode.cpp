@@ -63,7 +63,11 @@ bool APickWindowGameMode::TrySwitchTeam(APlayerController* PC, ETeam NewTeam)
 
 void APickWindowGameMode::TryStartGame(APlayerController* PC)
 {
-	if (!IsHost(PC)) { return; }
+	if (!IsHost(PC))
+	{
+		PRINTLOG_SH(TEXT("[TryStartGame] Host가 아님 — 무시"));
+		return;
+	}
 
 	// 호스트가 Start 누르면 자동으로 Ready 처리
 	if (auto* PS = PC->GetPlayerState<ARiftPlayerState>())
@@ -71,8 +75,13 @@ void APickWindowGameMode::TryStartGame(APlayerController* PC)
 		PS->SetReady(true);
 	}
 
-	if (!AllPlayersReady()) { return; }
+	if (!AllPlayersReady())
+	{
+		PRINTLOG_SH(TEXT("[TryStartGame] AllPlayersReady=false — 대기 (Host Start 눌렀지만 아직 안 준비됨)"));
+		return;
+	}
 
+	PRINTLOG_SH(TEXT("[TryStartGame] 모두 준비 완료 → SeamlessTravel 시작"));
 	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_SummonerRift?listen"));
 }
 
