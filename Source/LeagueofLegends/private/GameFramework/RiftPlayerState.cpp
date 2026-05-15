@@ -207,6 +207,15 @@ void ARiftPlayerState::OnRep_PlayerName()
 {
 	Super::OnRep_PlayerName();
 	OnNameChanged.Broadcast(GetPlayerName());
+
+	// 구독 타이밍이 맞지 않을 경우를 대비한 직접 갱신
+	if (APawn* Pawn = GetPawn())
+	{
+		if (ALoLCharacterBase* Char = Cast<ALoLCharacterBase>(Pawn))
+		{
+			Char->RefreshHUDDisplay();
+		}
+	}
 }
 
 void ARiftPlayerState::OnRep_ChampionLevel()
