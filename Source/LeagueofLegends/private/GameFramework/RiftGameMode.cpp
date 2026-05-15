@@ -34,14 +34,45 @@ void ARiftGameMode::CollectSpawnPoints()
 
 	for (TActorIterator<ALoLPlayerStart> It(GetWorld()); It; ++It)
 	{
-		if (It->Team == ETeam::Blue)     { BlueSpawns.Add(*It); }
-		else if (It->Team == ETeam::Red) { RedSpawns.Add(*It); }
+		if (It->Team == ETeam::Blue)
+		{
+			BlueSpawns.Add(*It);
+		}
+		else if (It->Team == ETeam::Red)
+		{
+			RedSpawns.Add(*It);
+		}
 	}
 
 	BlueSpawns.Sort([](const ALoLPlayerStart& A, const ALoLPlayerStart& B) { return A.SlotIndex < B.SlotIndex; });
-	RedSpawns.Sort([](const ALoLPlayerStart& A, const ALoLPlayerStart& B)  { return A.SlotIndex < B.SlotIndex; });
+	RedSpawns.Sort([](const ALoLPlayerStart& A, const ALoLPlayerStart& B) { return A.SlotIndex < B.SlotIndex; });
 
 	PRINTLOG_SH(TEXT("[SpawnPoints] Blue:%d Red:%d"), BlueSpawns.Num(), RedSpawns.Num());
+
+	for (ALoLPlayerStart* S : BlueSpawns)
+	{
+		if (S)
+		{
+			PRINTLOG_SH(TEXT("  [Blue] Slot%d → %s  (%.0f, %.0f, %.0f)"),
+			            S->SlotIndex,
+			            *GetNameSafe(S),
+			            S->GetActorLocation().X,
+			            S->GetActorLocation().Y,
+			            S->GetActorLocation().Z);
+		}
+	}
+	for (ALoLPlayerStart* S : RedSpawns)
+	{
+		if (S)
+		{
+			PRINTLOG_SH(TEXT("  [Red]  Slot%d → %s  (%.0f, %.0f, %.0f)"),
+			            S->SlotIndex,
+			            *GetNameSafe(S),
+			            S->GetActorLocation().X,
+			            S->GetActorLocation().Y,
+			            S->GetActorLocation().Z);
+		}
+	}
 }
 
 void ARiftGameMode::AssignTeamSlot(ARiftPlayerState* PS)
@@ -83,8 +114,8 @@ void ARiftGameMode::PostLogin(APlayerController* NewPlayer)
 	}
 
 	PRINTLOG_SH(TEXT("[PostLogin] Team:%s Slot:%d"),
-		PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"),
-		PS->GetTeamSlotIndex());
+	            PS->GetTeam() == ETeam::Blue ? TEXT("Blue") : TEXT("Red"),
+	            PS->GetTeamSlotIndex());
 
 	TryStartGame();
 }
@@ -107,7 +138,10 @@ void ARiftGameMode::Logout(AController* Exiting)
 AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
 	ARiftPlayerState* PS = Player ? Player->GetPlayerState<ARiftPlayerState>() : nullptr;
-	if (!PS) { return Super::ChoosePlayerStart_Implementation(Player); }
+	if (!PS)
+	{
+		return Super::ChoosePlayerStart_Implementation(Player);
+	}
 
 	const bool bBlue = (PS->GetTeam() == ETeam::Blue);
 
@@ -127,8 +161,13 @@ AActor* ARiftGameMode::ChoosePlayerStart_Implementation(AController* Player)
 		{
 			if (S && S->SlotIndex == SlotIndex)
 			{
-				PRINTLOG_SH(TEXT("[ChoosePlayerStart] %s팀 Slot%d → %s"),
-					bBlue ? TEXT("Blue") : TEXT("Red"), SlotIndex, *GetNameSafe(S));
+				PRINTLOG_SH(TEXT("[ChoosePlayerStart] %s팀 Slot%d → %s  위치:(%.0f, %.0f, %.0f)"),
+				            bBlue ? TEXT("Blue") : TEXT("Red"),
+				            SlotIndex,
+				            *GetNameSafe(S),
+				            S->GetActorLocation().X,
+				            S->GetActorLocation().Y,
+				            S->GetActorLocation().Z);
 				return S;
 			}
 		}
@@ -168,15 +207,15 @@ void ARiftGameMode::OnNexusDestroyed(ETeam DestroyedTeam)
 }
 
 void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
-	ARiftPlayerState* Victim,
-	const TArray<ARiftPlayerState*>& Assisters)
+                                     ARiftPlayerState* Victim,
+                                     const TArray<ARiftPlayerState*>& Assisters)
 {
 	if (!Victim) { return; }
 	Victim->AddDeath();
 
 	if (!Killer || Killer == Victim) { return; }
 	Killer->AddKill();
-	
+
 	for (ARiftPlayerState* A : Assisters)
 	{
 		if (A && A != Killer)
@@ -234,14 +273,13 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
 
 	// 단독이면 100%, 복수면 SharingMultiplier 보정 후 균등 분배
 	float XPEach = Nearby.Num() == 1
-		? UnitXP
-		: UnitXP * Row->SharingMultiplier / Nearby.Num();
+		               ? UnitXP
+		               : UnitXP * Row->SharingMultiplier / Nearby.Num();
 
 	for (ARiftPlayerState* PS : Nearby)
 	{
 		PS->AddXP(XPEach);
 	}
-
 }
 
 float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 VictimLevel)
@@ -261,7 +299,7 @@ float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 V
 	{
 		Multiplier = 1.0f;
 	}
-	
+
 	return BaseXP * Multiplier;
 }
 
@@ -343,4 +381,3 @@ void ARiftGameMode::EndGame(ETeam WinningTeam)
 	gs->SetWinningTeam(WinningTeam);
 	gs->StopGameTimer();
 }
-
