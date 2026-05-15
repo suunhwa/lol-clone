@@ -114,6 +114,8 @@ public:
 	void ExitRoom();
 	
 	void QuitSession();
+	
+	void HandlePreExit();
 
 	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
 
