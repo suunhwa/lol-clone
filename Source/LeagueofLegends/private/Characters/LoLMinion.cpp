@@ -11,6 +11,7 @@
 #include "AStar/AStarGridManager.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/RiftGameMode.h"
 #include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -112,10 +113,10 @@ void ALoLMinion::BeginPlay()
     if (TagComp)
     {
         TagComp->SetUnitType(EUnitType::Minion);
-        if (TagComp->GetTeam() == ETeam::None)
+        /*if (TagComp->GetTeam() == ETeam::None)
         {
             TagComp->SetTeam(InitialTeam);
-        }
+        }*/
         // [수정] 팀 설정 확인 로그 추가
         PRINTLOG_HJ(TEXT("[%s] 소환됨 - 팀: %d (0:None, 1:Blue, 2:Red)"), 
             *GetName(), (int32)TagComp->GetTeam());
@@ -136,14 +137,28 @@ void ALoLMinion::BeginPlay()
 
 void ALoLMinion::OnDeath(AActor* DamageInstigator)
 {
-    // CS 추적: 챔피언이 죽인 경우 PlayerState에 CS 추가
-    if (ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator))
+    if (HasAuthority())
     {
-        if (ARiftPlayerState* PS = KillerChamp->GetPlayerState<ARiftPlayerState>())
+        // CS 추적: 챔피언이 죽인 경우
+        if (ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator))
         {
-            PS->AddCS(1);
+            if (ARiftPlayerState* PS = KillerChamp->GetPlayerState<ARiftPlayerState>())
+            {
+                PS->AddCS(1);
+            }
         }
-          
+
+        // XP 분배
+        FName RowName = GetExpRowName();
+        if (!RowName.IsNone())
+        {
+            if (ARiftGameMode* GM = GetWorld()->GetAuthGameMode<ARiftGameMode>())
+            {
+                ETeam MyTeam = ITargetable::Execute_GetTeam(this);
+                ETeam KillerTeam = (MyTeam == ETeam::Blue) ? ETeam::Red : ETeam::Blue;
+                GM->OnUnitKilled(RowName, GetActorLocation(), KillerTeam);
+            }
+        }
     }
 
     CurrentTarget = nullptr;
@@ -157,10 +172,8 @@ void ALoLMinion::OnDeath(AActor* DamageInstigator)
             FOW->UnregisterSightProvider(this);
         }
     }
-    
-    Super::OnDeath(DamageInstigator);
 
-    // 0.3초 후 소멸
+    Super::OnDeath(DamageInstigator);
     SetLifeSpan(0.3f);
 }
 
@@ -175,6 +188,13 @@ void ALoLMinion::Tick(float DeltaTime)
 
     if (CurrentTarget.IsValid())
     {
+        if (IDamageable::Execute_IsDead(CurrentTarget.Get()))
+        {
+            CurrentTarget = nullptr;
+            CurrentPath.Empty();
+            return;
+            
+        }
         float Dist = FVector::Dist2D(GetActorLocation(), CurrentTarget->GetActorLocation());
 
         // 어그로 해제 거리 체크 (너무 멀어지면 타겟 상실)
@@ -201,8 +221,12 @@ void ALoLMinion::Tick(float DeltaTime)
             float CurrentTime = GetWorld()->GetTimeSeconds();
             if (CurrentTime - LastAttackTime >= GetAttackCooldown())
             {
-                ExecuteAttack();
-                LastAttackTime = CurrentTime;
+                // 여기서 ExecuteAttack 호출 전 한 번 더 검증
+                if (IsValid(CurrentTarget.Get()))
+                {
+                    ExecuteAttack();
+                    LastAttackTime = CurrentTime;
+                }
             }
             // [로그 추가] 공격 범위 진입 확인
             PRINTLOG_HJ(TEXT("[%s] 공격 사거리 도달!"), *GetName());
@@ -385,34 +409,67 @@ float ALoLMinion::GetAttackCooldown() const
 
 void ALoLMinion::ExecuteAttack()
 {   
-    // if (!CurrentTarget.IsValid() || !StatComp) { return; }
-    if (!CurrentTarget.IsValid() || !CombatComp) { return; }
+    // 1. 모든 필수 요소가 유효한지 한 번에 검사 (가장 안전함)
+    if (!IsValid(this) || !CombatComp || !StatComp || !CurrentTarget.IsValid())
+    {
+        return; 
+    }
 
-    
-    // StatComp에서 AD 가져오기
+    // 2. 타겟이 월드에서 제거 중이거나 죽었는지 검사
+    AActor* TargetActor = CurrentTarget.Get();
+    if (!IsValid(TargetActor) || IDamageable::Execute_IsDead(TargetActor))
+    {
+        CurrentTarget = nullptr;
+        return;
+    }
+
     float Damage = StatComp->GetAD();
 
-    // 원거리/근거리 판정은 StatComp의 GetAttackRange() 활용
     if (StatComp->GetAttackRange() > 200.f)
     {
-        // TODO: 원거리 투사체 소환 (ProjectileClass 사용)
+        // TODO: 원거리 투사체 소환
         PRINTLOG_HJ(TEXT("[%s] 원거리 투사체 발사! 데미지: %.1f"), *GetName(), Damage);
     }
     else
     {
-        if (CurrentTarget->GetClass()->ImplementsInterface(UDamageable::StaticClass()))
+        // [수정] 대상이 Damageable 인터페이스를 구현했는지 안전하게 확인 후 호출
+        if (CurrentTarget->Implements<UDamageable>())
         {
             IDamageable::Execute_ReceiveDamage(CurrentTarget.Get(), Damage, EDamageType::Physical, this);
-            PRINTLOG_HJ(TEXT("[%s] 근접 공격! %s에게 %.1f 데미지"), *GetName(), *CurrentTarget->GetName(), Damage);
+            //PRINTLOG_HJ(TEXT("[%s] 근접 공격! %s에게 %.1f 데미지"), *GetName(), *CurrentTarget->GetName(), Damage);
         }
     }
+
     LastAttackTime = GetWorld()->GetTimeSeconds();
-    // 애니메이션 재생 (공격 속도에 맞춰 배속 조절 필요)
-    // PlayAnimMontage(AttackMontage, StatComp->GetAttackSpeed());*/
     
-    // CombatComponent로 데미지 적용
+    // CombatComponent를 통한 실제 공격 로직 수행
     CombatComp->PerformBasicAttack(CurrentTarget.Get());
-    //PRINTLOG_SH(TEXT("[%s] 공격! → %s"), *GetName(), *GetNameSafe(CurrentTarget.Get()));
+}
+
+FName ALoLMinion::GetExpRowName() const
+{
+    if (UMinionDataSubsystem* DataSub = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>())
+    {
+        if (const FMinionBaseRow* Row = DataSub->GetBaseRowByID(MinionID))
+        {
+            // return Row->ExpRowName;
+            if (!Row->ExpRowName.IsNone())
+            {
+                return Row->ExpRowName;
+            }
+        }
+    }
+    // return NAME_None;
+    
+    // DataTable에 ExpRowName 미설정 시 MinionID 기반 폴백
+    switch (MinionID)
+    {
+    case 3001: return FName("Minion_Melee");
+    case 3002: return FName("Minion_Ranged");
+    case 3003: return FName("Minion_Siege");
+    case 3004: return FName("Minion_Super");
+    default:   return NAME_None;
+    }
 }
 
 void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
@@ -471,7 +528,12 @@ float ALoLMinion::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
 void ALoLMinion::Die(AActor* Killer)
 {
     // 1. 태그 변경 (사망 상태 표시)
-    if (TagComp) TagComp->AddTag(UnitTags::Dead);
+    // if (TagComp) TagComp->AddTag(UnitTags::Dead);
+    if (TagComp)
+    {
+        TagComp->AddTag(UnitTags::Dead);
+        TagComp->AddTag(UnitTags::Untargetable);
+    }
     
     // 죽는 순간 즉시 충돌을 꺼버려서 길막/튕김 원천 봉쇄
     if (auto* Capsule = GetCapsuleComponent())
@@ -479,7 +541,7 @@ void ALoLMinion::Die(AActor* Killer)
         Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
         Capsule->SetCollisionResponseToAllChannels(ECR_Ignore);
     }
-    // 2. 골드 보상 로직 (미니언스탯컴포넌트 참조)
+    /*// 2. 골드 보상 로직 (미니언스탯컴포넌트 참조)
     if (UMinionStatComponent* MinionStat = Cast<UMinionStatComponent>(StatComp))
     {
         // Killer에게 골드 지급 로직 수행 (GetBaseGoldReward() 사용)
@@ -488,25 +550,13 @@ void ALoLMinion::Die(AActor* Killer)
 
     // 3. 소멸 (애니메이션이 있다면 딜레이 후 소멸)
     PRINTLOG_HJ(TEXT("[%s] 사망했습니다."), *GetName());
-    Destroy();
+    Destroy();*/
+    
+    // OnDeath 체인 실행 (CS, XP, FOW 해제 등 처리)
+    CombatComp->OnDeath.Broadcast(Killer);
 }
 
 // --- Interface 구현부 ---
 ETeam ALoLMinion::GetTeam_Implementation() const { return TagComp ? TagComp->GetTeam() : ETeam::None; }
 EUnitType ALoLMinion::GetUnitType_Implementation() const { return EUnitType::Minion; }
 AActor* ALoLMinion::GetCurrentCombatTarget_Implementation() const { return CurrentTarget.Get(); }
-/*// 포탑이 호출하는 ReceiveDamage를 미니언의 HP 로직으로 연결
-void ALoLMinion::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
-{
-	// 부모 클래스의 HasAuthority() 체크를 우회하여 즉시 대미지 적용
-	// 미니언 클래스에 이미 만들어둔 TakeDamageSimple 함수를 호출합니다.
-	TakeDamageSimple(Amount);
-}
-
-// 태그를 기반으로 정확한 팀 정보를 반환
-ETeam ALoLMinion::GetTeam_Implementation() const
-{
-	if (Tags.Contains(TEXT("RedTeam"))) return ETeam::Red;
-	if (Tags.Contains(TEXT("BlueTeam"))) return ETeam::Blue;
-	return ETeam::None;
-}*/

@@ -35,12 +35,27 @@ void UEnemySlotWidget::SetSlotData(const FPlayerSlotViewData& Data)
 	if (txt_champ)
 	{
 		txt_champ->SetVisibility(bChampSelected && !Data.bIsReady
-			                         ? ESlateVisibility::Visible
-			                         : ESlateVisibility::Collapsed);
+			                     ? ESlateVisibility::Visible
+			                     : ESlateVisibility::Collapsed);
 
 		if (bChampSelected)
 		{
-			txt_champ->SetText(FText::FromName(Data.ChampionID));
+			const FName NameToShow = Data.ChampionName_KR.IsNone()
+				? Data.ChampionID : Data.ChampionName_KR;
+			txt_champ->SetText(FText::FromName(NameToShow));
+		}
+	}
+
+	if (Img_ChampIcon)
+	{
+		if (bChampSelected && Data.ChampPortrait)
+		{
+			Img_ChampIcon->SetBrushFromTexture(Data.ChampPortrait);
+			Img_ChampIcon->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			Img_ChampIcon->SetVisibility(ESlateVisibility::Hidden);
 		}
 	}
 }

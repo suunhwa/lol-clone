@@ -1,4 +1,8 @@
 #include "GameFramework/RiftPlayerState.h"
+
+#include "LeagueofLegends.h"
+#include "Components/StatComponent.h"
+#include "Manager/ChampionDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
 ARiftPlayerState::ARiftPlayerState()
@@ -74,25 +78,54 @@ void ARiftPlayerState::AddGold(int32 Amount)
 	TotalGold += Amount;
 }
 
-// 레벨별 필요 경험치 (레벨 1→2부터 17→18)
+/*// 레벨별 필요 경험치 (레벨 1→2부터 17→18)
 static const float GXPRequired[] =
 {
 	280, 380, 480, 580, 680, 780, 880,
 	1080, 1280, 1480, 1780, 2080, 2380,
 	2680, 2980, 3280, 3480
-};
+};*/
 
 void ARiftPlayerState::AddXP(float Amount)
 {
-	if (ChampionLevel >= 18) return;
+	if (!HasAuthority() || ChampionLevel >= 18) { return; }
+
+	UChampionDataSubsystem* ExpSys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+	if (!ExpSys) { return; }
 
 	XP += Amount;
+	OnXPChanged.Broadcast(XP, ChampionLevel);
+	
+	PRINTLOG_SH(TEXT("[AddXP] +%.1f → 누적 XP: %.1f / 현재 레벨: %d"), Amount, XP, ChampionLevel);
 
-	while (ChampionLevel < 18 && XP >= GXPRequired[ChampionLevel - 1])
+	while (ChampionLevel < 18)
 	{
-		XP -= GXPRequired[ChampionLevel - 1];
+		// 행 N+1 = 레벨 N에서 N+1로 가는 데 필요한 XP
+		const FPlayerLevelExpRow* Row = ExpSys->GetPlayerLevelExpRow(ChampionLevel + 1);
+		// if (!Row || XP < Row->RequiredXP) { break; }
+
+		if (!Row)
+		{
+			PRINTLOG_SH(TEXT("[AddXP] PlayerLevelExpTable Row %d 없음 — DataTable 미생성 또는 경로 오류"), ChampionLevel + 1);
+			break;
+		}
+		if (XP < Row->RequiredXP) { break; }
+		
+		XP -= Row->RequiredXP;
 		ChampionLevel++;
+		
+		PRINTLOG_SH(TEXT("[AddXP] 레벨업! → %d"), ChampionLevel);
+		
 		OnLevelUp.Broadcast(ChampionLevel);
+		
+		// StatComp 레벨 동기화 — UI와 스탯 성장이 여기서 읽음
+		if (APawn* Pawn = GetPawn())
+		{
+			if (UStatComponent* StatComp = Pawn->FindComponentByClass<UStatComponent>())
+			{
+				StatComp->SetLevel(ChampionLevel);
+			}
+		}
 	}
 }
 
@@ -114,6 +147,25 @@ void ARiftPlayerState::OnRep_IsReady()
 void ARiftPlayerState::OnRep_Team()
 {
 	// TODO
+}
+
+void ARiftPlayerState::OnRep_ChampionLevel()
+{
+	OnXPChanged.Broadcast(XP, ChampionLevel);
+	
+	// 클라이언트 StatComp 레벨 동기화
+	if (APawn* Pawn = GetPawn())
+	{
+		if (UStatComponent* StatComp = Pawn->FindComponentByClass<UStatComponent>())
+		{
+			StatComp->SetLevel(ChampionLevel);
+		}
+	}
+}
+
+void ARiftPlayerState::OnRep_XP()
+{
+	OnXPChanged.Broadcast(XP, ChampionLevel);
 }
 
 

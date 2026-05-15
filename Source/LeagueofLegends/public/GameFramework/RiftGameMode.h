@@ -21,8 +21,22 @@ public:
 	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 
 	void OnNexusDestroyed(ETeam DestroyedTeam);
-	void OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState* Victim);
+	// void OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState* Victim);
 
+	// 챔피언 처치 시 진입점. Assisters: 킬러 제외 어시스트 인정 아군 목록
+	void OnChampionKilled(ARiftPlayerState* Killer, ARiftPlayerState* Victim, const TArray<ARiftPlayerState*>& Assisters = {});
+
+	// 유닛(미니언/구조물) 처치 시 진입점. 미니언·타워 코드에서만 호출
+	// UnitRowName: DataTable Row Name ("Minion_Melee", "Tower_Outer" 등)
+	void OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam KillerTeam);
+	
+	// KillerLevel 기준으로 ChampionKill XP 레벨 보정 계산
+	static float CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 VictimLevel);
+	// 게임 시간(분) 기준으로 유닛 XP 계산 (MaxXP 상한 적용)
+	static float CalcUnitXP(const struct FUnitRewardExpRow& Row, float GameMinutes);
+	// Team 소속 아군 중 Location 반경 Radius 이내 PlayerState 수집
+	TArray<ARiftPlayerState*> FindNearbyAllies(FVector Location, float Radius, ETeam Team) const;
+	
 private:
 	void TryStartGame();
 	void StartGame();

@@ -21,7 +21,6 @@ public:
 	FMinionGrowthRow* GetGrowthRowByID(int32 TargetID);
 	FMinionWaveRow* GetWaveRow(FName RowName);
 	
-	
 private:
 	UPROPERTY()
 	TObjectPtr<UDataTable> BaseTable;

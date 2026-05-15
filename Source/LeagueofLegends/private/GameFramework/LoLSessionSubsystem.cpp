@@ -42,6 +42,17 @@ void ULoLSessionSubsystem::Deinitialize()
 
 void ULoLSessionSubsystem::CreateSession(FString RoomName, int32 MaxPlayer)
 {
+	// 기존 세션이 남아있으면 먼저 정리 후 재생성
+	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
+	{
+		PRINTLOG_SH(TEXT("CreateSession: 기존 세션 발견 → 정리 후 재생성"));
+		PendingNickname = RoomName;
+		PendingMaxPlayers = MaxPlayer;
+		bPendingCreateAfterDestroy = true;
+		SessionInterface->DestroySession(FName(*MySessionName));
+		return;
+	}
+
 	// session 설정 변수
 	FOnlineSessionSettings sessionSettings;
 
@@ -89,7 +100,10 @@ void ULoLSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasS
 {
 	bIsOperationPending = false;
 	PRINTLOG_SH(TEXT("Session Name : %s, bWasSuccessful : %d"), *MySessionName, bWasSuccessful);
-	// 세션 생성 후 Lv_Lobby에서 대기 — 클라이언트가 찾아서 접속하면 서버가 PickWindow로 이동
+	if (bWasSuccessful)
+	{
+		UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Lv_PickWindow"), true, TEXT("listen?port=7777"));
+	}
 	OnCreateSessionResult.Broadcast(bWasSuccessful);
 }
 
@@ -102,9 +116,19 @@ void ULoLSessionSubsystem::FindOrCreateSession(FString InNickname, int32 MaxPlay
 	}
 
 	bIsOperationPending = true;
-	bFindOrCreateMode = true;
 	PendingNickname = InNickname;
 	PendingMaxPlayers = MaxPlayers;
+
+	/*// 리슨 서버는 세션 검색 없이 직접 생성 — FindOrCreate 쓰면 스테일 세션에 조인해버림
+	if (GetWorld()->GetNetMode() == NM_ListenServer)
+	{
+		PRINTLOG_SH(TEXT("FindOrCreateSession: NM_ListenServer → CreateSession 직접 호출"));
+		bFindOrCreateMode = false;
+		CreateSession(InNickname, MaxPlayers);
+		return;
+	}*/
+
+	bFindOrCreateMode = true;
 	FindOtherSessions();
 }
 
@@ -147,11 +171,12 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 		if (results.Num() > 0 && results[0].IsValid())
 		{
 			PRINTLOG_SH(TEXT("FindOrCreate: session found, auto-joining"));
+			bFindOrCreateFallback = true;  // 조인 실패 시 CreateSession으로 폴백
 			JoinSelectedSession(0);
 		}
 		else
 		{
-			PRINTLOG_SH(TEXT("FindOrCreate: session not found"));
+			PRINTLOG_SH(TEXT("FindOrCreate: session not found, creating"));
 			CreateSession(PendingNickname, PendingMaxPlayers);
 		}
 		
@@ -241,9 +266,18 @@ void ULoLSessionSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 	else
 	{
 		PRINTLOG_SH(TEXT("Join Session Failed : %d"), Result);
-		// ETravelType::TRAVEL_Relative;
+
+		// 스테일 세션 조인 실패 → 내가 서버가 돼서 새 세션 생성
+		if (bFindOrCreateFallback)
+		{
+			bFindOrCreateFallback = false;
+			PRINTLOG_SH(TEXT("Join Failed → fallback: CreateSession"));
+			CreateSession(PendingNickname, PendingMaxPlayers);
+			return;
+		}
 	}
-	
+
+	bFindOrCreateFallback = false;
 	bIsOperationPending = false;
 	OnJoinSessionResult.Broadcast(Result == EOnJoinSessionCompleteResult::Success);
 }
@@ -272,6 +306,15 @@ void ULoLSessionSubsystem::QuitSession()
 
 void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
+	// 세션 정리 후 재생성 대기 중이면 맵 이동 없이 바로 생성
+	if (bPendingCreateAfterDestroy)
+	{
+		bPendingCreateAfterDestroy = false;
+		PRINTLOG_SH(TEXT("OnDestroySessionComplete: 재생성 → CreateSession"));
+		CreateSession(PendingNickname, PendingMaxPlayers);
+		return;
+	}
+
 	if (GetWorld()->GetNetMode() == NM_ListenServer)
 	{
 		// 호스트: ServerTravel → 모든 클라이언트 자동 연결 해제 후 함께 Lv_Lobby로

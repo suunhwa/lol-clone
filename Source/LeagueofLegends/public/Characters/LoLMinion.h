@@ -94,26 +94,10 @@ protected:
 	
 	// 실제 공격 실행 함수
 	virtual void ExecuteAttack();
+	
+	// UnitRewardExp DataTable Row Name 반환 (MinionDataSubsystem에서 조회)
+	FName GetExpRowName() const;
 };
 
-	/*UPROPERTY(VisibleAnywhere, Category = "Minion|Base")
-	FString Name_KR;
-    
-	// --- [GrowthTable 관련 변수 - 실시간 계산용] ---
-	UPROPERTY(VisibleAnywhere, Category = "Minion|Stats")
-	float HP; // 현재/최대 체력
-
-	UPROPERTY(VisibleAnywhere, Category = "Minion|Stats")
-	float AttackDamage;*/
-
-	// float LastAttackTime = 0.0f;
-	
-/*public:
-	
-
-	// 포탑이 팀을 확인할 때 사용할 인터페이스 함수 오버라이드
-	virtual ETeam GetTeam_Implementation() const override;
-	
-};*/
 
 

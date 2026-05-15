@@ -41,6 +41,18 @@ void UCombatComponent::DealDamage(AActor* Target, FDamageContext Ctx)
 		TargetStat->GetCurrentHP(), TargetStat->GetCurrentHP() - FinalDamage);
 
 	TargetStat->ApplyHealthChange(-FinalDamage);
+	
+	// 어시스트 기록: 챔피언(PlayerState 보유)이 공격한 경우만
+	if (UCombatComponent* TargetCombat = Target->FindComponentByClass<UCombatComponent>())
+	{
+		if (APawn* InstigatorPawn = Cast<APawn>(Ctx.DamageInstigator))
+		{
+			if (ARiftPlayerState* AttackerPS = InstigatorPawn->GetPlayerState<ARiftPlayerState>())
+			{
+				TargetCombat->RegisterAttacker(AttackerPS);
+			}
+		}
+	}
 
 	UStateComponent* TargetState = Target->FindComponentByClass<UStateComponent>();
 	if (TargetState)
@@ -99,6 +111,42 @@ void UCombatComponent::PerformBasicAttack(AActor* Target)
 		FColor::Orange, false, 0.3f, 0, 4.f);*/
 
 	DealDamage(Target, Ctx);
+}
+
+void UCombatComponent::RegisterAttacker(ARiftPlayerState* Attacker)
+{
+	if (!Attacker) { return; }
+
+	float Now = GetWorld()->GetTimeSeconds();
+	for (FAssistEntry& Entry : RecentAttackers)
+	{
+		if (Entry.Attacker.Get() == Attacker)
+		{
+			Entry.Timestamp = Now; // 같은 공격자면 타임스탬프만 갱신
+			return;
+		}
+	}
+	RecentAttackers.Add({Attacker, Now});
+}
+
+TArray<ARiftPlayerState*> UCombatComponent::GetAssisters(ARiftPlayerState* Killer) const
+{
+	TArray<ARiftPlayerState*> Result;
+	float Now = GetWorld()->GetTimeSeconds();
+
+	for (const FAssistEntry& Entry : RecentAttackers)
+	{
+		ARiftPlayerState* PS = Entry.Attacker.Get();
+		if (!PS || PS == Killer) { continue; }
+		if (Now - Entry.Timestamp > AssistWindowSeconds) { continue; }
+		Result.Add(PS);
+	}
+	return Result;
+}
+
+void UCombatComponent::ClearAssisters()
+{
+	RecentAttackers.Empty();
 }
 
 float UCombatComponent::CalculateFinalDamage(const FDamageContext& Ctx, AActor* Target) const

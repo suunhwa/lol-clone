@@ -25,7 +25,9 @@ void UPickWindowViewModel::Initialize()
 
 		FChampSlotViewData SlotData;
 		SlotData.ChampionID = Data->ChampionID;
-		SlotData.DisplayName = Data->ChampionID.ToString();
+		SlotData.DisplayName = Data->ChampionName_KR.IsNone()
+			? Data->ChampionID.ToString()
+			: Data->ChampionName_KR.ToString();
 		SlotData.Portrait = Data->PortraitTexture;
 		CachedChampions.Add(SlotData);
 	}
@@ -35,7 +37,13 @@ void UPickWindowViewModel::Initialize()
 
 void UPickWindowViewModel::RefreshFromGameState()
 {
-	if (!GameState) { return; }
+	// Setup 시점에 GameState가 null이었으면 월드에서 다시 가져옴
+	if (!GameState)
+	{
+		if (UWorld* World = GetWorld())
+			GameState = World->GetGameState<ARiftGameState>();
+		if (!GameState) { return; }
+	}
 
 	CachedPlayers.Reset();
 
@@ -48,6 +56,18 @@ void UPickWindowViewModel::RefreshFromGameState()
 			Data.Team = RPS->GetTeam();
 			Data.bIsReady = RPS->GetIsReady();
 			Data.ChampionID = RPS->GetSelectedChampion();
+			Data.PlayerState = RPS;
+
+			// 챔피언 선택됐으면 한글 이름 + 초상화 조회
+			if (ChampSubsystem && Data.ChampionID != NAME_None)
+			{
+				if (UChampionData* ChampData = ChampSubsystem->GetChampionData(Data.ChampionID))
+				{
+					Data.ChampionName_KR = ChampData->ChampionName_KR;
+					Data.ChampPortrait   = ChampData->PortraitTexture;
+				}
+			}
+
 			CachedPlayers.Add(Data);
 		}
 	}

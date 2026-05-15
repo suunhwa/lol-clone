@@ -42,7 +42,23 @@ void UTeamSlotWidget::SetSlotData(const FPlayerSlotViewData& Data)
 
 		if (bChampSelected)
 		{
-			txt_champ->SetText(FText::FromName(Data.ChampionID));
+			// 한글 이름 우선, 없으면 ChampionID
+			const FName NameToShow = Data.ChampionName_KR.IsNone()
+				? Data.ChampionID : Data.ChampionName_KR;
+			txt_champ->SetText(FText::FromName(NameToShow));
+		}
+	}
+
+	if (Img_ChampIcon)
+	{
+		if (bChampSelected && Data.ChampPortrait)
+		{
+			Img_ChampIcon->SetBrushFromTexture(Data.ChampPortrait);
+			Img_ChampIcon->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			Img_ChampIcon->SetVisibility(ESlateVisibility::Hidden);
 		}
 	}
 }
