@@ -165,7 +165,7 @@ void UPickWindowWidget::UpdateReadyButton()
 	if (bIsHost)
 	{
 		if (txt_ready_label)
-			txt_ready_label->SetText(FText::FromString(TEXT("Start Game")));
+			txt_ready_label->SetText(FText::FromString(TEXT("게임 시작")));
 		if (btn_Ready)
 			btn_Ready->SetIsEnabled(true);
 	}
@@ -175,7 +175,7 @@ void UPickWindowWidget::UpdateReadyButton()
 		{
 			if (txt_ready_label)
 			{
-				txt_ready_label->SetText(FText::FromString(TEXT("Ready!")));
+				txt_ready_label->SetText(FText::FromString(TEXT("준비 완료")));
 			}
 			if (btn_Ready)
 			{
@@ -187,7 +187,7 @@ void UPickWindowWidget::UpdateReadyButton()
 		{
 			if (txt_ready_label)
 			{
-				txt_ready_label->SetText(FText::FromString(TEXT("Ready")));
+				txt_ready_label->SetText(FText::FromString(TEXT("준비")));
 			}
 				
 			if (btn_Ready)
