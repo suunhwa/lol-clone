@@ -77,6 +77,15 @@ void ALoLChampion::OnRep_ChampionData()
 	if (Sub && ChampionData)
 	{
 		Sub->ApplyVisuals(this, ChampionData);
+
+		// 클라이언트에서도 MaxWalkSpeed 동기화 (ApplyStats는 서버 전용이라 직접 설정)
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			if (StatComp && StatComp->GetMoveSpeed() > 0.f)
+			{
+				MoveComp->MaxWalkSpeed = StatComp->GetMoveSpeed();
+			}
+		}
 	}
 
 	// 컨트롤러가 아직 없으면 HUD 갱신은 PawnClientRestart에서 처리

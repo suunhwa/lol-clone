@@ -320,6 +320,11 @@ void ARiftPlayerController::OnMove()
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
 
+	PRINTLOG_SH(TEXT("[OnMove] bBlockingHit=%d ImpactPoint=%s HitActor=%s"),
+		HitResult.bBlockingHit,
+		*HitResult.ImpactPoint.ToString(),
+		*GetNameSafe(HitResult.GetActor()));
+
 	if (!HitResult.bBlockingHit) { return; }
 
 	// 커서가 적 위에 있으면 이동 대신 공격
@@ -546,7 +551,7 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(AActor* Tar
 
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 {
-	// PRINTLOG_SH(TEXT("[Server_Move] OwnedChamp=%s Loc=%s"), *GetNameSafe(OwnedChamp), *Loc.ToString());
+	PRINTLOG_SH(TEXT("[Server_Move] OwnedChamp=%s Loc=%s"), *GetNameSafe(OwnedChamp), *Loc.ToString());
 	if (OwnedChamp)
 	{
 		OwnedChamp->StopAttackLoop();
