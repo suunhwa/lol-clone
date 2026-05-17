@@ -161,7 +161,10 @@ ETeam ALoLStructure::GetTeam_Implementation() const { return TagComp->GetTeam();
 
 EUnitType ALoLStructure::GetUnitType_Implementation() const
 {
-    return TagComp->GetUnitType();
+    if (ObjectID >= 11001 && ObjectID <= 11004) return EUnitType::Tower;
+    if (ObjectID == 11101) return EUnitType::Inhibitor;
+    if (ObjectID == 11111) return EUnitType::Nexus;
+    return EUnitType::Tower;
 }
 
 void ALoLStructure::RefreshVulnerability()

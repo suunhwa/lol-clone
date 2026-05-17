@@ -102,13 +102,6 @@ void UEzrealSkillExecutor::Execute(ESkillSlot Slot, FVector TargetLoc)
 // Q
 void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 {
-	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
-
-	if (Data && Data->QSkillMontage)
-	{
-		OwnerChar->Multicast_PlayMontage(Data->QSkillMontage);
-	}
-
 	UChampionDataSubsystem* Sub = GetDataSub();
 	const FDetailSkillStatsRow* Stats = Sub
 		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("Q"), GetRank(ESkillSlot::Q))
@@ -116,6 +109,19 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 
 	const float ManaCost = Stats ? Stats->Cost : 28.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 5.5f;
+
+	if (StatComp && StatComp->GetCurrentMana() < ManaCost)
+	{
+		PRINTLOG_SH(TEXT("[Q] 마나 부족 (현재:%.0f 필요:%.0f)"), StatComp->GetCurrentMana(), ManaCost);
+		return;
+	}
+
+	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
+
+	if (Data && Data->QSkillMontage)
+	{
+		OwnerChar->Multicast_PlayMontage(Data->QSkillMontage);
+	}
 
 	if (StatComp)
 	{
@@ -184,9 +190,6 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 // W — 자체 데미지 없음. 챔피언/타워 적중 시 고리(마크) 적용. 이후 평타로 마크 소비 시 실제 데미지
 void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 {
-	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
-	PlayMontage(Data ? Data->WSkillMontage : nullptr);
-
 	UChampionDataSubsystem* Sub = GetDataSub();
 	const FDetailSkillStatsRow* Stats = Sub
 		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("W"), GetRank(ESkillSlot::W))
@@ -195,6 +198,15 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 	const float ManaCost = Stats ? Stats->Cost : 50.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 12.f;
 	const float BonusDmg = Stats ? ComputeScaledDamage(*Stats, StatComp) : 80.f;
+
+	if (StatComp && StatComp->GetCurrentMana() < ManaCost)
+	{
+		PRINTLOG_SH(TEXT("[W] 마나 부족 (현재:%.0f 필요:%.0f)"), StatComp->GetCurrentMana(), ManaCost);
+		return;
+	}
+
+	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
+	PlayMontage(Data ? Data->WSkillMontage : nullptr);
 
 	if (StatComp) { StatComp->ApplyManaCost(ManaCost); }
 	if (CooldownComp) { CooldownComp->StartCooldown(TEXT("Skill.W"), Cooldown); }
@@ -303,6 +315,22 @@ void UEzrealSkillExecutor::OnBasicAttackFired(AChampionSkillProjectile* Proj, AA
 // E
 void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 {
+	UChampionDataSubsystem* Sub = GetDataSub();
+	const FDetailSkillStatsRow* Stats = Sub
+		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("E"), GetRank(ESkillSlot::E))
+		                                    : nullptr;
+	const FSkillMechanicsRow* Mech = Sub ? Sub->GetSkillMechanics(GetChampionID(), TEXT("E")) : nullptr;
+
+	const float ManaCost = Stats ? Stats->Cost : 90.f;
+	const float Cooldown = Stats ? Stats->CoolDown : 11.f;
+	const float BlinkRange = Mech ? Mech->Param1_Value : 475.f;
+
+	if (StatComp && StatComp->GetCurrentMana() < ManaCost)
+	{
+		PRINTLOG_SH(TEXT("[E] 마나 부족 (현재:%.0f 필요:%.0f)"), StatComp->GetCurrentMana(), ManaCost);
+		return;
+	}
+
 	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
 
 	/* TODO: 몽타주에 방향별 섹션(E_0/90/180/-90/-180) 추가 후 활성화
@@ -324,16 +352,6 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	{
 		OwnerChar->Multicast_PlayMontage(Data->ESkillMontage);
 	}
-
-	UChampionDataSubsystem* Sub = GetDataSub();
-	const FDetailSkillStatsRow* Stats = Sub
-		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("E"), GetRank(ESkillSlot::E))
-		                                    : nullptr;
-	const FSkillMechanicsRow* Mech = Sub ? Sub->GetSkillMechanics(GetChampionID(), TEXT("E")) : nullptr;
-
-	const float ManaCost = Stats ? Stats->Cost : 90.f;
-	const float Cooldown = Stats ? Stats->CoolDown : 11.f;
-	const float BlinkRange = Mech ? Mech->Param1_Value : 475.f;
 
 	if (Stats)
 	{
@@ -421,9 +439,6 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 // R
 void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 {
-	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
-	PlayMontage(Data ? Data->RSkillMontage : nullptr);
-
 	UChampionDataSubsystem* Sub = GetDataSub();
 	const FDetailSkillStatsRow* Stats = Sub
 		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("R"), GetRank(ESkillSlot::R))
@@ -431,6 +446,15 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 
 	const float ManaCost = Stats ? Stats->Cost : 100.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 120.f;
+
+	if (StatComp && StatComp->GetCurrentMana() < ManaCost)
+	{
+		PRINTLOG_SH(TEXT("[R] 마나 부족 (현재:%.0f 필요:%.0f)"), StatComp->GetCurrentMana(), ManaCost);
+		return;
+	}
+
+	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
+	PlayMontage(Data ? Data->RSkillMontage : nullptr);
 
 	if (StatComp)
 	{
@@ -489,6 +513,7 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 			                                           TEXT("Socket_Q")))
 			                                           {
 			                                           	Proj->DebugTrailHalfWidth = 160.f;
+			                                           	Proj->SetCollisionRadius(160.f);
 
 			                                           	if (R_MuzzleEffect)
 			                                           	{
