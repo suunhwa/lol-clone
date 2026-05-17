@@ -6,6 +6,7 @@
 #include "GameFramework/RiftHUD.h"
 #include "GameFramework/PlayerStart.h"
 #include "Characters/LoLPlayerStart.h"
+#include "Components/CapsuleComponent.h"
 #include "EngineUtils.h"
 #include "LeagueofLegends.h"
 #include "Characters/LoLChampion.h"
@@ -185,6 +186,22 @@ void ARiftGameMode::HandleStartingNewPlayer_Implementation(APlayerController* Ne
 	}
 
 	Super::HandleStartingNewPlayer_Implementation(NewPlayer); // → RestartPlayer → ChoosePlayerStart
+
+	// 스폰 직후 지형 위로 즉시 내려붙임 (중력 낙하 없이 바로 정확한 위치에서 시작)
+	if (ACharacter* SpawnedChar = Cast<ACharacter>(NewPlayer->GetPawn()))
+	{
+		const FVector StartTrace = SpawnedChar->GetActorLocation() + FVector(0.f, 0.f, 200.f);
+		const FVector EndTrace   = SpawnedChar->GetActorLocation() - FVector(0.f, 0.f, 500.f);
+
+		FHitResult GroundHit;
+		FCollisionQueryParams Params(NAME_None, false, SpawnedChar);
+		if (GetWorld()->LineTraceSingleByChannel(GroundHit, StartTrace, EndTrace, ECC_WorldStatic, Params))
+		{
+			const float HalfHeight = SpawnedChar->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+			FVector GroundLoc = GroundHit.ImpactPoint + FVector(0.f, 0.f, HalfHeight);
+			SpawnedChar->SetActorLocation(GroundLoc, false, nullptr, ETeleportType::TeleportPhysics);
+		}
+	}
 
 	// 스폰 완료 후 PlayerState의 SelectedChampionID로 ChampionData 주입
 	ALoLChampion* Champ = Cast<ALoLChampion>(NewPlayer->GetPawn());

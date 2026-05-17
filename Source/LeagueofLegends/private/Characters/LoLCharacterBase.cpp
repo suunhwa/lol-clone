@@ -158,7 +158,7 @@ bool ALoLCharacterBase::IsDead_Implementation() const
 
 bool ALoLCharacterBase::IsTargetable_Implementation() const
 {
-	return !IsDead() && !TagComp->HasTag(UnitTags::Untargetable);
+	return !IsDead_Implementation() && !TagComp->HasTag(UnitTags::Untargetable);
 }
 
 FVector ALoLCharacterBase::GetTargetLocation_Implementation() const

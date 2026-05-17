@@ -106,11 +106,17 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 		HUD->InitHUD(OwnedChamp);
 	}
 
-	// CameraManager에 초기 위치 설정 (클라이언트에서만 의미 있음)
+	// CameraManager에 초기 위치 + 팀 Yaw 설정
 	TargetCameraLoc = Champion->GetActorLocation();
 	if (ARiftPlayerCameraManager* Cam = GetRiftCameraManager())
 	{
 		Cam->CurrentCameraLoc = TargetCameraLoc;
+
+		// 팀에 따라 카메라 방향 설정 (레드팀은 반대 방향으로 맵을 바라봄)
+		if (ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>())
+		{
+			Cam->SetTeamYaw(PS->GetTeam() == ETeam::Red);
+		}
 	}
 
 	// 클라이언트에서 복제 완료 후 위치 교정 타이머
@@ -285,9 +291,10 @@ void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 
 	if (MoveInput.IsNearlyZero()) { return; }
 
-	// Yaw=90° 기준: CameraActor GetViewForwardXY=(0,1,0), GetViewRightXY=(-1,0,0)
-	const FVector Forward( 0.f, 1.f, 0.f);
-	const FVector Right  (-1.f, 0.f, 0.f);
+	// 팀에 따라 Forward/Right 방향 결정 (레드팀은 반전)
+	const float Dir = (OwnedChamp && OwnedChamp->GetTeam_Implementation() == ETeam::Red) ? -1.f : 1.f;
+	const FVector Forward(0.f,  Dir, 0.f);
+	const FVector Right  (-Dir, 0.f, 0.f);
 
 	TargetCameraLoc += (Forward * MoveInput.Y + Right * MoveInput.X) * EdgeScrollSpeed * DeltaTime;
 }
