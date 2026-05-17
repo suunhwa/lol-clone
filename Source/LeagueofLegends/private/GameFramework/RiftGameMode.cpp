@@ -12,6 +12,9 @@
 #include "Characters/LoLChampion.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "Struct/ExpStruct.h"
+#include "Manager/MinionDataSubsystem.h"
+#include "Struct/MinionStruct.h"
+#include "Components/InventoryComponent.h"
 
 ARiftGameMode::ARiftGameMode()
 {
@@ -361,7 +364,7 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 	}
 }
 
-void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam KillerTeam)
+void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam KillerTeam, AActor* DamageInstigator)
 {
 	UChampionDataSubsystem* ExpSys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
 	if (!ExpSys) { return; }
@@ -374,17 +377,68 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
 
 	float UnitXP = CalcUnitXP(*Row, GameMinutes);
 	TArray<ARiftPlayerState*> Nearby = FindNearbyAllies(KillLocation, Row->ExpRadius, KillerTeam);
-	if (Nearby.IsEmpty()) { return; }
-
-	// 단독이면 100%, 복수면 SharingMultiplier 보정 후 균등 분배
-	float XPEach = Nearby.Num() == 1
-		               ? UnitXP
-		               : UnitXP * Row->SharingMultiplier / Nearby.Num();
-
-	for (ARiftPlayerState* PS : Nearby)
+	// 경험치 정산 파트
+	if (!Nearby.IsEmpty())
 	{
-		PS->AddXP(XPEach);
+		// 단독이면 100%, 복수면 SharingMultiplier 보정 후 균등 분배
+		float XPEach = Nearby.Num() == 1
+						  ? UnitXP
+						  : UnitXP * Row->SharingMultiplier / Nearby.Num();
+
+		for (ARiftPlayerState* PS : Nearby)
+		{
+			PS->AddXP(XPEach);
+		}
 	}
+    // 골드 정산
+    if (IsValid(DamageInstigator))
+    {
+        // 막타를 가한 주체가 플레이어 챔피언인지 검사
+        if (ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator))
+        {
+            // 챔피언이 소유한 인벤토리 컴포넌트 컴백
+            if (UInventoryComponent* InvComp = KillerChamp->FindComponentByClass<UInventoryComponent>())
+            {
+                int32 FinalGold = 0;
+
+                UMinionDataSubsystem* MinionDataSub = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>();
+                if (MinionDataSub)
+                {
+                    // FName 행 이름을 데이터 테이블용 MinionID로 전환
+                    int32 TargetMinionID = 0;
+                    if (UnitRowName == FName(TEXT("Minion_Melee")))       TargetMinionID = 3001;
+                    else if (UnitRowName == FName(TEXT("Minion_Ranged"))) TargetMinionID = 3002;
+                    else if (UnitRowName == FName(TEXT("Minion_Siege")))  TargetMinionID = 3003;
+                    else if (UnitRowName == FName(TEXT("Minion_Super")))  TargetMinionID = 3004;
+
+                    // 서브시스템에서 해당 미니언의 구글 시트 데이터 로드
+                    if (FMinionGrowthRow* GrowthRow = MinionDataSub->GetGrowthRowByID(TargetMinionID))
+                    {
+                        float BaseGold = static_cast<float>(GrowthRow->Base_Gold);
+                        float GoldUp = static_cast<float>(GrowthRow->Gold_Up);
+                        
+                        // 구글 시트 수식: Base_Gold + (Gold_Up * 현재 게임 분)
+                        FinalGold = FMath::RoundToInt(BaseGold + (GoldUp * GameMinutes));
+                    }
+                    else
+                    {
+                        FinalGold = 21; // 기본 폴백값
+                    }
+                }
+                else
+                {
+                    FinalGold = 21;
+                }
+
+                // 인벤토리 컴포넌트에 최종 골드 대입
+                InvComp->AddGold(static_cast<float>(FinalGold));
+
+                // 커스텀 디버그 로그 출력
+                PRINTLOG_HJ(TEXT("[CS Gold Reward] %s 챔피언 막타! ➔ +%d Gold (현재 잔액: %.0f)"), 
+                    *KillerChamp->GetName(), FinalGold, InvComp->GetGold());
+            }
+        }
+    }
 }
 
 float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 VictimLevel)

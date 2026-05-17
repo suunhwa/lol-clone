@@ -30,8 +30,7 @@ public:
 
 	// 유닛(미니언/구조물) 처치 시 진입점. 미니언·타워 코드에서만 호출
 	// UnitRowName: DataTable Row Name ("Minion_Melee", "Tower_Outer" 등)
-	void OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam KillerTeam);
-	
+	void OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam KillerTeam, AActor* DamageInstigator = nullptr);
 	// KillerLevel 기준으로 ChampionKill XP 레벨 보정 계산
 	static float CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 VictimLevel);
 	// 게임 시간(분) 기준으로 유닛 XP 계산 (MaxXP 상한 적용)

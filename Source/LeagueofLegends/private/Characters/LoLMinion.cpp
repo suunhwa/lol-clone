@@ -178,7 +178,8 @@ void ALoLMinion::OnDeath(AActor* DamageInstigator)
             {
                 ETeam MyTeam = ITargetable::Execute_GetTeam(this);
                 ETeam KillerTeam = (MyTeam == ETeam::Blue) ? ETeam::Red : ETeam::Blue;
-                GM->OnUnitKilled(RowName, GetActorLocation(), KillerTeam);
+                
+                GM->OnUnitKilled(RowName, GetActorLocation(), KillerTeam, DamageInstigator);
             }
         }
     }
