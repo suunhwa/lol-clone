@@ -75,6 +75,13 @@ void APickWindowGameMode::TryStartGame(APlayerController* PC)
 		PS->SetReady(true);
 	}
 
+	// 최소 2명 이상이어야 시작 가능 (혼자 Start 눌러서 클라 킥하는 문제 방지)
+	if (GameState->PlayerArray.Num() < 2)
+	{
+		PRINTLOG_SH(TEXT("[TryStartGame] 최소 2명 필요 (%d명)"), GameState->PlayerArray.Num());
+		return;
+	}
+
 	if (!AllPlayersReady())
 	{
 		PRINTLOG_SH(TEXT("[TryStartGame] AllPlayersReady=false — 대기 (Host Start 눌렀지만 아직 안 준비됨)"));

@@ -109,9 +109,15 @@ TArray<FPlayerSlotViewData> UPickWindowViewModel::GetRedTeamPlayers() const
 
 bool UPickWindowViewModel::IsLocalPlayerHost() const
 {
-	if (!GameState || !LocalPlayerState) { return false; }
-	if (GameState->PlayerArray.IsEmpty()) { return false; }
-	return GameState->PlayerArray[0] == LocalPlayerState;
+	if (!LocalPlayerState) { return false; }
+
+	// PlayerArray[0] 순서는 복제 타이밍에 따라 불안정 →
+	// 현재 월드의 NetMode로 판별 (ListenServer 머신 = 호스트)
+	UWorld* World = GetWorld();
+	if (!World) { return false; }
+
+	const ENetMode NetMode = World->GetNetMode();
+	return NetMode == NM_ListenServer || NetMode == NM_Standalone;
 }
 
 bool UPickWindowViewModel::IsLocalPlayerReady() const
