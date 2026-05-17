@@ -620,6 +620,8 @@ void ARiftPlayerController::FirePendingSkill()
 
 void ARiftPlayerController::RequestSkill(ESkillSlot Slot)
 {
+	PRINTLOG_SH(TEXT("[RequestSkill] OwnedChamp=%s IsLocal=%d"),
+		*GetNameSafe(OwnedChamp), IsLocalController());
 	if (!OwnedChamp || !OwnedChamp->SkillComp) { return; }
 
 	FHitResult HitResult;
