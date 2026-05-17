@@ -213,7 +213,7 @@ void ALoLChampion::AttackLoopTick()
 	}
 
 	const float Range = StatComp ? StatComp->GetAttackRange() : 150.f;
-	const float AttackSpeed = StatComp ? StatComp->GetAttackSpeed() : 0.65f;
+	const float AttackSpeed = FMath::Max(StatComp ? StatComp->GetAttackSpeed() : 0.65f, 0.1f);
 	const float Dist = FVector::Dist2D(GetActorLocation(), Target->GetActorLocation());
 
 	if (Dist > Range)
@@ -246,7 +246,8 @@ void ALoLChampion::AttackLoopTick()
 
 	ExecuteBasicAttack(Target);
 
-	GetWorldTimerManager().SetTimer(AttackLoopTimer, this, &ALoLChampion::AttackLoopTick, 1.0f / AttackSpeed, false);
+	GetWorldTimerManager().SetTimer(AttackLoopTimer, this, &ALoLChampion::AttackLoopTick,
+		FMath::Max(1.0f / AttackSpeed, 0.1f), false);
 }
 
 void ALoLChampion::OnDeath(AActor* DamageInstigator)
@@ -349,7 +350,10 @@ void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 		Ctx.SourceTag        = TEXT("BasicAttack");
 
 		FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-		SkillExecutor->SpawnProjectile(Dir, 1800.f, 800.f, Ctx, false, false, TEXT("Socket_Q"));
+		AChampionSkillProjectile* Proj = SkillExecutor->SpawnProjectile(Dir, 1800.f, 800.f, Ctx, false, false, TEXT("Socket_Q"));
+
+		// 챔피언별 평타 후처리 (ex. 이즈리얼 W 고리 소비)
+		SkillExecutor->OnBasicAttackFired(Proj, Target);
 		return;
 	}
 
