@@ -105,7 +105,9 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 
 	PRINTLOG_SH(TEXT("[AcknowledgePossession] 챔피언=%s 위치=(%.0f,%.0f,%.0f)"),
 	            *GetNameSafe(Champion),
-	            Champion->GetActorLocation().X, Champion->GetActorLocation().Y, Champion->GetActorLocation().Z);
+	            Champion->GetActorLocation().X,
+	            Champion->GetActorLocation().Y,
+	            Champion->GetActorLocation().Z);
 
 	if (ARiftHUD* HUD = GetHUD<ARiftHUD>())
 	{
@@ -126,17 +128,20 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 	}
 
 	// 클라이언트에서 복제 완료 후 위치 교정 타이머
-	GetWorldTimerManager().SetTimer(CameraInitTimer, [this]()
-	{
-		if (OwnedChamp && !OwnedChamp->GetActorLocation().IsNearlyZero())
-		{
-			TargetCameraLoc = OwnedChamp->GetActorLocation();
-			if (ARiftPlayerCameraManager* Cam = GetRiftCameraManager())
-			{
-				Cam->CurrentCameraLoc = TargetCameraLoc;
-			}
-		}
-	}, 0.3f, false);
+	GetWorldTimerManager().SetTimer(CameraInitTimer,
+	                                [this]()
+	                                {
+		                                if (OwnedChamp && !OwnedChamp->GetActorLocation().IsNearlyZero())
+		                                {
+			                                TargetCameraLoc = OwnedChamp->GetActorLocation();
+			                                if (ARiftPlayerCameraManager* Cam = GetRiftCameraManager())
+			                                {
+				                                Cam->CurrentCameraLoc = TargetCameraLoc;
+			                                }
+		                                }
+	                                },
+	                                0.3f,
+	                                false);
 }
 
 void ARiftPlayerController::Tick(float DeltaTime)
@@ -161,8 +166,8 @@ void ARiftPlayerController::Tick(float DeltaTime)
 				// 챔피언에게 공격 커서 표시
 				if (HitActor->GetClass()->ImplementsInterface(UTargetable::StaticClass()))
 				{
-					ETeam HitTeam    = ITargetable::Execute_GetTeam(HitActor);
-					ETeam MyTeam     = OwnedChamp->GetTeam_Implementation();
+					ETeam HitTeam = ITargetable::Execute_GetTeam(HitActor);
+					ETeam MyTeam = OwnedChamp->GetTeam_Implementation();
 					EUnitType HitType = ITargetable::Execute_GetUnitType(HitActor);
 					bOverEnemy = (HitTeam != MyTeam && HitTeam != ETeam::None
 						&& HitType == EUnitType::Champion);
@@ -191,7 +196,7 @@ void ARiftPlayerController::Tick(float DeltaTime)
 		}
 	}
 
-UpdateIndicator();
+	UpdateIndicator();
 
 	if (bCameraLocked && OwnedChamp)
 	{
@@ -275,35 +280,37 @@ void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 {
 	float mouseX, mouseY;
 	if (!GetMousePosition(mouseX, mouseY)) { return; }
-	if (!GEngine || !GEngine->GameViewport) { return; }
 
-	FVector2D ViewportSize;
-	GEngine->GameViewport->GetViewportSize(ViewportSize);
+	int32 VPX, VPY;
+	GetViewportSize(VPX, VPY);
+	const FVector2D ViewportSize(VPX, VPY);
+	// HUD 중간 영역(PlayableBottom ~ 화면 최하단 EdgeThreshold 직전)에서만 스크롤 차단
+	// 화면 최하단 EdgeThreshold 구역은 허용 → 하단 edge scroll 정상 작동
+	constexpr float BottomUIHeight = 180.f;
+	const float PlayableBottom = ViewportSize.Y - BottomUIHeight;
+	if (mouseY > PlayableBottom && mouseY < ViewportSize.Y - EdgeThreshold)
+	{
+		return;
+	}
+
 	FVector2D MoveInput = FVector2D::ZeroVector;
 
-	if (mouseX < EdgeThreshold)
-	{
+	if (mouseX <= EdgeThreshold)
 		MoveInput.X = -1.f;
-	}
-	if (mouseX > ViewportSize.X - EdgeThreshold)
-	{
+	else if (mouseX >= ViewportSize.X - EdgeThreshold)
 		MoveInput.X = 1.f;
-	}
-	if (mouseY < EdgeThreshold)
-	{
+
+	if (mouseY <= EdgeThreshold)
 		MoveInput.Y = 1.f;
-	}
-	if (mouseY > ViewportSize.Y - EdgeThreshold)
-	{
+	else if (mouseY >= ViewportSize.Y - EdgeThreshold)
 		MoveInput.Y = -1.f;
-	}
 
 	if (MoveInput.IsNearlyZero()) { return; }
 
 	// 스폰 위치 기준으로 캐시된 팀 방향 사용
 	const float Dir = bIsRedTeam ? -1.f : 1.f;
-	const FVector Forward(0.f,  Dir, 0.f);
-	const FVector Right  (-Dir, 0.f, 0.f);
+	const FVector Forward(0.f, Dir, 0.f);
+	const FVector Right(-Dir, 0.f, 0.f);
 
 	TargetCameraLoc += (Forward * MoveInput.Y + Right * MoveInput.X) * EdgeScrollSpeed * DeltaTime;
 }
@@ -667,7 +674,8 @@ void ARiftPlayerController::Server_AddXP_Implementation()
 	}
 	else
 	{
-		PRINTLOG_SH(TEXT("[Debug] XP +50 → %.0f / %.0f"), PS->GetXP(),
+		PRINTLOG_SH(TEXT("[Debug] XP +50 → %.0f / %.0f"),
+		            PS->GetXP(),
 		            NewLevel < 18 ? 280.f : 0.f);
 	}
 }
@@ -711,12 +719,14 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 	if (Spell == ESummonerSpell::None) { return; }
 
 	// 스펠별 쿨타임 (FindRow 불일치 우회용 하드코딩)
-	auto GetSpellCooldown = [](ESummonerSpell S) -> float {
-		switch (S) {
-		case ESummonerSpell::Flash:   return 300.f;
-		case ESummonerSpell::Heal:    return 240.f;
-		case ESummonerSpell::Ignite:  return 180.f;
-		case ESummonerSpell::Ghost:   return 210.f;
+	auto GetSpellCooldown = [](ESummonerSpell S) -> float
+	{
+		switch (S)
+		{
+		case ESummonerSpell::Flash: return 300.f;
+		case ESummonerSpell::Heal: return 240.f;
+		case ESummonerSpell::Ignite: return 180.f;
+		case ESummonerSpell::Ghost: return 210.f;
 		case ESummonerSpell::Exhaust: return 210.f;
 		case ESummonerSpell::Cleanse: return 210.f;
 		default: return 300.f;
@@ -730,10 +740,10 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 	if (CD && CD->IsOnCooldown(CoolTag)) { return; }
 
 	// 1단계: SpellBase 조회 (하드코딩 쿨타임 + 데이터 테이블 보조)
-	float Cooldown       = GetSpellCooldown(Spell); // 확실한 쿨타임
-	float Range          = 400.f;
-	float BaseValue      = 0.f;
-	float ValueGrowth    = 0.f;
+	float Cooldown = GetSpellCooldown(Spell); // 확실한 쿨타임
+	float Range = 400.f;
+	float BaseValue = 0.f;
+	float ValueGrowth = 0.f;
 	FString TargetLogicID;
 	FString EffectTag;
 
@@ -741,11 +751,11 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 	{
 		if (const FSpellBaseRow* Row = SpellBaseTable->FindRow<FSpellBaseRow>(SpellRowName, TEXT("")))
 		{
-			Range         = Row->Range;
-			BaseValue     = Row->BaseValue;
-			ValueGrowth   = Row->ValueGrowth;
+			Range = Row->Range;
+			BaseValue = Row->BaseValue;
+			ValueGrowth = Row->ValueGrowth;
 			TargetLogicID = Row->TargetLogic_ID;
-			EffectTag     = Row->EffectTag;
+			EffectTag = Row->EffectTag;
 		}
 	}
 
@@ -755,15 +765,17 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 
 	// 2단계: SpellTargeting 조회 (TargetLogicID 키 사용)
 	float SearchRadius = Range;
-	bool  bAffectsAlly = false;
-	int32 MaxTarget    = 1;
+	bool bAffectsAlly = false;
+	int32 MaxTarget = 1;
 
 	if (SpellTargetingTable && !TargetLogicID.IsEmpty())
 	{
-		if (const FSpellTargetingRow* Row = SpellTargetingTable->FindRow<FSpellTargetingRow>(FName(*TargetLogicID), TEXT("")))
+		if (const FSpellTargetingRow* Row = SpellTargetingTable->FindRow<FSpellTargetingRow>(
+			FName(*TargetLogicID),
+			TEXT("")))
 		{
 			bAffectsAlly = Row->AffectsAlly;
-			MaxTarget    = Row->MaxTarget;
+			MaxTarget = Row->MaxTarget;
 			SearchRadius = (Row->SearchRadius > 0) ? (float)Row->SearchRadius : Range;
 		}
 	}
@@ -773,7 +785,9 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 
 	if (SpellSecondaryEffectTable && !EffectTag.IsEmpty())
 	{
-		if (const FSpellSecondaryEffectRow* Row = SpellSecondaryEffectTable->FindRow<FSpellSecondaryEffectRow>(FName(*EffectTag), TEXT("")))
+		if (const FSpellSecondaryEffectRow* Row = SpellSecondaryEffectTable->FindRow<FSpellSecondaryEffectRow>(
+			FName(*EffectTag),
+			TEXT("")))
 		{
 			SecondaryValue = Row->SecondaryValue;
 		}
@@ -782,55 +796,58 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 	switch (Spell)
 	{
 	case ESummonerSpell::Flash:
-	{
-		// Range = 최대 블링크 거리
-		FVector Dir  = (TargetLoc - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
-		float    Dist = FVector::Dist2D(OwnedChamp->GetActorLocation(), TargetLoc);
-		FVector  Dest = OwnedChamp->GetActorLocation() + Dir * FMath::Min(Dist, Range);
-		OwnedChamp->TeleportTo(Dest, OwnedChamp->GetActorRotation());
-		break;
-	}
-	case ESummonerSpell::Heal:
-	{
-		// 자신 회복 (레벨 보정 적용)
-		if (OwnedChamp->StatComp)
 		{
-			OwnedChamp->StatComp->ApplyHealthChange(FinalValue);
+			// Range = 최대 블링크 거리
+			FVector Dir = (TargetLoc - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
+			float Dist = FVector::Dist2D(OwnedChamp->GetActorLocation(), TargetLoc);
+			FVector Dest = OwnedChamp->GetActorLocation() + Dir * FMath::Min(Dist, Range);
+			OwnedChamp->TeleportTo(Dest, OwnedChamp->GetActorRotation());
+			break;
 		}
-		// 주변 아군 챔피언 회복 (SecondaryValue = 아군 회복 비율)
-		if (bAffectsAlly)
+	case ESummonerSpell::Heal:
 		{
-			const float AllyHeal = (SecondaryValue > 0.f) ? FinalValue * SecondaryValue : FinalValue * 0.3f;
-			int32 HealedAllies = 0;
-
-			TArray<AActor*> Actors;
-			UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UTargetable::StaticClass(), Actors);
-			// 가장 HP가 낮은 아군 우선 (Logic_HealPriority)
-			Actors.Sort([](const AActor& A, const AActor& B)
+			// 자신 회복 (레벨 보정 적용)
+			if (OwnedChamp->StatComp)
 			{
-				UStatComponent* SA = A.FindComponentByClass<UStatComponent>();
-				UStatComponent* SB = B.FindComponentByClass<UStatComponent>();
-				float RatioA = SA ? SA->GetCurrentHP() / FMath::Max(SA->GetMaxHP(), 1.f) : 1.f;
-				float RatioB = SB ? SB->GetCurrentHP() / FMath::Max(SB->GetMaxHP(), 1.f) : 1.f;
-				return RatioA < RatioB;
-			});
-
-			for (AActor* Actor : Actors)
+				OwnedChamp->StatComp->ApplyHealthChange(FinalValue);
+			}
+			// 주변 아군 챔피언 회복 (SecondaryValue = 아군 회복 비율)
+			if (bAffectsAlly)
 			{
-				if (HealedAllies >= MaxTarget - 1) { break; } // -1: 자신 제외
-				if (Actor == OwnedChamp) { continue; }
-				if (ITargetable::Execute_GetTeam(Actor) != OwnedChamp->GetTeam_Implementation()) { continue; }
-				if (ITargetable::Execute_GetUnitType(Actor) != EUnitType::Champion) { continue; }
-				if (FVector::Dist2D(Actor->GetActorLocation(), OwnedChamp->GetActorLocation()) > SearchRadius) { continue; }
-				if (UStatComponent* SC = Actor->FindComponentByClass<UStatComponent>())
+				const float AllyHeal = (SecondaryValue > 0.f) ? FinalValue * SecondaryValue : FinalValue * 0.3f;
+				int32 HealedAllies = 0;
+
+				TArray<AActor*> Actors;
+				UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UTargetable::StaticClass(), Actors);
+				// 가장 HP가 낮은 아군 우선 (Logic_HealPriority)
+				Actors.Sort([](const AActor& A, const AActor& B)
 				{
-					SC->ApplyHealthChange(AllyHeal);
-					HealedAllies++;
+					UStatComponent* SA = A.FindComponentByClass<UStatComponent>();
+					UStatComponent* SB = B.FindComponentByClass<UStatComponent>();
+					float RatioA = SA ? SA->GetCurrentHP() / FMath::Max(SA->GetMaxHP(), 1.f) : 1.f;
+					float RatioB = SB ? SB->GetCurrentHP() / FMath::Max(SB->GetMaxHP(), 1.f) : 1.f;
+					return RatioA < RatioB;
+				});
+
+				for (AActor* Actor : Actors)
+				{
+					if (HealedAllies >= MaxTarget - 1) { break; } // -1: 자신 제외
+					if (Actor == OwnedChamp) { continue; }
+					if (ITargetable::Execute_GetTeam(Actor) != OwnedChamp->GetTeam_Implementation()) { continue; }
+					if (ITargetable::Execute_GetUnitType(Actor) != EUnitType::Champion) { continue; }
+					if (FVector::Dist2D(Actor->GetActorLocation(), OwnedChamp->GetActorLocation()) > SearchRadius)
+					{
+						continue;
+					}
+					if (UStatComponent* SC = Actor->FindComponentByClass<UStatComponent>())
+					{
+						SC->ApplyHealthChange(AllyHeal);
+						HealedAllies++;
+					}
 				}
 			}
+			break;
 		}
-		break;
-	}
 	default: break;
 	}
 

@@ -7,6 +7,7 @@
 #include "EzrealSkillExecutor.generated.h"
 
 class UNiagaraSystem;
+class UNiagaraComponent;
 class ALoLChampion;
 
 UCLASS(Blueprintable)
@@ -43,8 +44,28 @@ private:
 	void OnWMarkConsumed(AActor* Target);     // 평타/E 미사일이 마크 소비 → 보너스 딜
 
 	TWeakObjectPtr<AActor> WMarkTarget;
+	TWeakObjectPtr<AChampionSkillProjectile> WProjectile;
 	float WMarkBonusDamage = 0.f;
 	FTimerHandle WMarkExpireTimer;
+
+	// 마크 적중 시 대상 몸에 붙는 이펙트 (4초 후 or 소비 시 제거)
+	UPROPERTY(EditDefaultsOnly, Category = "VFX|W")
+	TObjectPtr<UNiagaraSystem> W_MarkEffect;
+
+	// 챔피언 기준(반지름 42) 대비 이펙트 크기 배율 — 에디터에서 보면서 조정
+	UPROPERTY(EditDefaultsOnly, Category = "VFX|W", meta = (ClampMin = "0.01", ClampMax = "5.0"))
+	float W_MarkEffectScale = 0.3f;
+
+	// 챔피언용 추가 Z 오프셋 (캡슐 중심 기준)
+	UPROPERTY(EditDefaultsOnly, Category = "VFX|W")
+	float W_MarkEffectZOffset_Champion = 0.f;
+
+	// 타워용 추가 Z 오프셋 (바운딩박스 중심 기준)
+	UPROPERTY(EditDefaultsOnly, Category = "VFX|W")
+	float W_MarkEffectZOffset_Tower = 0.f;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> WMarkEffectComp;
 	
 	// ── VFX ──────────────────────────────────────
 	// Q: 발사 시 머즐 이펙트

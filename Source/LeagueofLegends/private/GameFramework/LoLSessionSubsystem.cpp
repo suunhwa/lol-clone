@@ -133,6 +133,7 @@ void ULoLSessionSubsystem::FindOrCreateSession(FString InNickname, int32 MaxPlay
 	}
 
 	bIsOperationPending = true;
+	FindOrCreateRetryCount = 0;
 	PendingNickname = InNickname;
 	PendingMaxPlayers = MaxPlayers;
 
@@ -175,6 +176,13 @@ void ULoLSessionSubsystem::FindOtherSessions()
 
 	// 4. 세션 검색
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
+}
+
+void ULoLSessionSubsystem::RetryFindOrCreate()
+{
+	PRINTLOG_SH(TEXT("RetryFindOrCreate: 재검색 시작"));
+	bFindOrCreateMode = true;
+	FindOtherSessions();
 }
 
 void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
@@ -227,9 +235,22 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 			bFindOrCreateFallback = true;
 			JoinSelectedSession(MatchIndex);
 		}
+		else if (FindOrCreateRetryCount < 2)
+		{
+			// Steam 세션 전파 딜레이 대응 — 3초 후 재검색, 최대 2회
+			FindOrCreateRetryCount++;
+			bFindOrCreateMode = true;
+			PRINTLOG_SH(TEXT("FindOrCreate: 세션 없음 → 3초 후 재검색 (%d/2)"), FindOrCreateRetryCount);
+			if (UWorld* World = GetGameInstance()->GetWorld())
+			{
+				World->GetTimerManager().SetTimer(FindOrCreateRetryTimer, this,
+				                                  &ULoLSessionSubsystem::RetryFindOrCreate, 3.f, false);
+			}
+		}
 		else
 		{
-			PRINTLOG_SH(TEXT("FindOrCreate: 내 세션 없음 → 새 세션 생성"));
+			FindOrCreateRetryCount = 0;
+			PRINTLOG_SH(TEXT("FindOrCreate: 재검색 후에도 없음 → 새 세션 생성"));
 			bIsOperationPending = false;
 			CreateSession(PendingNickname, PendingMaxPlayers);
 		}
