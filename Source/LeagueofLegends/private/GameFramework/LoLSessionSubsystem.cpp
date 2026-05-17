@@ -124,65 +124,50 @@ void ULoLSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasS
 	OnCreateSessionResult.Broadcast(bWasSuccessful);
 }
 
+/* [미사용] UI가 Create/Find/Join 분리 구조로 바뀌어 더 이상 호출되지 않음
 void ULoLSessionSubsystem::FindOrCreateSession(FString InNickname, int32 MaxPlayers)
 {
-	if (bIsOperationPending)
-	{
-		PRINTLOG_SH(TEXT("FindOrCreateSession: 이미 작업 중, 무시"));
-		return;
-	}
-
-	bIsOperationPending = true;
-	FindOrCreateRetryCount = 0;
-	PendingNickname = InNickname;
-	PendingMaxPlayers = MaxPlayers;
-
-	// 로컬에 기존 세션 남아있으면 정리 후 재시도
-	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
-	{
-		PRINTLOG_SH(TEXT("FindOrCreateSession: 기존 세션 정리 후 재시도"));
-		bPendingFindOrCreateAfterDestroy = true;
-		SessionInterface->DestroySession(FName(*MySessionName));
-		return;
-	}
-
-	/*// 리슨 서버는 세션 검색 없이 직접 생성 — FindOrCreate 쓰면 스테일 세션에 조인해버림
-	if (GetWorld()->GetNetMode() == NM_ListenServer)
-	{
-		PRINTLOG_SH(TEXT("FindOrCreateSession: NM_ListenServer → CreateSession 직접 호출"));
-		bFindOrCreateMode = false;
-		CreateSession(InNickname, MaxPlayers);
-		return;
-	}*/
-
-	bFindOrCreateMode = true;
-	FindOtherSessions();
+	...
 }
+*/
 
 void ULoLSessionSubsystem::FindOtherSessions()
 {
-	// sharedptr 사용할 때 MakeShareable로 해줘야 함
+	if (bIsOperationPending)
+	{
+		PRINTLOG_SH(TEXT("FindOtherSessions: 이미 작업 중, 무시"));
+		return;
+	}
+	bIsOperationPending = true;
+
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
 
-	// bUseLobbiesIfAvailable=true로 생성한 세션은 SEARCH_LOBBIES로 찾아야 함
-	SessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
-
-	// 2. LAN 여부
-	SessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == FName("NULL");
-
-	// 3. 최대 검색 세션 수
+	const bool bIsLAN = IOnlineSubsystem::Get()->GetSubsystemName() == FName("NULL");
+	SessionSearch->bIsLanQuery = bIsLAN;
 	SessionSearch->MaxSearchResults = 10;
 
-	// 4. 세션 검색
+	if (bIsLAN)
+	{
+		// PIE / LAN(NULL subsystem): PRESENCESEARCH — LAN 브로드캐스트 방식
+		SessionSearch->QuerySettings.Set(FName(TEXT("PRESENCESEARCH")), true, EOnlineComparisonOp::Equals);
+		PRINTLOG_SH(TEXT("FindOtherSessions: LAN 모드"));
+	}
+	else
+	{
+		// Steam standalone: Lobby 검색
+		SessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
+		PRINTLOG_SH(TEXT("FindOtherSessions: Steam Lobby 모드"));
+	}
+
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
 }
 
+/* [미사용]
 void ULoLSessionSubsystem::RetryFindOrCreate()
 {
-	PRINTLOG_SH(TEXT("RetryFindOrCreate: 재검색 시작"));
-	bFindOrCreateMode = true;
-	FindOtherSessions();
+	...
 }
+*/
 
 void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 {
@@ -192,73 +177,23 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 	            bWasSuccessful,
 	            Results.Num());
 
-	// 실패 + 결과 0개 → 진짜 실패 (네트워크/Steam 오류)
+	// 실패 + 결과 0개 → 진짜 실패
 	if (!bWasSuccessful && Results.Num() == 0)
 	{
 		bIsOperationPending = false;
-		bFindOrCreateMode = false;
 		PRINTLOG_SH(TEXT("*** Session search failed and no results"));
 		OnFindSessionsDone.Broadcast(false);
 		return;
 	}
 
-	// 실패여도 결과가 있으면 일단 검사 (Steam OSS 특성 — 결과 있는데 false 반환 케이스)
 	PRINTLOG_SH(TEXT("*** Search result count: %d"), Results.Num());
 
+	/* [미사용] FindOrCreate 자동 조인 분기 — UI가 분리 구조로 바뀌어 불필요
 	if (bFindOrCreateMode)
 	{
-		bFindOrCreateMode = false;
-
-		// 각 결과의 GAME_ID 출력 + 내 세션 필터링
-		int32 MatchIndex = -1;
-		for (int32 i = 0; i < Results.Num(); i++)
-		{
-			if (!Results[i].IsValid()) { continue; }
-
-			FString GameID;
-			Results[i].Session.SessionSettings.Get(FName("GAME_ID"), GameID);
-			PRINTLOG_SH(TEXT("Result[%d] GameID=%s Owner=%s"),
-			            i,
-			            *GameID,
-			            *Results[i].Session.OwningUserName);
-
-			if (MatchIndex < 0 && GameID == TEXT("P1_LOL_V0.1"))
-			{
-				MatchIndex = i;
-			}
-		}
-
-		if (MatchIndex >= 0)
-		{
-			PRINTLOG_SH(TEXT("FindOrCreate: 내 세션 발견(Slot%d), 자동 조인"), MatchIndex);
-			bFindOrCreateFallback = true;
-			JoinSelectedSession(MatchIndex);
-		}
-		else if (FindOrCreateRetryCount < 2)
-		{
-			// Steam 세션 전파 딜레이 대응 — 3초 후 재검색, 최대 2회
-			FindOrCreateRetryCount++;
-			bFindOrCreateMode = true;
-			PRINTLOG_SH(TEXT("FindOrCreate: 세션 없음 → 3초 후 재검색 (%d/2)"), FindOrCreateRetryCount);
-			if (UWorld* World = GetGameInstance()->GetWorld())
-			{
-				World->GetTimerManager().SetTimer(FindOrCreateRetryTimer,
-				                                  this,
-				                                  &ULoLSessionSubsystem::RetryFindOrCreate,
-				                                  3.f,
-				                                  false);
-			}
-		}
-		else
-		{
-			FindOrCreateRetryCount = 0;
-			PRINTLOG_SH(TEXT("FindOrCreate: 재검색 후에도 없음 → 새 세션 생성"));
-			bIsOperationPending = false;
-			CreateSession(PendingNickname, PendingMaxPlayers);
-		}
-
-		return;
+		...
 	}
+	*/
 
 	// 유효성 체크
 	for (int i = 0; i < Results.Num(); i++)
@@ -309,12 +244,20 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 		OnSessionFound.Broadcast(SessionInfo);
 	}
 
+	bIsOperationPending = false;
 	OnFindSessionsDone.Broadcast(true);
 }
 
 void ULoLSessionSubsystem::JoinSelectedSession(int32 Index)
 {
-	auto sr = SessionSearch->SearchResults[Index];
+	if (!SessionSearch.IsValid() || !SessionSearch->SearchResults.IsValidIndex(Index))
+	{
+		PRINTLOG_SH(TEXT("JoinSelectedSession: invalid index %d"), Index);
+		OnJoinSessionResult.Broadcast(false);
+		return;
+	}
+
+	const FOnlineSessionSearchResult& sr = SessionSearch->SearchResults[Index];
 	SessionInterface->JoinSession(0, FName(MySessionName), sr);
 }
 
@@ -342,16 +285,8 @@ void ULoLSessionSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 	else
 	{
 		PRINTLOG_SH(TEXT("Join Session Failed : %d"), Result);
-
-		// Join 실패 → 새 세션 생성 금지 (클라가 서버가 되는 문제 방지)
-		if (bFindOrCreateFallback)
-		{
-			bFindOrCreateFallback = false;
-			PRINTLOG_SH(TEXT("Join Failed → fallback 제거됨, 실패 처리"));
-		}
 	}
 
-	bFindOrCreateFallback = false;
 	bIsOperationPending = false;
 	OnJoinSessionResult.Broadcast(Result == EOnJoinSessionCompleteResult::Success);
 }
@@ -417,15 +352,12 @@ void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWas
 	            *SessionName.ToString(),
 	            bWasSuccessful);
 
-	// pending 플래그를 먼저 확인 — 리셋 전에 체크해야 진행 중인 작업 상태가 날아가지 않음
+	/* [미사용] FindOrCreate 재시도 — UI 분리 구조로 바뀌어 불필요
 	if (bPendingFindOrCreateAfterDestroy)
 	{
-		bPendingFindOrCreateAfterDestroy = false;
-		bIsOperationPending = false;
-		PRINTLOG_SH(TEXT("OnDestroySessionComplete: 정리 완료 → FindOrCreate 재시도"));
-		FindOrCreateSession(PendingNickname, PendingMaxPlayers);
-		return;
+		...
 	}
+	*/
 
 	if (bPendingJoinAfterDestroy)
 	{
