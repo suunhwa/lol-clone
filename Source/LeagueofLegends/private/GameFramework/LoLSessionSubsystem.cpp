@@ -47,6 +47,13 @@ void ULoLSessionSubsystem::Deinitialize()
 
 void ULoLSessionSubsystem::CreateSession(FString RoomName, int32 MaxPlayer)
 {
+	if (bIsOperationPending)
+	{
+		PRINTLOG_SH(TEXT("CreateSession: 이미 작업 중, 무시"));
+		return;
+	}
+	bIsOperationPending = true;
+
 	// 기존 세션이 남아있으면 먼저 정리 후 재생성
 	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
 	{
@@ -223,6 +230,7 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 		else
 		{
 			PRINTLOG_SH(TEXT("FindOrCreate: 내 세션 없음 → 새 세션 생성"));
+			bIsOperationPending = false;
 			CreateSession(PendingNickname, PendingMaxPlayers);
 		}
 
@@ -386,11 +394,7 @@ void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWas
 	            *SessionName.ToString(),
 	            bWasSuccessful);
 
-	bIsOperationPending = false;
-	bFindOrCreateMode = false;
-	bFindOrCreateFallback = false;
-
-	// FindOrCreate 재시도 대기
+	// pending 플래그를 먼저 확인 — 리셋 전에 체크해야 진행 중인 작업 상태가 날아가지 않음
 	if (bPendingFindOrCreateAfterDestroy)
 	{
 		bPendingFindOrCreateAfterDestroy = false;
@@ -400,7 +404,6 @@ void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWas
 		return;
 	}
 
-	// 조인 대기
 	if (bPendingJoinAfterDestroy)
 	{
 		bPendingJoinAfterDestroy = false;
@@ -412,9 +415,16 @@ void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWas
 	if (bPendingCreateAfterDestroy)
 	{
 		bPendingCreateAfterDestroy = false;
+		bIsOperationPending = false;
+		PRINTLOG_SH(TEXT("OnDestroySessionComplete: 정리 완료 → CreateSession 재시도"));
 		CreateSession(PendingNickname, PendingMaxPlayers);
 		return;
 	}
+
+	// pending 없음 → 플래그 전체 리셋 후 로비로
+	bIsOperationPending = false;
+	bFindOrCreateMode = false;
+	bFindOrCreateFallback = false;
 
 	if (auto* PC = GetWorld()->GetFirstPlayerController())
 	{
