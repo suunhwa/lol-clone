@@ -20,9 +20,6 @@
 #include "Interfaces/Damageable.h"
 #include "Interfaces/Targetable.h"
 #include "Manager/ChampionDataSubsystem.h"
-#include "FOW/FOWManager.h"
-#include "GameFramework/RiftGameState.h"
-#include "Kismet/GameplayStatics.h"
 #include "GameFramework/RiftHUD.h"
 #include "GameFramework/RiftGameMode.h"
 #include "GameFramework/RiftPlayerState.h"
@@ -123,21 +120,6 @@ void ALoLChampion::PawnClientRestart()
 		}
 	}
 
-	// BeginPlay 시점에 FOWManager 레퍼런스가 클라이언트에 없을 수 있으므로
-	// GameState 경유 대신 월드에서 직접 탐색
-	if (AFOWManager* FOW = Cast<AFOWManager>(
-		UGameplayStatics::GetActorOfClass(GetWorld(), AFOWManager::StaticClass())))
-	{
-		FOW->RegisterSightProvider(this);
-		PRINTLOG_SH(TEXT("[PawnClientRestart] FOW SightProvider 재등록: %s"), *GetName());
-	}
-	else
-	{
-		PRINTLOG_SH(TEXT("[PawnClientRestart] FOWManager 없음 — FOW 등록 실패"));
-	}
-
-	// Possession 완료 후 visibility 재계산 (BeginPlay 때 GetPawn()=null로 숨김 처리됐으므로)
-	OnRep_FOWVisibility();
 }
 
 // ChampionData 세팅 (런타임, 캐릭터 선택 후) 

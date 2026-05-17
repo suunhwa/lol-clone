@@ -249,8 +249,6 @@ void ALoLCharacterBase::OnRep_FOWVisibility()
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!PC || !PC->GetPawn())
 	{
-		// Possession 이전엔 기본 숨김 — FOW 등록 후 올바른 visibility로 갱신됨
-		SetActorHiddenInGame(true);
 		return;
 	}
 
