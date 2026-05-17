@@ -9,6 +9,8 @@
 
 class USphereComponent;
 class UProjectileMovementComponent;
+class UNiagaraSystem;
+class UNiagaraComponent;
 
 // 발사체 피격 시 추가 처리를 위한 델리게이트 (W 고리 적용, 평타 마크 소비 등)
 DECLARE_DELEGATE_OneParam(FOnProjHit, AActor*)
@@ -21,6 +23,8 @@ class LEAGUEOFLEGENDS_API AChampionSkillProjectile : public AActor
 public:
 	AChampionSkillProjectile();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
 	void Launch(FDamageContext InCtx, float Speed, float MaxRange, bool bPiercing, bool bInCooldownOnHit = false);
@@ -29,6 +33,20 @@ public:
 	// Debug trail 폭 (R=160, Q/E/W=0)
 	UPROPERTY()
 	float DebugTrailHalfWidth = 0.f;
+
+	// 클라이언트 비주얼 이펙트 — 서버에서 설정, 복제 후 BeginPlay에서 스폰
+	UPROPERTY(Replicated)
+	TObjectPtr<UNiagaraSystem> ReplicatedVFX;
+
+	UPROPERTY(Replicated)
+	FVector ReplicatedVFXScale = FVector(1.f);
+
+	// 서버에서 호출: VFX 설정 (BeginPlay 전에 설정해야 복제에 포함됨)
+	void SetReplicatedVFX(UNiagaraSystem* VFX, FVector Scale = FVector(1.f))
+	{
+		ReplicatedVFX = VFX;
+		ReplicatedVFXScale = Scale;
+	}
 
 	// true이면 구조물(타워/억제기/넥서스)에 피해를 주지 않음
 	bool bCanDamageStructures = true;

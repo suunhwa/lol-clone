@@ -170,6 +170,11 @@ void UStatComponent::RecalcMaxMana()
 	CurrentMana = FMath::Clamp(CachedMaxMana * Ratio, 0.f, CachedMaxMana);
 }
 
+void UStatComponent::OnRep_CachedMaxHP()
+{
+	OnHPChanged.Broadcast(CurrentHP, CachedMaxHP);
+}
+
 void UStatComponent::OnRep_CurrentHP()
 {
 	OnHPChanged.Broadcast(CurrentHP, GetMaxHP());

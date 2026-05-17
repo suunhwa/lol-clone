@@ -73,7 +73,7 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHP)
 	float CurrentHP = 0.f;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_CachedMaxHP)
 	float CachedMaxHP = 0.f;
 
 	UPROPERTY(ReplicatedUsing = OnRep_CachedMaxMana)
@@ -126,6 +126,9 @@ private:
 
 	UFUNCTION()
 	void OnRep_CurrentHP();
+
+	UFUNCTION()
+	void OnRep_CachedMaxHP();
 
 	UFUNCTION()
 	void OnRep_CurrentMana();

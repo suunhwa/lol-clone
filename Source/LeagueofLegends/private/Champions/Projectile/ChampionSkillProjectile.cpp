@@ -3,7 +3,10 @@
 #include "Champions/Projectile/ChampionSkillProjectile.h"
 
 #include "DrawDebugHelpers.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Characters/LoLCharacterBase.h"
+#include "Net/UnrealNetwork.h"
 #include "Components/CooldownComponent.h"
 #include "Components/StatComponent.h"
 #include "Interfaces/Damageable.h"
@@ -11,6 +14,34 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Type/RiftTypes.h"
+
+void AChampionSkillProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AChampionSkillProjectile, ReplicatedVFX);
+	DOREPLIFETIME(AChampionSkillProjectile, ReplicatedVFXScale);
+}
+
+void AChampionSkillProjectile::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// 클라이언트에서 발사체 스폰 시 복제된 VFX 부착 (서버에서 설정한 이펙트)
+	if (ReplicatedVFX && !HasAuthority())
+	{
+		if (UNiagaraComponent* FX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			ReplicatedVFX,
+			GetRootComponent(),
+			NAME_None,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget,
+			true))
+		{
+			FX->SetWorldScale3D(ReplicatedVFXScale);
+		}
+	}
+}
 
 AChampionSkillProjectile::AChampionSkillProjectile()
 {
