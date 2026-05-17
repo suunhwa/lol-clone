@@ -15,8 +15,14 @@ AMinionSpawner::AMinionSpawner()
 void AMinionSpawner::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	// 시작하자마자 스폰하고 싶으면 추후 StartWaveTimer) 호출
 
-	// 키 바인딩 --------------------------------------- 테스트 후 추후 삭제 ------------------------
+	if (HasAuthority())
+	{
+		StartWaveTimer();
+	}
+	/*// 키 바인딩 --------------------------------------- 테스트 후 추후 삭제 ------------------------
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (PC)
 	{
@@ -39,14 +45,9 @@ void AMinionSpawner::BeginPlay()
 			Binding0.bConsumeInput = false; // 중요: 입력을 소비하지 않음
 		}
 	}
-	// ------------------------------------ 요기까지 삭제 -----------------------------
+	// ------------------------------------ 요기까지 삭제 -----------------------------*/
 
-	// 시작하자마자 스폰하고 싶으면 추후 StartWaveTimer) 호출
-
-	/*if (HasAuthority())
-	{
-	    StartWaveTimer();
-	}*/
+	
 }
 
 void AMinionSpawner::CheckAndSpawnWave()
@@ -208,13 +209,12 @@ void AMinionSpawner::StartWaveTimer()
 	if (!HasAuthority()) return;
 
 	// 롤 기준 첫 웨이브 1분 5초(65초) 시작, 이후 30초 간격
-	// 지금은 테스트용으로 5초에 시작, 10초 간격 --> 나중에 꼭 바꿀것. 30, true, 65로
 	GetWorldTimerManager().SetTimer(WaveTimerHandle,
 	                                this,
 	                                &AMinionSpawner::CheckAndSpawnWave,
-	                                10.f,
+	                                30.f,
 	                                true,
-	                                5.f);
+	                                65.f);
 	PRINTLOG_HJ(TEXT("미니언 웨이브 생성이 시작되었습니다."));
 }
 
@@ -237,7 +237,7 @@ bool AMinionSpawner::IsWaveTimerActive() const
 	return GetWorldTimerManager().IsTimerActive(WaveTimerHandle);
 }
 
-// 테스트 종료후 여기도 삭제 ------------------------------
+/*// 테스트 종료후 여기도 삭제 ------------------------------
 void AMinionSpawner::OnPress9Key()
 {
 	StartWaveTimer();
@@ -258,4 +258,4 @@ void AMinionSpawner::OnPress0Key()
 	}
 }
 
-// ------------------- 여기까지 두 함수 삭제하면됨 헤더도 잊지말고 삭제
+// ------------------- 여기까지 두 함수 삭제하면됨 헤더도 잊지말고 삭제*/

@@ -61,7 +61,7 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_CreateRoom; // 방 생성
 
-	// Panel_RoomList 
+	// Panel_RoomList
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UVerticalBox> RoomListBox;
 

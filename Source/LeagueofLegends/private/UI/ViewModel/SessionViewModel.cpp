@@ -81,10 +81,13 @@ void USessionViewModel::RequestFind()
 	OnSessionStatusChanged.Broadcast(true, TEXT("Searching..."));
 }
 
-void USessionViewModel::RequestJoin(int32 Index)
+void USessionViewModel::RequestJoin(int32 Index, const FString& Nickname)
 {
-	if (!SessionSubsystem) { return; }
-	PRINTLOG_SH(TEXT("[SessionVM] JoinSelectedSession(%d)"), Index);
+	if (!GameInstance || !SessionSubsystem) { return; }
+
+	GameInstance->Nickname = Nickname.IsEmpty() ? TEXT("Player") : Nickname;
+
+	PRINTLOG_SH(TEXT("[SessionVM] JoinSelectedSession(%d) Nickname=%s"), Index, *GameInstance->Nickname);
 	SessionSubsystem->JoinSelectedSession(Index);
 }
 

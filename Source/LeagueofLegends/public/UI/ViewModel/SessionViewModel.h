@@ -27,7 +27,7 @@ public:
 	void RequestFindOrCreate(const FString& Nickname, int32 MaxPlayers = 10);
 	void RequestCreate(const FString& RoomName, const FString& Nickname, int32 MaxPlayers = 10);
 	void RequestFind();
-	void RequestJoin(int32 Index);
+	void RequestJoin(int32 Index, const FString& Nickname = TEXT("Player"));
 
 	FOnSessionStatusChanged OnSessionStatusChanged;
 	FOnSessionInfoReceived  OnSessionInfoReceived;
