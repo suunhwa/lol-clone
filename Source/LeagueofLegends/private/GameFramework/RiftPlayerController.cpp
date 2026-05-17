@@ -301,22 +301,22 @@ void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 	{
 		MoveInput.X = -1.f;
 	}
-		
+
 	else if (mouseX >= ViewportSize.X - EdgeThreshold)
 	{
 		MoveInput.X = 1.f;
 	}
-	
+
 	if (mouseY <= EdgeThreshold)
 	{
 		MoveInput.Y = 1.f;
 	}
-		
+
 	else if (mouseY >= ViewportSize.Y - EdgeThreshold)
 	{
 		MoveInput.Y = -1.f;
 	}
-	
+
 	if (MoveInput.IsNearlyZero()) { return; }
 
 	// 스폰 위치 기준으로 캐시된 팀 방향 사용
@@ -661,10 +661,24 @@ void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 
 void ARiftPlayerController::Server_AssignSkillPoint_Implementation(ESkillSlot Slot)
 {
-	if (!OwnedChamp || !OwnedChamp->SkillComp) { return; }
+	if (!OwnedChamp || !OwnedChamp->SkillComp || !OwnedChamp->StatComp) { return; }
+
+	// R은 6/11/16 레벨에서만 찍을 수 있음
+	if (Slot == ESkillSlot::R)
+	{
+		const int32 Level = OwnedChamp->StatComp->GetLevel();
+		const int32 CurRank = OwnedChamp->SkillComp->GetRank(ESkillSlot::R);
+		constexpr int32 RLevelReq[] = {6, 11, 16};
+
+		if (CurRank >= 3 || Level < RLevelReq[CurRank])
+		{
+			return;
+		}
+	}
+
 	if (OwnedChamp->SkillComp->AssignSkillPoint(Slot))
 	{
-		Client_OnSkillAssigned(Slot); // 본인 클라이언트에만 전송
+		Client_OnSkillAssigned(Slot);
 	}
 }
 

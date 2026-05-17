@@ -152,7 +152,17 @@ void USkillBarWidget::RefreshSkillLevelUpButtons()
 	Refresh(Slot_Q, ESkillSlot::Q, 5);
 	Refresh(Slot_W, ESkillSlot::W, 5);
 	Refresh(Slot_E, ESkillSlot::E, 5);
-	Refresh(Slot_R, ESkillSlot::R, 3, 6); // R은 6레벨부터
+
+	// R: 6/11/16 레벨에서만 찍을 수 있음 — 현재 랭크 기반으로 필요 레벨 결정
+	if (Slot_R)
+	{
+		const int32 RRank = SkillComp->GetRank(ESkillSlot::R);
+		constexpr int32 RLevelReq[] = {6, 11, 16};
+		const bool bRLevelOk = RRank < 3 && Level >= RLevelReq[RRank];
+		Slot_R->RefreshRank(RRank);
+		Slot_R->SetSkillActive(RRank > 0);
+		Slot_R->SetLevelUpAvailable(bHasPoints && bRLevelOk);
+	}
 }
 
 void USkillBarWidget::OnLevelChanged(int32 /*NewLevel*/)
