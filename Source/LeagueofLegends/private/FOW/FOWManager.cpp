@@ -4,6 +4,7 @@
 #include "FOW/FOWManager.h"
 
 #include "LeagueofLegends.h"
+#include "Characters/LoLCharacterBase.h"
 #include "Interfaces/SightProviderHelper.h"
 #include "FOW/FOWTileMap.h"
 #include "GameFramework/RiftGameState.h"
@@ -377,6 +378,26 @@ void AFOWManager::SetLocalClientTeam(ERiftSightTag InTeam)
 
 	// 5) HUD에 텍스처 준비 완료 알림
 	BroadcastFOWReadyIfValid();
+	
+	RefreshAllVisibility();
+}
+
+void AFOWManager::RefreshAllVisibility()
+{
+	for (const auto& Provider : RedSightProviders)
+	{
+		if (ALoLCharacterBase* Char = Cast<ALoLCharacterBase>(Provider.GetObject()))
+		{
+			Char->OnRep_FOWVisibility();  // 강제 재평가
+		}
+	}
+	for (const auto& Provider : BlueSightProviders)
+	{
+		if (ALoLCharacterBase* Char = Cast<ALoLCharacterBase>(Provider.GetObject()))
+		{
+			Char->OnRep_FOWVisibility();
+		}
+	}
 }
 
 

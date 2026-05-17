@@ -24,6 +24,7 @@ class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamagea
 {
 	GENERATED_BODY()
 
+	virtual AActor* GetCurrentCombatTarget_Implementation() const override;
 public:
 	ALoLCharacterBase();
 
@@ -45,7 +46,6 @@ public:
 	virtual FVector GetTargetLocation_Implementation() const override;
 	virtual ETeam GetTeam_Implementation() const override;
 	virtual EUnitType GetUnitType_Implementation() const override;
-	virtual AActor* GetCurrentCombatTarget_Implementation() const override;
 	
 	// --- ISightProvider
 #pragma region SightProvider
@@ -60,9 +60,12 @@ private:
 	// 비트 플래그: bit0 = Red팀에게 보임, bit1 = Blue팀에게 보임
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_FOWVisibility)
 	uint8 FOWVisibilityFlags = 0;
-
+	
+public:
 	UFUNCTION()
 	void OnRep_FOWVisibility();
+	
+	void ApplyVisibility(bool bVisible);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Sight")

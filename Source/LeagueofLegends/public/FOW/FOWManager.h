@@ -140,9 +140,11 @@ public:
 	void UnregisterSightProvider(UObject* SightProvider);
 	
 	AFOWTileMap* GetLocalTileMap() const;
-	
+
 	// 로컬 클라이언트에 시야가 잘못 설정돼있을 경우에 외부에서 호출 API
 	void SetLocalClientTeam(ERiftSightTag InTeam);
+	
+	void RefreshAllVisibility();
 
 private:
 	// 플레이어 위치를 원점으로 하는 시야 계산

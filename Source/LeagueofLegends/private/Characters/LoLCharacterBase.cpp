@@ -221,7 +221,7 @@ ERiftSightTag ALoLCharacterBase::GetSightTag_Implementation() const
 
 bool ALoLCharacterBase::IsHideable_Implementation() const
 {
-	return false; 
+	return true; 
 }
 
 void ALoLCharacterBase::SetFOWVisibilityFlag_Implementation(ERiftSightTag Team, bool bVisible)
@@ -263,43 +263,56 @@ void ALoLCharacterBase::SetFOWVisibilityFlag_Implementation(ERiftSightTag Team, 
 
 void ALoLCharacterBase::OnRep_FOWVisibility()
 {
-	// 로컬 플레이어의 팀 가져오기
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC || !PC->GetPawn())
+	// 로컬 시청자 팀 조회 (FOWManager가 권위 있는 출처)
+	ARiftGameState* GS = GetWorld()->GetGameState<ARiftGameState>();
+	if (!GS) { return; }
+    
+	AFOWManager* FOW = GS->GetFOWManager();
+	if (!FOW) { return; }
+    
+	const ERiftSightTag ViewerTeam = FOW->LocalClientTeam;
+	if (ViewerTeam == ERiftSightTag::None)
 	{
+		// 시청자 팀 미정 → 일단 숨기지 않음 (잘못된 가시 상태 방지)
+		ApplyVisibility(true);
 		return;
 	}
-
-	ALoLCharacterBase* LocalCharacter = Cast<ALoLCharacterBase>(PC->GetPawn());
-	if (!LocalCharacter) 
+    
+	// 같은 팀은 항상 보임
+	if (TagComp && TagComp->GetSightTag() == ViewerTeam)
 	{
+		ApplyVisibility(true);
 		return;
 	}
+    
+	// 적팀 비트 체크
+	const uint8 ViewerBit = (ViewerTeam == ERiftSightTag::Red) ? 0x01 : 0x02;
+	const bool bVisibleToMe = (FOWVisibilityFlags & ViewerBit) != 0;
+    
+	ApplyVisibility(bVisibleToMe);
+}
 
-	ERiftSightTag LocalClientTeam = LocalCharacter->TagComp->GetSightTag();
-
-	if (TagComp->GetSightTag() == LocalClientTeam)
+void ALoLCharacterBase::ApplyVisibility(bool bVisible)
+{
+	// 액터 자체 (그림자, 데칼 등도 같이 처리됨)
+	SetActorHiddenInGame(!bVisible);
+    
+	// Skeletal Mesh와 자식 컴포넌트 (무기, 장식 등)
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
 	{
-		// 같은 팀 오브젝트는 항상 보이도록 설정
-		SetActorHiddenInGame(false);
-		return;
+		MeshComp->SetVisibility(bVisible, true);  // bPropagateToChildren=true
 	}
-	
-	// 적군만 가시성 판정
-	bool bVisibleToMe = false;
-	if (LocalClientTeam == ERiftSightTag::Red)
+    
+	// HP바 위젯
+	if (HPBarWidgetComp)
 	{
-		bVisibleToMe = (FOWVisibilityFlags & 0x01) != 0;
+		HPBarWidgetComp->SetVisibility(bVisible);
 	}
-	else if (LocalClientTeam == ERiftSightTag::Blue)
-	{
-		bVisibleToMe = (FOWVisibilityFlags & 0x02) != 0;
-	}
-
-	// UE_LOG(LogTemp, Warning, TEXT("[FOW OnRep] %s | MyTeam=%d EnemyTeam=%d Flags=%d Hidden=%d"),
-	//    *GetName(), (int32)LocalClientTeam, (int32)TagComp->GetSightTag(), FOWVisibilityFlags, !bVisibleToMe);
-	
-	SetActorHiddenInGame(!bVisibleToMe);
+    
+	// 플로팅 텍스트는 항상 따라갈 필요 없음 (재생 중일 때만 표시되므로)
+    
+	// 콜리전은 게임 디자인 결정사항. LoL 룰이면 그대로 두는 게 맞음
+	// (안 보이는 적도 부쉬 안에서 광역기에 맞을 수 있어야 함)
 }
 
 void ALoLCharacterBase::OnDeath(AActor* DamageInstigator)
