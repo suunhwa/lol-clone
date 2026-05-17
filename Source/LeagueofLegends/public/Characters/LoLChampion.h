@@ -24,6 +24,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PawnClientRestart() override;
 
 	// 서버가 캐릭터 선택 후 ChampionDataSubsystem에서 받아 세팅.
 	// EditDefaultsOnly는 테스트 전용 — 실제론 SetChampionData() 사용
