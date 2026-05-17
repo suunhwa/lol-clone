@@ -185,6 +185,29 @@ void ARiftGameMode::HandleStartingNewPlayer_Implementation(APlayerController* Ne
 	}
 
 	Super::HandleStartingNewPlayer_Implementation(NewPlayer); // → RestartPlayer → ChoosePlayerStart
+
+	// 스폰 완료 후 PlayerState의 SelectedChampionID로 ChampionData 주입
+	ALoLChampion* Champ = Cast<ALoLChampion>(NewPlayer->GetPawn());
+	ARiftPlayerState* RPS = NewPlayer->GetPlayerState<ARiftPlayerState>();
+	if (Champ && RPS)
+	{
+		const FName ChampionID = RPS->GetSelectedChampionID();
+		if (!ChampionID.IsNone())
+		{
+			UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+			if (UChampionData* Data = Sub ? Sub->GetChampionData(ChampionID) : nullptr)
+			{
+				Champ->SetChampionData(Data);
+				PRINTLOG_SH(TEXT("[HandleStartingNewPlayer] ChampionData 주입: %s → %s"),
+					*RPS->GetPlayerName(), *ChampionID.ToString());
+			}
+			else
+			{
+				PRINTLOG_SH(TEXT("[HandleStartingNewPlayer] ChampionData 없음 (ID: %s) — Blueprint 기본값 사용"),
+					*ChampionID.ToString());
+			}
+		}
+	}
 }
 
 void ARiftGameMode::Logout(AController* Exiting)
