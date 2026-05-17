@@ -363,6 +363,56 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 		float XP = CalcChampionKillXP(Row->RewardXP, Participant->GetChampionLevel(), Victim->GetChampionLevel());
 		Participant->AddXP(XP / Participants.Num());
 	}
+	
+	
+	// 챔피언 킬/어시스트 골드 정산 파트 
+	
+	// 제압 킬 등을 위해 나중에 테이블 연동이 가능하도록 변수화
+	int32 BaseKillGold = 300; 
+	int32 TotalAssistPool = BaseKillGold / 2; // 어시스트 총 풀은 킬 값의 50% (150원)
+
+	// 킬러(막타자) 골드 지급
+	if (APawn* KillerPawn = Killer->GetPawn())
+	{
+		if (UInventoryComponent* KillerInv = KillerPawn->FindComponentByClass<UInventoryComponent>())
+		{
+			KillerInv->AddGold(static_cast<float>(BaseKillGold));
+            
+			PRINTLOG_HJ(TEXT("[Champion Kill Gold] %s ➔ 상대 %s 처치! 막타 현상금 +%d Gold 주입 (잔액: %.0f)"), 
+				*Killer->GetPlayerName(), *Victim->GetPlayerName(), BaseKillGold, KillerInv->GetGold());
+		}
+	}
+
+	// 어시스터 유효 인원 걸러내기 
+	TArray<ARiftPlayerState*> ValidAssisters;
+	for (ARiftPlayerState* A : Assisters)
+	{
+		if (A && A != Killer)
+		{
+			ValidAssisters.Add(A);
+		}
+	}
+
+	// 어시스터 골드 1/N 분배 지급
+	if (!ValidAssisters.IsEmpty())
+	{
+		// 총 어시스트 골드(150원)를 참여한 아군 수로 쪼개서 지급
+		int32 AssistGoldEach = TotalAssistPool / ValidAssisters.Num();
+
+		for (ARiftPlayerState* AssisterPS : ValidAssisters)
+		{
+			if (APawn* AssisterPawn = AssisterPS->GetPawn())
+			{
+				if (UInventoryComponent* AssisterInv = AssisterPawn->FindComponentByClass<UInventoryComponent>())
+				{
+					AssisterInv->AddGold(static_cast<float>(AssistGoldEach));
+                    
+					PRINTLOG_HJ(TEXT("[Champion Assist Gold] %s ➔ 처치 지원 보너스 +%d Gold 주입 (잔액: %.0f)"), 
+						*AssisterPS->GetPlayerName(), AssistGoldEach, AssisterInv->GetGold());
+				}
+			}
+		}
+	}
 }
 
 void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam KillerTeam, AActor* DamageInstigator)
