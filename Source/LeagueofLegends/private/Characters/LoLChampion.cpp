@@ -31,6 +31,12 @@ ALoLChampion::ALoLChampion()
 	
 	StatModifierComp = CreateDefaultSubobject<UStatModifierComponent>(TEXT("StatModifierComp"));
 	InventoryComp = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComp"));
+
+	// StatComp는 LoLCharacterBase 생성자에서 먼저 생성됨 — 여기서 주입
+	if (StatComp)
+	{
+		StatComp->SetStatModifierComp(StatModifierComp);
+	}
 }
 
 void ALoLChampion::BeginPlay()

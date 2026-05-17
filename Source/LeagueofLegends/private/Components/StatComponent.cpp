@@ -2,6 +2,7 @@
 
 #include "Components/StatComponent.h"
 
+#include "Components/StatModifierComponent.h"
 #include "LeagueofLegends.h"
 #include "Net/UnrealNetwork.h"
 
@@ -56,7 +57,7 @@ void UStatComponent::InitStats(const FChampionBaseRow& ChampionBase, const FCham
 	MS_G = Growth.MS_G;
 	HPRegen_G = Growth.Regen_HP_G;
 
-	CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP;
+	RecalcMaxHP();
 	CachedMaxMana = BaseMana + Mana_G * (Level - 1);
 	CurrentHP = CachedMaxHP;
 	CurrentMana = CachedMaxMana;
@@ -66,35 +67,50 @@ void UStatComponent::InitStats(const FChampionBaseRow& ChampionBase, const FCham
 	OnLevelChanged.Broadcast(Level);
 }
 
-
 float UStatComponent::GetAD() const
 {
-	return BaseAD + AD_G * (Level - 1) + BonusAD;
+	const float Base = BaseAD + AD_G * (Level - 1);
+	return StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::AD, Base) : Base;
 }
 
 float UStatComponent::GetAP() const
 {
-	return BaseAP + BonusAP;
+	return StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::AP, BaseAP) : BaseAP;
 }
 
 float UStatComponent::GetArmor() const
 {
-	return BaseArmor + Armor_G * (Level - 1) + BonusArmor;
+	const float Base = BaseArmor + Armor_G * (Level - 1);
+	return StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::Armor, Base) : Base;
 }
 
 float UStatComponent::GetMagicResist() const
 {
-	return BaseMR + MR_G * (Level - 1);
+	const float Base = BaseMR + MR_G * (Level - 1);
+	return StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::MR, Base) : Base;
 }
 
 float UStatComponent::GetMoveSpeed() const
 {
-	return BaseMoveSpeed + MS_G * (Level - 1);
+	const float Base = BaseMoveSpeed + MS_G * (Level - 1);
+	return StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::MS, Base) : Base;
 }
 
 float UStatComponent::GetHPRegen() const
 {
-	return BaseHPRegen + HPRegen_G * (Level - 1);
+	const float Base = BaseHPRegen + HPRegen_G * (Level - 1);
+	return StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::HPRegen, Base) : Base;
+}
+
+float UStatComponent::GetAbilityHaste() const
+{
+	return StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::AH, 0.f) : 0.f;
+}
+
+float UStatComponent::GetCritChance() const
+{
+	const float Raw = StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::Crit, 0.f) : 0.f;
+	return FMath::Clamp(Raw, 0.f, 1.f);
 }
 
 float UStatComponent::GetAttackSpeed() const
@@ -127,7 +143,7 @@ void UStatComponent::SetLevel(int32 NewLevel)
 	const float ManaRatio = CachedMaxMana > 0.f ? CurrentMana / CachedMaxMana : 1.f;
 
 	Level = FMath::Clamp(NewLevel, 1, 18);
-	CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP;
+	RecalcMaxHP();
 	CachedMaxMana = BaseMana + Mana_G * (Level - 1);
 
 	CurrentHP = CachedMaxHP * HPRatio;
@@ -136,6 +152,12 @@ void UStatComponent::SetLevel(int32 NewLevel)
 	OnHPChanged.Broadcast(CurrentHP, CachedMaxHP);
 	OnManaChanged.Broadcast(CurrentMana, CachedMaxMana);
 	OnLevelChanged.Broadcast(Level);
+}
+
+void UStatComponent::RecalcMaxHP()
+{
+	const float Base = BaseHP + HP_G * (Level - 1);
+	CachedMaxHP = StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::HP, Base) : Base;
 }
 
 void UStatComponent::OnRep_CurrentHP()

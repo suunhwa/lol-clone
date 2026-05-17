@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Struct/ChampionStatStruct.h"
+#include "Type/StatModifierTypes.h"
 #include "StatComponent.generated.h"
+
+class UStatModifierComponent;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnHPChanged, float /*Current*/, float /*Max*/);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnManaChanged, float /*Current*/, float /*Max*/);
@@ -27,6 +30,9 @@ public:
 	void InitStats(const FChampionBaseRow& ChampionBase, const FChampionStatRow& Stats,
 	               const FChampionGrowthRow& Growth);
 
+	// LoLChampion이 소유한 StatModifierComp를 StatComponent에 주입
+	void SetStatModifierComp(UStatModifierComponent* InComp) { StatModifierComp = InComp; }
+
 	// --- getters 
 	float GetCurrentHP() const { return CurrentHP; }
 	float GetCurrentMana() const { return CurrentMana; }
@@ -42,6 +48,8 @@ public:
 	float GetAttackSpeed() const;
 	float GetAttackRange() const;
 	float GetHPRegen() const;
+	float GetAbilityHaste() const;
+	float GetCritChance() const;
 	float GetCritMultiplier() const { return BaseCritMult; }
 
 	bool IsDead() const { return CurrentHP <= 0.f; }
@@ -51,21 +59,14 @@ public:
 	void ApplyManaCost(float Cost); // 항상 양수로 전달
 	void SetLevel(int32 NewLevel);
 
-	// 보너스 스탯 (아이템/버프)
-	void AddBonusAD(float Value) { BonusAD += Value; }
-	void AddBonusAP(float Value) { BonusAP += Value; }
-	void AddBonusHP(float Value) { BonusHP += Value; CachedMaxHP = BaseHP + HP_G * (Level - 1) + BonusHP; }
-	void AddBonusArmor(float Value) { BonusArmor += Value; }
-	void AddAbilityHaste(float Value) { AbilityHaste = FMath::Max(0.f, AbilityHaste + Value); }
-	float GetAbilityHaste() const { return AbilityHaste; }
-	void AddCritChance(float Value) { CritChance = FMath::Clamp(CritChance + Value, 0.f, 1.f); }
-	float GetCritChance() const { return CritChance; }
+	// HP 관련 모디파이어 추가/제거 후 외부에서 호출
+	void RecalcMaxHP();
 
 	// --- delegates 
 	FOnHPChanged OnHPChanged;
 	FOnManaChanged OnManaChanged;
 	FOnLevelChanged OnLevelChanged;
-	
+
 	// 자식 접근을 위해 공통변수로 뺌
 protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHP)
@@ -98,7 +99,7 @@ protected:
 	float BaseASRatio = 0.f;
 	float BaseRange = 0.f;
 	// --------------------------
-	
+
 private:
 	float BaseHPRegen = 0.f;
 	float BaseCritMult = 1.75f; // LoL 기본 크리 배율
@@ -118,18 +119,9 @@ private:
 	float MS_G = 0.f;
 	float HPRegen_G = 0.f;
 
-	// 보너스 스탯 (아이템/버프)
-	// 자식 접근을 위해 공통변수로 뺌
-protected:
-	float BonusHP = 0.f;
-	float BonusAD = 0.f;
-	float BonusArmor = 0.f;
-	float AbilityHaste = 0.f;
-	float CritChance = 0.f;   // 0.0 ~ 1.0
-	// ---------------------------
-private:
-	float BonusAP = 0.f;
-	
+	// LoLChampion이 소유 — StatComponent는 참조만 보관 (비소유)
+	UPROPERTY()
+	TObjectPtr<UStatModifierComponent> StatModifierComp = nullptr;
 
 	UFUNCTION()
 	void OnRep_CurrentHP();
