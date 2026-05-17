@@ -89,13 +89,14 @@ int32 ARiftGameState::GetTeamGold(ETeam Team) const
 void ARiftGameState::SetFOWManager(AFOWManager* Manager)
 {
 	FOWManager = Manager;
-	
+	if (!Manager) { return; }
+
 	// SightProvider 등록
 	for (TActorIterator<ALoLCharacterBase> It(GetWorld()); It; ++It)
 	{
 		FOWManager->RegisterSightProvider(*It);
 	}
-	
+
 	// FOWManager가 늦게 들어왔을 때, 이미 PlayerState에 Team이 있다면 즉시 푸시
 	if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
 	{
@@ -103,7 +104,7 @@ void ARiftGameState::SetFOWManager(AFOWManager* Manager)
 		{
 			if (PS->GetTeam() != ETeam::None)
 			{
-				const ERiftSightTag Tag = (PS->GetTeam() == ETeam::Blue) 
+				const ERiftSightTag Tag = (PS->GetTeam() == ETeam::Blue)
 					? ERiftSightTag::Blue : ERiftSightTag::Red;
 				Manager->SetLocalClientTeam(Tag);
 			}
@@ -130,13 +131,15 @@ void ARiftGameState::IncrementTimer()
 
 void ARiftGameState::OnRep_FOWManager()
 {
-	// FOWManager가 복제된 시점에 월드의 모든 캐릭터에게 등록 기회 부여
+	if (!FOWManager) { return; }
+
+	// SightProvider 등록 (FOWManager 복제 시점에 월드의 모든 캐릭터에게 등록 기회 부여)
 	for (TActorIterator<ALoLCharacterBase> It(GetWorld()); It; ++It)
 	{
 		FOWManager->RegisterSightProvider(*It);
 	}
-	
-	// OnRep_Team이 먼저 왔을 때를 대비: FOWManager 복제 시점에 팀 재푸시
+
+	// OnRep_Team이 먼저 도착해서 푸시 실패한 케이스 복구
 	if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
 	{
 		if (ARiftPlayerState* PS = LocalPC->GetPlayerState<ARiftPlayerState>())

@@ -61,32 +61,22 @@ void AFOWTileMap::Tick(float DeltaTime)
 	// }
 }
 
-// void AFOWTileMap::Generate(AFOWVolume* FOWVolume)
-// {
-// 	GenerateTileMap(FOWVolume);
-// 	CreateFogTexture();
-// 	CreateSightDataTexture();
-// 	
-// 	// Debug용 Plane에 텍스처 연결
-// 	CreateDebugPlane();
-// 	
-// 	UpdateFogTexture();
-// 	CreateFOWPostProcess();
-// }
-
-void AFOWTileMap::Generate(AFOWVolume* FOWVolume, bool bServerOnly)
+void AFOWTileMap::GenerateTileData(AFOWVolume* FOWVolume)
 {
 	GenerateTileMap(FOWVolume);
-	
-	if (!bServerOnly)
+}
+
+void AFOWTileMap::CreateVisualResources()
+{
+	if (FogTexture)
 	{
-		CreateFogTexture();
-		// CreateSightDataTexture(); // 시야 데이터 텍스처 사용 안함
-		CreateDebugPlane(); // Debug용 Plane에 텍스처 연결
-		
-		UpdateFogTexture();
-		CreateFOWPostProcess();		
+		return;
 	}
+
+	CreateFogTexture();
+	CreateDebugPlane();
+	UpdateFogTexture();
+	CreateFOWPostProcess();
 }
 
 void AFOWTileMap::GenerateTileMap(AFOWVolume* FOWVolume)

@@ -32,11 +32,13 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	
 public:
-	// UFUNCTION(BlueprintCallable)
-	// void Generate(AFOWVolume* FOWVolume);
-	
 	UFUNCTION(BlueprintCallable)
-	void Generate(AFOWVolume* FOWVolume, bool bServerOnly = false);
+	void GenerateTileData(AFOWVolume* FOWVolume);
+
+	UFUNCTION(BlueprintCallable)
+	void CreateVisualResources();
+
+	bool HasVisualResources() const { return FogTexture != nullptr; }
 	
 	UFUNCTION(BlueprintCallable)
 	void GenerateTileMap(AFOWVolume* FOWVolume);

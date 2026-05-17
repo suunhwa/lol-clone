@@ -7,7 +7,6 @@
 #include "Interfaces/SightProviderHelper.h"
 #include "FOW/FOWTileMap.h"
 #include "GameFramework/RiftGameState.h"
-#include "GameFramework/RiftPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 
 #define TEST 0
@@ -55,48 +54,20 @@ void AFOWManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// TODO: LocalPlayer의 팀을 가져와 세팅
-	if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
+	if (!FOWVolume)
 	{
-		if (ARiftPlayerState* PS = LocalPC->GetPlayerState<ARiftPlayerState>())
-		{
-			if (PS->GetTeam() != ETeam::None)
-			{
-				LocalClientTeam = (PS->GetTeam() == ETeam::Blue)
-					? ERiftSightTag::Blue : ERiftSightTag::Red;
-			}
-		}
+		return;
 	}
-	
-	UE_LOG(LogTemp, Warning, TEXT("[FOWManager] LocalClientTeam=%d (0=None, 1=Blue, 2=Red)"),
-		(int32)LocalClientTeam);
-	
-	if (FOWVolume)
-	{
-		if (HasAuthority()) // 서버는 양쪽 타일맵 모두 생성
-		{
-			// 서버는 양 팀 TileMap 모두 즉시 생성 (시야 판정용)
-			// 호스트의 LocalClientTeam은 GameMode/Lobby에서 미리 세팅돼 있어야 함
-			const bool bHostIsRed = (LocalClientTeam == ERiftSightTag::Red);
-        
-			RedTileMap->Generate(FOWVolume, /*bServerOnly=*/!bHostIsRed);
-			BlueTileMap->Generate(FOWVolume, /*bServerOnly=*/bHostIsRed);
 
-			BroadcastFOWReadyIfValid();
-		}
-		else
-		{
-			// 클라이언트는 BeginPlay 시점에 Generate 시도하지 않음
-			// OnRep_Team 또는 SetFOWManager의 역방향 트리거가 SetLocalClientTeam을 호출하면 그때 Generate
-			// 만약 이미 BeginPlay 전에 OnRep_Team이 발화했다면 SetLocalClientTeam에서 Generate 완료된 상태일 수 있음
-			if (LocalClientTeam != ERiftSightTag::None && !IsLocalTileMapReady())
-			{
-				GetLocalTileMap()->Generate(FOWVolume, /*bServerOnly=*/false);
-				BroadcastFOWReadyIfValid();
-			}
-		}
+	if (HasAuthority())
+	{
+		// 양 팀 시야 판정용 타일 데이터 미리 생성
+		RedTileMap->GenerateTileData(FOWVolume);
+		BlueTileMap->GenerateTileData(FOWVolume);
 	}
-	
+	// 클라이언트 경로는 BeginPlay에서 아무것도 하지 않음
+	// (SetLocalClientTeam에서 처리됨)
+
 #if TEST
 	// 현재 playerPawn을 TestActor로 할당
 	TestActor = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
@@ -114,32 +85,26 @@ void AFOWManager::Tick(float DeltaTime)
 	{
 		UpdateFOV(RedTileMap, RedSightProviders, false);
 		UpdateFOV(BlueTileMap, BlueSightProviders, false);
-		
-		// 서버 권한 가시성 판정 (Server에서만 판정, Client는 서버 결과 받아서 적용)
-		// Blue 적들이 Red 시야에 보이는가?
+
 		UpdateEnemyVisibility_Server(RedTileMap, BlueSightProviders, ERiftSightTag::Red);
-		// Red 적들이 Blue 시야에 보이는가?
 		UpdateEnemyVisibility_Server(BlueTileMap, RedSightProviders, ERiftSightTag::Blue);
-		
-		// 리슨 서버 호스트: 자기 팀 텍스처만 갱신
-		if (LocalClientTeam == ERiftSightTag::Red)
+
+		// 호스트의 로컬 팀 비주얼 갱신 (팀 미정 또는 비주얼 미준비면 스킵)
+		if (LocalClientTeam != ERiftSightTag::None && IsLocalTileMapReady())
 		{
-			RedTileMap->UpdateFogTexture();
-		}
-		else
-		{
-			BlueTileMap->UpdateFogTexture();
+			GetLocalTileMap()->UpdateFogTexture();
 		}
 	}
 	else
 	{
+		// 클라이언트: 팀 미정 또는 비주얼 미준비면 스킵
 		if (LocalClientTeam == ERiftSightTag::None || !IsLocalTileMapReady())
 		{
 			return;
 		}
-    
+
 		AFOWTileMap* LocalTM = GetLocalTileMap();
-		TArray<TScriptInterface<ISightProvider>>& Providers = 
+		TArray<TScriptInterface<ISightProvider>>& Providers =
 			(LocalClientTeam == ERiftSightTag::Red) ? RedSightProviders : BlueSightProviders;
 		UpdateFOV(LocalTM, Providers, true);
 	}
@@ -200,11 +165,13 @@ void AFOWManager::RegisterSightProvider(UObject* SightObject)
 	{
 		// SightObject 이름과, GetTeam 결과를 로그에 출력
 		// PRINTLOG_TK(TEXT("Registering SightProvider: %s, Team=%s"), *SightObject->GetName(), TEXT("Red"));
+		if (RedSightProviders.Contains(SightProvider)) { return; }
 		RedSightProviders.Add(SightProvider);
 	}
 	else
 	{
 		// PRINTLOG_TK(TEXT("Registering SightProvider: %s, Team=%s"), *SightObject->GetName(), TEXT("Blue"));
+		if (BlueSightProviders.Contains(SightProvider)) { return; }
 		BlueSightProviders.Add(SightProvider);
 	}
 }
@@ -382,29 +349,33 @@ AFOWTileMap* AFOWManager::GetLocalTileMap() const
 
 void AFOWManager::SetLocalClientTeam(ERiftSightTag InTeam)
 {
-	// 유효하지 않은 팀 무시
+	// 1) None 가드
 	if (InTeam == ERiftSightTag::None) { return; }
-    
-	// 이미 같은 팀으로 세팅됐고 TileMap도 준비됐으면 무시 (중복 호출 방지)
-	if (LocalClientTeam == InTeam && IsLocalTileMapReady())
-	{
-		return;
-	}
 
-	PRINTLOG_TK(TEXT("[FOWManager] SetLocalClientTeam %d → %d"), (int32)LocalClientTeam, (int32)InTeam);
-    
+	// 2) 중복 호출 가드: 같은 팀이고 이미 비주얼 준비됨
+	if (LocalClientTeam == InTeam && IsLocalTileMapReady()) { return; }
+
+	PRINTLOG_TK(TEXT("[FOWManager] SetLocalClientTeam %d → %d"),
+		(int32)LocalClientTeam, (int32)InTeam);
+
 	LocalClientTeam = InTeam;
 
-	// 서버는 이미 BeginPlay에서 Generate 완료. 클라이언트만 여기서 Generate.
-	if (!HasAuthority() && FOWVolume)
+	AFOWTileMap* LocalTM = GetLocalTileMap();
+	if (!LocalTM || !FOWVolume) { return; }
+
+	// 3) 클라이언트는 자기 팀 타일 데이터를 여기서 생성
+	//    (서버는 BeginPlay에서 이미 양 팀 모두 생성됨)
+	//    GetTileSize() < 0.f면 아직 GenerateTileData 안 된 상태
+	if (!HasAuthority() && LocalTM->GetTileSize() < 0.f)
 	{
-		AFOWTileMap* TargetTileMap = GetLocalTileMap();
-		if (TargetTileMap)
-		{
-			TargetTileMap->Generate(FOWVolume, /*bServerOnly=*/false);
-		}
+		LocalTM->GenerateTileData(FOWVolume);
 	}
 
+	// 4) 비주얼 리소스 생성 (서버 호스트/클라이언트 공통 진입점)
+	//    내부에 중복 호출 가드 있음
+	LocalTM->CreateVisualResources();
+
+	// 5) HUD에 텍스처 준비 완료 알림
 	BroadcastFOWReadyIfValid();
 }
 

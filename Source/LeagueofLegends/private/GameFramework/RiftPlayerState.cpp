@@ -205,8 +205,10 @@ void ARiftPlayerState::OnRep_Team()
 	}
 	
 	// 로컬 플레이어의 PlayerState일 때만 FOWManager에 통보
-	APlayerController* PC = Cast<APlayerController>(GetOwner());
+	APlayerController* PC = GetPlayerController();
 	if (!PC || !PC->IsLocalController()) { return; }
+
+	if (Team == ETeam::None) { return; }
 
 	if (ARiftGameState* GS = GetWorld()->GetGameState<ARiftGameState>())
 	{
