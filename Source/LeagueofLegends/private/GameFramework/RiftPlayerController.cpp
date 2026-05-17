@@ -189,14 +189,17 @@ UpdateIndicator();
 
 	if (bCameraLocked && OwnedChamp)
 	{
-		// 챔피언 잠금: 부드럽게 복귀 (LoL 스페이스바 동작)
+		// 챔피언 잠금: 스페이스바
 		TargetCameraLoc = OwnedChamp->GetActorLocation();
 		Cam->CurrentCameraLoc = FMath::VInterpTo(Cam->CurrentCameraLoc, TargetCameraLoc, DeltaTime, CameraInterpSpeed);
 	}
 	else
 	{
-		// 엣지스크롤: 즉각 반응 (LoL과 동일하게 스무딩 없음)
-		EdgeScrollWithMouse(DeltaTime);
+		// 카메라 초기화 완료 후에만 엣지스크롤 허용 (초기화 전 마우스 위치로 튀는 현상 방지)
+		if (bCameraInitialized)
+		{
+			EdgeScrollWithMouse(DeltaTime);
+		}
 
 		if (bCameraBoundsEnabled)
 		{
