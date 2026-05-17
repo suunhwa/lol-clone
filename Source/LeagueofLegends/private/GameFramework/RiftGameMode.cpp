@@ -15,6 +15,7 @@
 #include "Manager/MinionDataSubsystem.h"
 #include "Struct/MinionStruct.h"
 #include "Components/InventoryComponent.h"
+#include "Manager/ObjectDataSubsystem.h"
 
 ARiftGameMode::ARiftGameMode()
 {
@@ -366,76 +367,131 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 
 void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam KillerTeam, AActor* DamageInstigator)
 {
-	UChampionDataSubsystem* ExpSys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
-	if (!ExpSys) { return; }
+    UChampionDataSubsystem* ExpSys = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+    if (!ExpSys) { return; }
 
-	const FUnitRewardExpRow* Row = ExpSys->GetUnitRewardRow(UnitRowName);
-	if (!Row) { return; }
+    const FUnitRewardExpRow* Row = ExpSys->GetUnitRewardRow(UnitRowName);
+    if (!Row) { return; }
 
-	ARiftGameState* GS = GetGameState<ARiftGameState>();
-	float GameMinutes = GS ? GS->GetElapsedSeconds() / 60.0f : 0.0f;
+    ARiftGameState* GS = GetGameState<ARiftGameState>();
+    float GameMinutes = GS ? GS->GetElapsedSeconds() / 60.0f : 0.0f;
 
-	float UnitXP = CalcUnitXP(*Row, GameMinutes);
-	TArray<ARiftPlayerState*> Nearby = FindNearbyAllies(KillLocation, Row->ExpRadius, KillerTeam);
-	// 경험치 정산 파트
-	if (!Nearby.IsEmpty())
-	{
-		// 단독이면 100%, 복수면 SharingMultiplier 보정 후 균등 분배
-		float XPEach = Nearby.Num() == 1
-						  ? UnitXP
-						  : UnitXP * Row->SharingMultiplier / Nearby.Num();
+    float UnitXP = CalcUnitXP(*Row, GameMinutes);
+    TArray<ARiftPlayerState*> Nearby = FindNearbyAllies(KillLocation, Row->ExpRadius, KillerTeam);
+    
+    // [1] 경험치 정산 파트 (기존 코드 유지)
+    if (!Nearby.IsEmpty())
+    {
+       float XPEach = Nearby.Num() == 1 ? UnitXP : UnitXP * Row->SharingMultiplier / Nearby.Num();
+       for (ARiftPlayerState* PS : Nearby)
+       {
+          PS->AddXP(XPEach);
+       }
+    }
 
-		for (ARiftPlayerState* PS : Nearby)
-		{
-			PS->AddXP(XPEach);
-		}
-	}
-    // 골드 정산
+    // 골드 정산 파트 (구조체 필드 및 글로벌 골드 규칙 완벽 매칭)
     if (IsValid(DamageInstigator))
     {
-        // 막타를 가한 주체가 플레이어 챔피언인지 검사
         if (ALoLChampion* KillerChamp = Cast<ALoLChampion>(DamageInstigator))
         {
-            // 챔피언이 소유한 인벤토리 컴포넌트 컴백
             if (UInventoryComponent* InvComp = KillerChamp->FindComponentByClass<UInventoryComponent>())
             {
-                int32 FinalGold = 0;
+                int32 FinalLastHitGold = 0;
+                int32 FinalGlobalGold = 0;
+                bool bShouldDistributeGlobal = false;
+                FString RowNameStr = UnitRowName.ToString();
 
-                UMinionDataSubsystem* MinionDataSub = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>();
-                if (MinionDataSub)
+                // ─── 죽은 오브젝트가 구조물(포탑, 억제기, 넥서스) 계열일 때 ───
+                if (RowNameStr.Contains(TEXT("Tower")) || RowNameStr.Equals(TEXT("Inhibitor")) || RowNameStr.Equals(TEXT("Nexus")))
                 {
-                    // FName 행 이름을 데이터 테이블용 MinionID로 전환
-                    int32 TargetMinionID = 0;
-                    if (UnitRowName == FName(TEXT("Minion_Melee")))       TargetMinionID = 3001;
-                    else if (UnitRowName == FName(TEXT("Minion_Ranged"))) TargetMinionID = 3002;
-                    else if (UnitRowName == FName(TEXT("Minion_Siege")))  TargetMinionID = 3003;
-                    else if (UnitRowName == FName(TEXT("Minion_Super")))  TargetMinionID = 3004;
+                    UObjectDataSubsystem* ObjectDataSub = GetGameInstance()->GetSubsystem<UObjectDataSubsystem>();
+                    if (ObjectDataSub)
+                    {
+                        FObjectBaseRow StructureBaseData;
+                        FObjectRewardRow StructureRewardData;
+                        FObjectMechanicsRow StructureMechData;
 
-                    // 서브시스템에서 해당 미니언의 구글 시트 데이터 로드
-                    if (FMinionGrowthRow* GrowthRow = MinionDataSub->GetGrowthRowByID(TargetMinionID))
-                    {
-                        float BaseGold = static_cast<float>(GrowthRow->Base_Gold);
-                        float GoldUp = static_cast<float>(GrowthRow->Gold_Up);
-                        
-                        // 구글 시트 수식: Base_Gold + (Gold_Up * 현재 게임 분)
-                        FinalGold = FMath::RoundToInt(BaseGold + (GoldUp * GameMinutes));
-                    }
-                    else
-                    {
-                        FinalGold = 21; // 기본 폴백값
+                        // FName을 기반으로 ObjectID 정확하게 분기 매핑
+                        int32 TargetObjectID = 11001; 
+                        if (UnitRowName == FName(TEXT("Tower_Outer")))          TargetObjectID = 11001;
+                        else if (UnitRowName == FName(TEXT("Tower_Inner")))     TargetObjectID = 11002;
+                        else if (UnitRowName == FName(TEXT("Tower_Inhibitor"))) TargetObjectID = 11003;
+                        else if (UnitRowName == FName(TEXT("Tower_Nexus")))     TargetObjectID = 11004;
+                        else if (UnitRowName == FName(TEXT("Inhibitor")))       TargetObjectID = 11101;
+                        else if (UnitRowName == FName(TEXT("Nexus")))           TargetObjectID = 11111;
+
+                        // 서브시스템에서 캐싱된 맵 데이터를 읽어옵니다.
+                        if (ObjectDataSub->GetAllTowerData(TargetObjectID, StructureBaseData, StructureRewardData, StructureMechData))
+                        {
+                            // 시트 컬럼명과 완벽 동기화
+                            FinalLastHitGold = FMath::RoundToInt(StructureRewardData.Last_Hit_Gold);
+                            FinalGlobalGold = FMath::RoundToInt(StructureRewardData.Global_Gold);
+                            bShouldDistributeGlobal = StructureRewardData.bGlobalDist;
+
+                            PRINTLOG_HJ(TEXT("[GameMode 구조물] %s 데이터 로드 성공 ➔ 막타: %d원, 글로벌: %d원 (글로벌 분배 여부: %s)"), 
+                                *RowNameStr, FinalLastHitGold, FinalGlobalGold, bShouldDistributeGlobal ? TEXT("True") : TEXT("False"));
+                        }
+                        else
+                        {
+                            FinalLastHitGold = 250; // 예외 폴백값
+                            FinalGlobalGold = 0;
+                        }
                     }
                 }
+                // ─── 미니언 계열일 때 ───
                 else
                 {
-                    FinalGold = 21;
+                    UMinionDataSubsystem* MinionDataSub = GetGameInstance()->GetSubsystem<UMinionDataSubsystem>();
+                    if (MinionDataSub)
+                    {
+                        int32 TargetMinionID = 0;
+                        if (UnitRowName == FName(TEXT("Minion_Melee")))       TargetMinionID = 3001;
+                        else if (UnitRowName == FName(TEXT("Minion_Ranged"))) TargetMinionID = 3002;
+                        else if (UnitRowName == FName(TEXT("Minion_Siege")))  TargetMinionID = 3003;
+                        else if (UnitRowName == FName(TEXT("Minion_Super")))  TargetMinionID = 3004;
+
+                        if (FMinionGrowthRow* GrowthRow = MinionDataSub->GetGrowthRowByID(TargetMinionID))
+                        {
+                            float BaseGold = static_cast<float>(GrowthRow->Base_Gold);
+                            float GoldUp = static_cast<float>(GrowthRow->Gold_Up);
+                            FinalLastHitGold = FMath::RoundToInt(BaseGold + (GoldUp * GameMinutes));
+                        }
+                        else { FinalLastHitGold = 21; }
+                    }
                 }
 
-                // 인벤토리 컴포넌트에 최종 골드 대입
-                InvComp->AddGold(static_cast<float>(FinalGold));
+                // 막타 챔피언 인벤토리에 독식 현상금 지급
+                if (FinalLastHitGold > 0)
+                {
+                    InvComp->AddGold(static_cast<float>(FinalLastHitGold));
+                    PRINTLOG_HJ(TEXT("[Reward System] %s 막타 보상 ➔ +%d Gold 주입 완료 (현재 보유: %.0f)"), 
+                        *UnitRowName.ToString(), FinalLastHitGold, InvComp->GetGold());
+                }
 
-                // 커스텀 디버그 로그 출력
-                PRINTLOG_HJ(TEXT("[CS Gold Reward] %s 챔피언 막타! ➔ +%d Gold (현재 잔액: %.0f)"), 
-                    *KillerChamp->GetName(), FinalGold, InvComp->GetGold());
+                // bGlobalDist가 켜져 있으면 같은 팀원 전체에게 보너스 골드 지급
+                if (bShouldDistributeGlobal && FinalGlobalGold > 0 && IsValid(GameState))
+                {
+                    for (APlayerState* PS : GameState->PlayerArray)
+                    {
+                        if (ARiftPlayerState* RPS = Cast<ARiftPlayerState>(PS))
+                        {
+                            // 막타 친 팀원과 같은 팀 소속인 아군 플레이어들에게만 골드 선물
+                            if (RPS->GetTeam() == KillerTeam)
+                            {
+                                if (APawn* AlliedPawn = RPS->GetPawn())
+                                {
+                                    if (UInventoryComponent* AlliedInv = AlliedPawn->FindComponentByClass<UInventoryComponent>())
+                                    {
+                                        AlliedInv->AddGold(static_cast<float>(FinalGlobalGold));
+                                        
+                                        PRINTLOG_HJ(TEXT("[Global Reward] 구조물 파괴 보너스 ➔ %s 플레이어에게 +%d 글로벌 골드 지급 완료!"), 
+                                            *RPS->GetPlayerName(), FinalGlobalGold);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

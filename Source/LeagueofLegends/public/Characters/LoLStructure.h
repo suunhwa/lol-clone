@@ -54,6 +54,10 @@ protected:
 
     bool bIsDestroyed = false;
 
+    // 막타 가해자를 정산 시점까지 캐싱해둘 임시 포인터 변수
+    UPROPERTY(Transient)
+    TObjectPtr<AActor> LastDamageInstigator = nullptr;
+    
     // SkeletalMesh 컴포넌트 추가
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<USkeletalMeshComponent> MeshComp;
