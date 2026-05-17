@@ -7,7 +7,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Characters/LoLChampion.h"
 #include "Characters/LoLCharacterBase.h"
-#include "GameFramework/LoLCameraActor.h"
+#include "GameFramework/RiftPlayerCameraManager.h"
 #include "GameFramework/PickWindowGameMode.h"
 #include "GameFramework/RiftPlayerState.h"
 #include "GameFramework/RiftHUD.h"
@@ -25,6 +25,7 @@ ARiftPlayerController::ARiftPlayerController()
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
 	CurrentMouseCursor = EMouseCursor::Default;
+	PlayerCameraManagerClass = ARiftPlayerCameraManager::StaticClass();
 }
 
 void ARiftPlayerController::BeginPlay()
@@ -39,7 +40,7 @@ void ARiftPlayerController::BeginPlay()
 	InputMode.SetHideCursorDuringCapture(false);
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
 	SetInputMode(InputMode);
-	
+
 	if (auto* GI = GetGameInstance<ULoLGameInstance>())
 	{
 		if (!GI->Nickname.IsEmpty())
@@ -85,7 +86,6 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 	bCameraInitialized = false;
 	if (!Champion) { return; }
 
-	// 닉네임 재전송 — Seamless Travel 후 PlayerState가 새로 생성될 수 있으므로 여기서 확실히 보냄
 	if (auto* GI = GetGameInstance<ULoLGameInstance>())
 	{
 		if (!GI->Nickname.IsEmpty())
@@ -94,90 +94,53 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 		}
 	}
 
-	PRINTLOG_SH(TEXT("[AcknowledgePossession] 챔피언=%s 위치=(%.0f,%.0f,%.0f) CameraClass=%s"),
-		*GetNameSafe(Champion),
-		Champion->GetActorLocation().X, Champion->GetActorLocation().Y, Champion->GetActorLocation().Z,
-		*GetNameSafe(CameraActorClass));
+	PRINTLOG_SH(TEXT("[AcknowledgePossession] 챔피언=%s 위치=(%.0f,%.0f,%.0f)"),
+	            *GetNameSafe(Champion),
+	            Champion->GetActorLocation().X, Champion->GetActorLocation().Y, Champion->GetActorLocation().Z);
 
 	if (ARiftHUD* HUD = GetHUD<ARiftHUD>())
 	{
 		HUD->InitHUD(OwnedChamp);
 	}
 
-	FVector CameraStartLoc = Champion->GetActorLocation();
-
-	if (CameraActorClass)
+	// CameraManager에 초기 위치 설정 (클라이언트에서만 의미 있음)
+	TargetCameraLoc = Champion->GetActorLocation();
+	if (ARiftPlayerCameraManager* Cam = GetRiftCameraManager())
 	{
-		CameraActor = GetWorld()->SpawnActor<ALoLCameraActor>(CameraActorClass,
-		                                                      FTransform(FRotator::ZeroRotator, CameraStartLoc));
+		Cam->CurrentCameraLoc = TargetCameraLoc;
 	}
 
-	if (!CameraActor)
-	{
-		PRINTLOG_SH(TEXT("[AcknowledgePossession] CameraActor 스폰 실패. CameraActorClass=%s"),
-			*GetNameSafe(CameraActorClass));
-		return;
-	}
-
-	// UE의 자동 ViewTarget 관리를 끔 — 폰 소유 시 ViewTarget이 폰으로 덮어씌워지는 것을 방지
-	bAutoManageActiveCameraTarget = false;
-
-	TargetCameraLoc = CameraStartLoc;
-	SetViewTarget(CameraActor);
-
-	// 클라이언트에서 첫 위치 복제 전에 스폰될 수 있으므로 교정 (0.3s, 1.0s 두 번)
+	// 클라이언트에서 복제 완료 후 위치 교정 타이머
 	GetWorldTimerManager().SetTimer(CameraInitTimer, [this]()
 	{
-		if (CameraActor && OwnedChamp)
+		if (OwnedChamp && !OwnedChamp->GetActorLocation().IsNearlyZero())
 		{
-			CameraActor->SetActorLocation(OwnedChamp->GetActorLocation());
 			TargetCameraLoc = OwnedChamp->GetActorLocation();
+			if (ARiftPlayerCameraManager* Cam = GetRiftCameraManager())
+			{
+				Cam->CurrentCameraLoc = TargetCameraLoc;
+			}
 		}
 	}, 0.3f, false);
-
-	FTimerHandle CameraInitTimer2;
-	GetWorldTimerManager().SetTimer(CameraInitTimer2, [this]()
-	{
-		if (CameraActor && OwnedChamp)
-		{
-			CameraActor->SetActorLocation(OwnedChamp->GetActorLocation());
-			TargetCameraLoc = OwnedChamp->GetActorLocation();
-		}
-	}, 1.0f, false);
-}
-
-void ARiftPlayerController::AutoManageActiveCameraTarget(AActor* SuggestedTarget)
-{
-	if (CameraActor)
-	{
-		SetViewTarget(CameraActor);
-		return;
-	}
-
-	Super::AutoManageActiveCameraTarget(SuggestedTarget);
 }
 
 void ARiftPlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!IsLocalController() || !CameraActor) { return; }
+	if (!IsLocalController()) { return; }
 
-	// 클라이언트: 챔피언 위치가 복제 완료되면 카메라 한 번 스냅
+	ARiftPlayerCameraManager* Cam = GetRiftCameraManager();
+	if (!Cam) { return; }
+
+	// 챔피언 위치 복제 완료되면 카메라 한 번 스냅
 	if (!bCameraInitialized && OwnedChamp)
 	{
 		FVector ChampLoc = OwnedChamp->GetActorLocation();
-
-		PRINTLOG_SH(TEXT("[Camera] Local=%d OwnedChamp=%s ChampLoc=%s CameraLoc=%s"),
-			IsLocalController() ? 1 : 0,
-			*GetNameSafe(OwnedChamp),
-			*ChampLoc.ToString(),
-			*CameraActor->GetActorLocation().ToString());
-
 		if (!ChampLoc.IsNearlyZero())
 		{
-			CameraActor->SetActorLocation(ChampLoc);
 			TargetCameraLoc = ChampLoc;
+			Cam->CurrentCameraLoc = ChampLoc;
 			bCameraInitialized = true;
 			PRINTLOG_SH(TEXT("[Camera] 스냅 완료 → %s"), *ChampLoc.ToString());
 		}
@@ -187,25 +150,24 @@ void ARiftPlayerController::Tick(float DeltaTime)
 
 	if (bCameraLocked && OwnedChamp)
 	{
+		// 챔피언 잠금: 부드럽게 복귀 (LoL 스페이스바 동작)
 		TargetCameraLoc = OwnedChamp->GetActorLocation();
-		/*FVector NewLoc = FMath::VInterpTo(CameraActor->GetActorLocation(), TargetCameraLoc, DeltaTime, CameraInterpSpeed);
-		CameraActor->SetActorLocation(NewLoc);*/
+		Cam->CurrentCameraLoc = FMath::VInterpTo(Cam->CurrentCameraLoc, TargetCameraLoc, DeltaTime, CameraInterpSpeed);
 	}
 	else
 	{
+		// 엣지스크롤: 즉각 반응 (LoL과 동일하게 스무딩 없음)
 		EdgeScrollWithMouse(DeltaTime);
+
+		if (bCameraBoundsEnabled)
+		{
+			TargetCameraLoc.X = FMath::Clamp(TargetCameraLoc.X, CameraBoundsMin.X, CameraBoundsMax.X);
+			TargetCameraLoc.Y = FMath::Clamp(TargetCameraLoc.Y, CameraBoundsMin.Y, CameraBoundsMax.Y);
+		}
+
+		Cam->CurrentCameraLoc = FMath::VInterpTo(Cam->CurrentCameraLoc, TargetCameraLoc, DeltaTime, CameraInterpSpeed);
+		// Cam->CurrentCameraLoc = TargetCameraLoc;
 	}
-
-	// GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Yellow, FString::Printf(TEXT("******CamXY: %.0f, %.0f"), TargetCameraLoc.X, TargetCameraLoc.Y));
-
-	if (bCameraBoundsEnabled)
-	{
-		TargetCameraLoc.X = FMath::Clamp(TargetCameraLoc.X, CameraBoundsMin.X, CameraBoundsMax.X);
-		TargetCameraLoc.Y = FMath::Clamp(TargetCameraLoc.Y, CameraBoundsMin.Y, CameraBoundsMax.Y);
-	}
-
-	FVector NewLoc = FMath::VInterpTo(CameraActor->GetActorLocation(), TargetCameraLoc, DeltaTime, CameraInterpSpeed);
-	CameraActor->SetActorLocation(NewLoc);
 }
 
 // ----------------------------- Server -----------------------------------------
@@ -228,7 +190,7 @@ void ARiftPlayerController::Server_SelectChampion_Implementation(FName ChampionI
 void ARiftPlayerController::Server_SetReady_Implementation()
 {
 	PRINTLOG_SH(TEXT("[Server_SetReady] 서버 도착. PS=%s"),
-		*GetNameSafe(GetPlayerState<ARiftPlayerState>()));
+	            *GetNameSafe(GetPlayerState<ARiftPlayerState>()));
 
 	if (auto* PS = GetPlayerState<ARiftPlayerState>())
 	{
@@ -241,9 +203,9 @@ void ARiftPlayerController::Server_SetReady_Implementation()
 void ARiftPlayerController::Server_StartChampionSelect_Implementation()
 {
 	if (!HasAuthority()) { return; }
-	
+
 	GetWorld()->ServerTravel(TEXT("/Game/Maps/Lv_PickWindow?listen"));
-	
+
 	/*if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
 	{
 		GS->SetPhase(EGamePhase::ChampionSelect);
@@ -253,7 +215,7 @@ void ARiftPlayerController::Server_StartChampionSelect_Implementation()
 void ARiftPlayerController::Server_StartGame_Implementation()
 {
 	if (!HasAuthority()) { return; }
-	
+
 	if (APickWindowGameMode* PGM = GetWorld()->GetAuthGameMode<APickWindowGameMode>())
 	{
 		PGM->TryStartGame(this);
@@ -263,46 +225,38 @@ void ARiftPlayerController::Server_StartGame_Implementation()
 
 void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 {
-	if (!CameraActor) { return; }
-
 	float mouseX, mouseY;
-
 	if (!GetMousePosition(mouseX, mouseY)) { return; }
+	if (!GEngine || !GEngine->GameViewport) { return; }
 
-	if (GEngine && GEngine->GameViewport)
+	FVector2D ViewportSize;
+	GEngine->GameViewport->GetViewportSize(ViewportSize);
+	FVector2D MoveInput = FVector2D::ZeroVector;
+
+	if (mouseX < EdgeThreshold)
 	{
-		FVector2D viewportSize;
-		GEngine->GameViewport->GetViewportSize(viewportSize);
-		FVector2D moveInput = FVector2D::ZeroVector;
-
-		if (mouseX < EdgeThreshold)
-		{
-			// PRINTLOG_SH(TEXT("Left***"));
-			moveInput.X = -1.f;
-		}
-		if (mouseX > viewportSize.X - EdgeThreshold)
-		{
-			// PRINTLOG_SH(TEXT("Right***"));
-			moveInput.X = 1.f;
-		}
-		if (mouseY < EdgeThreshold)
-		{
-			// PRINTLOG_SH(TEXT("Top***"));
-			moveInput.Y = 1.f;
-		}
-		if (mouseY > viewportSize.Y - EdgeThreshold)
-		{
-			// PRINTLOG_SH(TEXT("Bottom***"));
-			moveInput.Y = -1.f;
-		}
-
-		if (moveInput.IsNearlyZero()) { return; }
-
-		FVector Forward = CameraActor->GetViewForwardXY();
-		FVector Right = CameraActor->GetViewRightXY();
-
-		TargetCameraLoc += (Forward * moveInput.Y + Right * moveInput.X) * EdgeScrollSpeed * DeltaTime;
+		MoveInput.X = -1.f;
 	}
+	if (mouseX > ViewportSize.X - EdgeThreshold)
+	{
+		MoveInput.X = 1.f;
+	}
+	if (mouseY < EdgeThreshold)
+	{
+		MoveInput.Y = 1.f;
+	}
+	if (mouseY > ViewportSize.Y - EdgeThreshold)
+	{
+		MoveInput.Y = -1.f;
+	}
+
+	if (MoveInput.IsNearlyZero()) { return; }
+
+	// Yaw=90° 기준: CameraActor GetViewForwardXY=(0,1,0), GetViewRightXY=(-1,0,0)
+	const FVector Forward( 0.f, 1.f, 0.f);
+	const FVector Right  (-1.f, 0.f, 0.f);
+
+	TargetCameraLoc += (Forward * MoveInput.Y + Right * MoveInput.X) * EdgeScrollSpeed * DeltaTime;
 }
 
 void ARiftPlayerController::SetupInputComponent()
@@ -330,13 +284,13 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_Move, ETriggerEvent::Started, this, &ARiftPlayerController::OnMove);
 	EIC->BindAction(IA_Exit, ETriggerEvent::Started, this, &ARiftPlayerController::OnExit);
 
-	EIC->BindAction(IA_SkillQ, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillQPressed);
+	EIC->BindAction(IA_SkillQ, ETriggerEvent::Started, this, &ARiftPlayerController::OnSkillQPressed);
 	EIC->BindAction(IA_SkillQ, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillQReleased);
-	EIC->BindAction(IA_SkillW, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillWPressed);
+	EIC->BindAction(IA_SkillW, ETriggerEvent::Started, this, &ARiftPlayerController::OnSkillWPressed);
 	EIC->BindAction(IA_SkillW, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillWReleased);
-	EIC->BindAction(IA_SkillE, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillEPressed);
+	EIC->BindAction(IA_SkillE, ETriggerEvent::Started, this, &ARiftPlayerController::OnSkillEPressed);
 	EIC->BindAction(IA_SkillE, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillEReleased);
-	EIC->BindAction(IA_SkillR, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillRPressed);
+	EIC->BindAction(IA_SkillR, ETriggerEvent::Started, this, &ARiftPlayerController::OnSkillRPressed);
 	EIC->BindAction(IA_SkillR, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillRReleased);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Started, this, &ARiftPlayerController::OnAPressed);
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Completed, this, &ARiftPlayerController::OnAReleased);
@@ -479,16 +433,16 @@ void ARiftPlayerController::TryBasicAttackAtCursor()
 	}
 }
 
-void ARiftPlayerController::OnSkillQPressed()  { ShowSkillIndicator(ESkillSlot::Q); }
+void ARiftPlayerController::OnSkillQPressed() { ShowSkillIndicator(ESkillSlot::Q); }
 void ARiftPlayerController::OnSkillQReleased() { FirePendingSkill(); }
 
-void ARiftPlayerController::OnSkillWPressed()  { ShowSkillIndicator(ESkillSlot::W); }
+void ARiftPlayerController::OnSkillWPressed() { ShowSkillIndicator(ESkillSlot::W); }
 void ARiftPlayerController::OnSkillWReleased() { FirePendingSkill(); }
 
-void ARiftPlayerController::OnSkillEPressed()  { ShowSkillIndicator(ESkillSlot::E); }
+void ARiftPlayerController::OnSkillEPressed() { ShowSkillIndicator(ESkillSlot::E); }
 void ARiftPlayerController::OnSkillEReleased() { FirePendingSkill(); }
 
-void ARiftPlayerController::OnSkillRPressed()  { ShowSkillIndicator(ESkillSlot::R); }
+void ARiftPlayerController::OnSkillRPressed() { ShowSkillIndicator(ESkillSlot::R); }
 void ARiftPlayerController::OnSkillRReleased() { FirePendingSkill(); }
 
 void ARiftPlayerController::ShowSkillIndicator(ESkillSlot Slot)
@@ -503,7 +457,8 @@ void ARiftPlayerController::ShowSkillIndicator(ESkillSlot Slot)
 
 	// E는 원형, Q/W는 선형
 	TSubclassOf<AActor> IndicatorClass = (Slot == ESkillSlot::E)
-		? CircleIndicatorClass : LineIndicatorClass;
+		                                     ? CircleIndicatorClass
+		                                     : LineIndicatorClass;
 
 	if (!IndicatorClass) { return; }
 
@@ -534,7 +489,7 @@ void ARiftPlayerController::UpdateIndicator()
 	if (!HitResult.bBlockingHit) { return; }
 
 	FVector CursorLoc = HitResult.ImpactPoint;
-	FVector ChampLoc  = OwnedChamp->GetActorLocation();
+	FVector ChampLoc = OwnedChamp->GetActorLocation();
 
 	FVector Dir = (CursorLoc - ChampLoc).GetSafeNormal2D();
 	if (Dir.IsNearlyZero()) { return; }
@@ -606,7 +561,6 @@ void ARiftPlayerController::Server_AssignSkillPoint_Implementation(ESkillSlot Sl
 	{
 		Client_OnSkillAssigned(Slot); // 본인 클라이언트에만 전송
 	}
-		
 }
 
 void ARiftPlayerController::Client_OnSkillAssigned_Implementation(ESkillSlot Slot)
@@ -617,7 +571,6 @@ void ARiftPlayerController::Client_OnSkillAssigned_Implementation(ESkillSlot Slo
 	{
 		OwnedChamp->SkillComp->ApplySkillPointClient(Slot);
 	}
-		
 }
 
 void ARiftPlayerController::Server_AddXP_Implementation()
@@ -638,7 +591,7 @@ void ARiftPlayerController::Server_AddXP_Implementation()
 	else
 	{
 		PRINTLOG_SH(TEXT("[Debug] XP +50 → %.0f / %.0f"), PS->GetXP(),
-			NewLevel < 18 ? 280.f : 0.f); 
+		            NewLevel < 18 ? 280.f : 0.f);
 	}
 }
 

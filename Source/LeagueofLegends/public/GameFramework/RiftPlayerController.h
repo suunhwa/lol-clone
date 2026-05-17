@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/LoLCameraActor.h"
+#include "GameFramework/RiftPlayerCameraManager.h"
 #include "Type/RiftTypes.h"
 #include "AStar/AStarGridManager.h"
 #include "Components/SkillComponent.h"
@@ -26,7 +26,6 @@ protected:
 	virtual void SeamlessTravelTo(APlayerController* NewPC) override;
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void AcknowledgePossession(APawn* P) override;
-	virtual void AutoManageActiveCameraTarget(AActor* SuggestedTarget) override;
 
 public:
 	// Called every frame
@@ -68,11 +67,12 @@ public:
 	
 public:
 	// ---------------------------------- Camera --------------------------------
-	// Edge scrolling
 	void EdgeScrollWithMouse(float DeltaTime);
 
-	UPROPERTY()
-	TObjectPtr<ALoLCameraActor> CameraActor;
+	ARiftPlayerCameraManager* GetRiftCameraManager() const
+	{
+		return Cast<ARiftPlayerCameraManager>(PlayerCameraManager);
+	}
 
 	UPROPERTY()
 	TObjectPtr<ALoLChampion> OwnedChamp;
@@ -96,7 +96,6 @@ public:
 	FVector2D CameraBoundsMax = FVector2D(6000.f, 6000.f);;
 
 	FVector TargetCameraLoc = FVector::ZeroVector;
-
 	FTimerHandle CameraInitTimer;
 
 protected:
@@ -140,8 +139,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
 	TObjectPtr<UInputAction> IA_LevelUp;
 
-	UPROPERTY(EditDefaultsOnly, Category="Camera")
-	TSubclassOf<ALoLCameraActor> CameraActorClass;
 
 	virtual void SetupInputComponent() override;
 
