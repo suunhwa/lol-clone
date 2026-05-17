@@ -320,11 +320,6 @@ void ARiftPlayerController::OnMove()
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
 
-	PRINTLOG_SH(TEXT("[OnMove] bBlockingHit=%d ImpactPoint=%s HitActor=%s"),
-		HitResult.bBlockingHit,
-		*HitResult.ImpactPoint.ToString(),
-		*GetNameSafe(HitResult.GetActor()));
-
 	if (!HitResult.bBlockingHit) { return; }
 
 	// 커서가 적 위에 있으면 이동 대신 공격
@@ -336,6 +331,11 @@ void ARiftPlayerController::OnMove()
 		Server_RequestBasicAttack(HitActor);
 		return;
 	}
+
+	// 클라이언트에서도 즉시 호출해서 CMC prediction이 서버와 일치하게 함
+	// (서버만 호출하면 클라이언트 prediction=0과 충돌해서 이동 안 됨)
+	OwnedChamp->StopAttackLoop();
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
 
 	Server_MoveToLocation(HitResult.ImpactPoint);
 }

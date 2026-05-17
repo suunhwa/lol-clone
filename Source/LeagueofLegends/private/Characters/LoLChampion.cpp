@@ -135,6 +135,9 @@ void ALoLChampion::PawnClientRestart()
 	{
 		PRINTLOG_SH(TEXT("[PawnClientRestart] FOWManager 없음 — FOW 등록 실패"));
 	}
+
+	// Possession 완료 후 visibility 재계산 (BeginPlay 때 GetPawn()=null로 숨김 처리됐으므로)
+	OnRep_FOWVisibility();
 }
 
 // ChampionData 세팅 (런타임, 캐릭터 선택 후) 
