@@ -28,6 +28,13 @@ ALoLMinion::ALoLMinion()
         // 캡슐끼리 겹쳤을 때 강하게 튕겨내지 않고 부드럽게 밀어내게 함
         MoveComp->MaxDepenetrationWithPawn = 5.f; 
         
+        // --- 튕김 방지 및 밀치기 힘 원천 차단 ---
+        // 1. 미니언이 다른 캐릭터(챔피언)를 밀어내는 물리적인 힘을 아예 0으로 만듭니다.
+        MoveComp->PushForceFactor = 0.0f;
+    
+        // 2. 다른 캐릭터와 겹쳤을 때 가해지는 충격량 파괴력을 0으로 만듭니다.
+        MoveComp->InitialPushForceFactor = 0.0f;
+        
         // 미니언끼리 길막을 덜 하도록 설정
         MoveComp->bUseRVOAvoidance = true; // RVO 회피 활성화 (추천)
         MoveComp->AvoidanceConsiderationRadius = 80.f;
@@ -91,6 +98,20 @@ void ALoLMinion::BeginPlay()
                 // 데이터 기반 수치 로드 (데이터 테이블 최선 순위)
                 CachedAttackRange = MinionStat->GetAttackRange();
                 CachedAttackSpeed = MinionStat->GetAttackSpeed();
+                
+                // --- [여기서 이동속도 반절로 깎기] ---
+                if (auto* MoveComp = GetCharacterMovement())
+                {
+                    // 1. 만약 스탯 컴포넌트에 GetMoveSpeed() 같은 함수를 만들어 두셨다면 그걸 활용:
+                    // float HalfSpeed = MinionStat->GetMoveSpeed() * 0.5f;
+        
+                    // 2. 만약 에디터 BP나 데이터 테이블에 세팅된 기본 최대 속도를 기반으로 깎고 싶다면:
+                    float HalfSpeed = MoveComp->MaxWalkSpeed * 0.5f;
+        
+                    MoveComp->MaxWalkSpeed = HalfSpeed;
+
+                    PRINTLOG_HJ(TEXT("[%s] 이동속도 조정 완료: %.1f"), *GetName(), HalfSpeed);
+                }
                 
                 // 3. [개선] MinionID로 타입 이름 결정 (3001:전사, 3002:법사, 3003:공성, 3004:슈퍼)
                 FString MinionTypeName;
@@ -235,13 +256,16 @@ void ALoLMinion::Tick(float DeltaTime)
         {
             // 공격 범위 밖이면 A* 추적
             PathUpdateTimer += DeltaTime;
-            if (PathUpdateTimer >= PathUpdateInterval)
+            
+            // [길막 감지 최적화] 이동 속도가 너무 느리면(길막 당했다면) 즉시 우회 경로 재탐색
+            float CurrentSpeed = GetVelocity().Size2D();
+            bool bIsStuck = (CurrentSpeed < 10.0f && CurrentPath.Num() > 0);
+            
+            // [수정 완료] || bIsStuck 조건을 확실하게 결합하여 0.5초 대기 뜸들임 방지
+            if (PathUpdateTimer >= PathUpdateInterval || bIsStuck)
             {
                 RequestNewPath(CurrentTarget->GetActorLocation());
                 PathUpdateTimer = 0.f;
-                
-                // [로그 추가] 경로 생성 확인
-                // PRINTLOG_HJ(LogTemp, Log, TEXT("[%s] 새 경로 요청. 남은 웨이포인트: %d"), *GetName(), CurrentPath.Num());
             }
             MoveAlongPath(DeltaTime);
         }
@@ -258,12 +282,29 @@ void ALoLMinion::Tick(float DeltaTime)
             if (DistToWP < 150.f) 
             {
                 CurrentLaneIndex++; // 다음 점으로!
+                
+                // [수정 완료] 다음 타겟 포인트가 있다면, 0.5초 안 기다리고 그 프레임에 "즉시" 새 경로 요청하여 멈춤 현상 차단
+                if (LanePath.IsValidIndex(CurrentLaneIndex))
+                {
+                    RequestNewPath(LanePath[CurrentLaneIndex]);
+                    PathUpdateTimer = 0.f;
+                }
+                else
+                {
+                    CurrentPath.Empty();
+                }
             }
             else
             {
                 // 2. 다음 점을 향해 이동
                 PathUpdateTimer += DeltaTime;
-                if (PathUpdateTimer >= PathUpdateInterval)
+                
+                // 라인 밀고 갈 때도 길막 당해 멈췄으면 즉시 우회 경로 재탐색
+                float CurrentSpeed = GetVelocity().Size2D();
+                bool bIsStuck = (CurrentSpeed < 10.0f && CurrentPath.Num() > 0);
+                
+                // [수정 완료] 공격로 전진 시에도 길막 예외 처리 완벽 결합
+                if (PathUpdateTimer >= PathUpdateInterval || bIsStuck)
                 {
                     RequestNewPath(TargetPoint);
                     PathUpdateTimer = 0.f;
@@ -291,22 +332,49 @@ void ALoLMinion::MoveAlongPath(float DeltaTime)
         return;
     }
     
-    FVector TargetPoint = CurrentPath[CurrentPathIndex];
-    FVector Direction = (TargetPoint - GetActorLocation()).GetSafeNormal2D();
-    // 부모의 CharacterMovementComponent를 이용한 이동
-    AddMovementInput(Direction, 1.0f);
-
-    // 방향 보기
-    if (!Direction.IsNearlyZero())
+    // 이미 지나쳐버린 과거의 웨이포인트는 과감히 스킵하는 방어 코드 추가
+    while (CurrentPathIndex < CurrentPath.Num())
     {
-        SetActorRotation(Direction.Rotation());
+        float DistToNode = FVector::Dist2D(GetActorLocation(), CurrentPath[CurrentPathIndex]);
+        // [수정 완료] 도달 판정 범위를 50.f -> 120.f로 상향 조정 (비벼져서 못 밟는 일 방지)
+        if (DistToNode < 120.f)
+        {
+            CurrentPathIndex++;
+        }
+        else
+        {
+            break;
+        }
     }
-
-    // 웨이포인트 도달 체크 [그리드 크기 고려하여 약 50cm 내외]
-    if (FVector::Dist2D(GetActorLocation(), TargetPoint) < 50.f)
+    
+    // [추가 완료] 모든 웨이포인트를 다 소비했다면 즉시 경로 배열을 비워주어 다음 탐색 동기화
+    if (CurrentPathIndex >= CurrentPath.Num())
     {
-        CurrentPathIndex++;
+        CurrentPath.Empty();
+        CurrentPathIndex = 0;
+        return;
     }
+    
+    // 최종 유효성 검사 후 이동 input 추가
+    if (CurrentPath.IsValidIndex(CurrentPathIndex))
+    {
+        FVector TargetPoint = CurrentPath[CurrentPathIndex];
+        FVector Direction = (TargetPoint - GetActorLocation()).GetSafeNormal2D();
+        // 부모의 CharacterMovementComponent를 이용한 이동
+        AddMovementInput(Direction, 1.0f);
+
+        // 방향 보기
+        if (!Direction.IsNearlyZero())
+        {
+            SetActorRotation(Direction.Rotation());
+        }
+        /*// 웨이포인트 도달 체크 [그리드 크기 고려하여 약 50cm 내외]
+        if (FVector::Dist2D(GetActorLocation(), TargetPoint) < 50.f)
+        {
+            CurrentPathIndex++;
+        }*/
+    }
+    
 }
 
 void ALoLMinion::UpdateAggro(float DeltaTime)
