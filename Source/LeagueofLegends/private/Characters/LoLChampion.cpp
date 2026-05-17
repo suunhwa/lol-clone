@@ -95,7 +95,6 @@ void ALoLChampion::OnRep_ChampionData()
 	}
 }
 
-// 클라이언트에서 possession 완료 시점 — ChampionData가 이미 복제돼 있으면 여기서 비주얼 재적용
 void ALoLChampion::PawnClientRestart()
 {
 	Super::PawnClientRestart();
@@ -106,11 +105,8 @@ void ALoLChampion::PawnClientRestart()
 		if (Sub)
 		{
 			Sub->ApplyVisuals(this, ChampionData);
-			PRINTLOG_SH(TEXT("[PawnClientRestart] ChampionData 이미 존재 → 비주얼 재적용: %s"),
-				*ChampionData->ChampionID.ToString());
 		}
 
-		// HUD 스킬 아이콘도 갱신 (InitHUD 이후이므로 안전)
 		if (APlayerController* PC = Cast<APlayerController>(GetController()))
 		{
 			if (ARiftHUD* HUD = Cast<ARiftHUD>(PC->GetHUD()))
@@ -119,7 +115,6 @@ void ALoLChampion::PawnClientRestart()
 			}
 		}
 	}
-
 }
 
 // ChampionData 세팅 (런타임, 캐릭터 선택 후) 

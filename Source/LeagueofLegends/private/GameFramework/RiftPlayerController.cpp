@@ -19,6 +19,7 @@
 #include "GameFramework/LoLGameInstance.h"
 #include "GameFramework/RiftGameState.h"
 #include "Interfaces/Damageable.h"
+#include "Interfaces/Targetable.h"
 #include "Kismet/GameplayStatics.h"
 
 ARiftPlayerController::ARiftPlayerController()
@@ -131,6 +132,36 @@ void ARiftPlayerController::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (!IsLocalController()) { return; }
+
+	// 커서 아래 적 유닛 감지 → 공격 커서로 전환
+	{
+		FHitResult CursorHit;
+		GetHitResultUnderCursor(ECC_Visibility, false, CursorHit);
+
+		bool bOverEnemy = false;
+		if (CursorHit.bBlockingHit && OwnedChamp)
+		{
+			AActor* HitActor = CursorHit.GetActor();
+			if (HitActor && HitActor != OwnedChamp &&
+				HitActor->GetClass()->ImplementsInterface(UDamageable::StaticClass()) &&
+				!IDamageable::Execute_IsDead(HitActor))
+			{
+				// 챔피언에게 공격 커서 표시
+				if (HitActor->GetClass()->ImplementsInterface(UTargetable::StaticClass()))
+				{
+					ETeam HitTeam    = ITargetable::Execute_GetTeam(HitActor);
+					ETeam MyTeam     = OwnedChamp->GetTeam_Implementation();
+					EUnitType HitType = ITargetable::Execute_GetUnitType(HitActor);
+					bOverEnemy = (HitTeam != MyTeam && HitTeam != ETeam::None
+						&& HitType == EUnitType::Champion);
+					// 타워/미니언도 포함하려면 아래 주석 해제
+					// bOverEnemy = (HitTeam != MyTeam && HitTeam != ETeam::None);
+				}
+			}
+		}
+
+		CurrentMouseCursor = bOverEnemy ? EMouseCursor::Hand : EMouseCursor::Default;
+	}
 
 	ARiftPlayerCameraManager* Cam = GetRiftCameraManager();
 	if (!Cam) { return; }
@@ -325,12 +356,45 @@ void ARiftPlayerController::OnMove()
 	if (!HitResult.bBlockingHit) { return; }
 
 	// 커서가 적 위에 있으면 이동 대신 공격
+	// 1차: 커서 히트 결과에서 직접 적 확인
+	AActor* AttackTarget = nullptr;
 	AActor* HitActor = HitResult.GetActor();
 	if (HitActor && HitActor != OwnedChamp &&
 		HitActor->GetClass()->ImplementsInterface(UDamageable::StaticClass()) &&
 		!IDamageable::Execute_IsDead(HitActor))
 	{
-		Server_RequestBasicAttack(HitActor);
+		AttackTarget = HitActor;
+	}
+
+	// 2차: 커서 히트 위치 주변에서 가장 가까운 적 탐색 (미니언/타워 Visibility 미차단 보완)
+	if (!AttackTarget && HitResult.bBlockingHit)
+	{
+		const FVector CursorLoc = HitResult.ImpactPoint;
+		constexpr float SearchRadius = 150.f;
+		float NearestDist = SearchRadius;
+
+		TArray<AActor*> AllDamageables;
+		UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UDamageable::StaticClass(), AllDamageables);
+
+		for (AActor* Actor : AllDamageables)
+		{
+			if (Actor == OwnedChamp || IDamageable::Execute_IsDead(Actor)) { continue; }
+			if (!Actor->GetClass()->ImplementsInterface(UTargetable::StaticClass())) { continue; }
+			ETeam ActorTeam = ITargetable::Execute_GetTeam(Actor);
+			if (ActorTeam == OwnedChamp->GetTeam_Implementation() || ActorTeam == ETeam::None) { continue; }
+
+			const float Dist = FVector::Dist2D(Actor->GetActorLocation(), CursorLoc);
+			if (Dist < NearestDist)
+			{
+				NearestDist = Dist;
+				AttackTarget = Actor;
+			}
+		}
+	}
+
+	if (AttackTarget)
+	{
+		Server_RequestBasicAttack(AttackTarget);
 		return;
 	}
 
