@@ -119,6 +119,9 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 		return;
 	}
 
+	// UE의 자동 ViewTarget 관리를 끔 — 폰 소유 시 ViewTarget이 폰으로 덮어씌워지는 것을 방지
+	bAutoManageActiveCameraTarget = false;
+
 	TargetCameraLoc = CameraStartLoc;
 	SetViewTarget(CameraActor);
 
