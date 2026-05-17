@@ -97,6 +97,17 @@ void ALoLCharacterBase::PossessedBy(AController* NewController)
 		{
 			TagComp->SetTeam(PS->GetTeam());
 		}
+
+		// BeginPlay에서 팀 미설정 상태로 등록된 것 보정
+		// (BeginPlay → RegisterSightProvider → PossessedBy 순서로 실행되므로 재등록 필요)
+		if (auto* GS = GetWorld()->GetGameState<ARiftGameState>())
+		{
+			if (AFOWManager* FOWManager = GS->GetFOWManager())
+			{
+				FOWManager->UnregisterSightProvider(this);
+				FOWManager->RegisterSightProvider(this);
+			}
+		}
 	}
 }
 
@@ -281,8 +292,16 @@ void ALoLCharacterBase::OnRep_FOWVisibility()
 		return;
 	}
     
+	// 같은 팀은 항상 보임
+	if (TagComp && TagComp->GetSightTag() == ViewerTeam)
+	{
+		ApplyVisibility(true);
+		return;
+	}
+	
+	
 	// 같은 팀은 항상 보임 (SightTag 우선, 미설정 시 Team으로 폴백)
-	if (TagComp)
+	/*if (TagComp)
 	{
 		ERiftSightTag MyTag = TagComp->GetSightTag();
 		if (MyTag == ERiftSightTag::None)
@@ -297,7 +316,7 @@ void ALoLCharacterBase::OnRep_FOWVisibility()
 			ApplyVisibility(true);
 			return;
 		}
-	}
+	}*/
     
 	// 적팀 비트 체크
 	const uint8 ViewerBit = (ViewerTeam == ERiftSightTag::Red) ? 0x01 : 0x02;

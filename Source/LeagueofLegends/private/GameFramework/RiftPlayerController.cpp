@@ -437,10 +437,7 @@ void ARiftPlayerController::OnMove()
 
 	OwnedChamp->StopAttackLoop();
 
-	// 클라이언트 로컬 예측 이동 (Allow Client Side Navigation 켜져 있어야 함)
-	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
-
-	// 서버 권위 이동
+	// 서버 권위 이동만 사용 (로컬 예측 제거 — 두 경로 충돌로 인한 찔끔 이동 방지)
 	Server_MoveToLocation(HitResult.ImpactPoint);
 }
 
