@@ -92,6 +92,9 @@ private:
 	void IncrementTimer();
 	
 private:
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_FOWManager)
 	TObjectPtr<AFOWManager> FOWManager;
+	
+	UFUNCTION()
+	void OnRep_FOWManager();
 };

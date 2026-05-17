@@ -27,15 +27,16 @@ void AFOWManager::PostInitializeComponents()
 	{
 		GS->SetFOWManager(this);
 	}
+	else
+	{
+		PRINTLOG_TK(TEXT("FOWManager: GameState is not ARiftGameState!"));
+	}
 }
 
 // Called when the game starts or when spawned
 void AFOWManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	UE_LOG(LogTemp, Warning, TEXT("[FOWManager] LocalClientTeam=%d (0=None, 1=Blue, 2=Red)"),
-		(int32)LocalClientTeam);
 
 	// TODO: LocalPlayer의 팀을 가져와 세팅
 	if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
@@ -49,6 +50,9 @@ void AFOWManager::BeginPlay()
 			}
 		}
 	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[FOWManager] LocalClientTeam=%d (0=None, 1=Blue, 2=Red)"),
+		(int32)LocalClientTeam);
 	
 	if (FOWVolume)
 	{

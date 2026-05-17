@@ -1,4 +1,8 @@
 #include "GameFramework/RiftGameState.h"
+
+#include "EngineUtils.h"
+#include "Characters/LoLCharacterBase.h"
+#include "FOW/FOWManager.h"
 #include "Net/UnrealNetwork.h"
 
 ARiftGameState::ARiftGameState()
@@ -19,6 +23,7 @@ void ARiftGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(ARiftGameState, RedGold);
 	DOREPLIFETIME(ARiftGameState, bBlueNexusAlive);
 	DOREPLIFETIME(ARiftGameState, bRedNexusAlive);
+	DOREPLIFETIME(ARiftGameState, FOWManager);
 }
 
 void ARiftGameState::SetPhase(EGamePhase InPhase)
@@ -95,4 +100,13 @@ void ARiftGameState::HandlePhaseChanged()
 void ARiftGameState::IncrementTimer()
 {
 	ElapsedSeconds++;
+}
+
+void ARiftGameState::OnRep_FOWManager()
+{
+	// FOWManager가 복제된 시점에 월드의 모든 캐릭터에게 등록 기회 부여
+	for (TActorIterator<ALoLCharacterBase> It(GetWorld()); It; ++It)
+	{
+		FOWManager->RegisterSightProvider(*It);
+	}
 }
