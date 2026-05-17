@@ -71,20 +71,15 @@ void ALoLCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	// [FacingRotation 제거] SetReplicateMovement(true)가 회전 복제를 이미 처리하므로 중복.
 	// SetActorRotation() sweep이 CMC와 충돌하여 상대 캐릭터 공중 부유 유발.
-	DOREPLIFETIME(ALoLCharacterBase, FacingRotation);
+	// FacingRotation 제거 — SetReplicateMovement(true)가 회전 복제를 처리
+	// SetActorRotation + CMC 충돌로 부유/회전 이상 유발
 	DOREPLIFETIME(ALoLCharacterBase, FOWVisibilityFlags);
 }
 
-// [FacingRotation 제거] SetReplicateMovement(true)가 회전 복제를 이미 처리하므로 중복.
-// SetActorRotation() sweep이 CMC와 충돌하여 상대 캐릭터 공중 부유 유발.
 void ALoLCharacterBase::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
 	Super::FaceRotation(NewControlRotation, DeltaTime);
-
-	if (HasAuthority())
-	{
-		FacingRotation = GetActorRotation();
-	}
+	// FacingRotation 업데이트 제거 — SetReplicateMovement(true)로 회전 복제됨
 }
 
 void ALoLCharacterBase::PossessedBy(AController* NewController)

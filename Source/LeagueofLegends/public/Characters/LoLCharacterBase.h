@@ -123,14 +123,8 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontageSection(UAnimMontage* Montage, FName SectionName);
 
-private:
-	// [FacingRotation 제거] SetReplicateMovement(true)가 회전 복제를 이미 처리하므로 중복.
-	// SetActorRotation() sweep이 CMC와 충돌하여 상대 캐릭터 공중 부유 유발.
-	UPROPERTY(ReplicatedUsing = OnRep_FacingRotation)
-	FRotator FacingRotation;
-
-	UFUNCTION()
-	void OnRep_FacingRotation() { SetActorRotation(FacingRotation); }
+	// FacingRotation 완전 제거 — SetReplicateMovement(true)가 회전 복제를 처리
+	// SetActorRotation + CMC 충돌로 부유/회전 이상 발생하므로 사용 안 함
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator);
