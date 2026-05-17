@@ -36,7 +36,7 @@ void UTeamSlotWidget::SetSlotData(const FPlayerSlotViewData& Data)
 
 	if (txt_champ)
 	{
-		txt_champ->SetVisibility(bChampSelected && !Data.bIsReady
+		txt_champ->SetVisibility(bChampSelected
 			                         ? ESlateVisibility::Visible
 			                         : ESlateVisibility::Collapsed);
 
