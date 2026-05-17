@@ -23,6 +23,7 @@
 #include "GameFramework/RiftHUD.h"
 #include "GameFramework/RiftGameMode.h"
 #include "GameFramework/RiftPlayerState.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 ALoLChampion::ALoLChampion()

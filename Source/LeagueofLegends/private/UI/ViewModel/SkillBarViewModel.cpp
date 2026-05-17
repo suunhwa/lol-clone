@@ -3,6 +3,7 @@
 #include "Characters/LoLChampion.h"
 #include "Characters/Data/ChampionData.h"
 #include "Components/CooldownComponent.h"
+#include "Components/InventoryComponent.h"
 #include "Components/SkillComponent.h"
 #include "Components/StatComponent.h"
 
@@ -13,7 +14,8 @@ void USkillBarViewModel::Setup(ALoLChampion* InChampion)
 
 	Champion->StatComp->OnHPChanged.AddUObject(this, &USkillBarViewModel::HandleHPChanged);
 	Champion->StatComp->OnManaChanged.AddUObject(this, &USkillBarViewModel::HandleManaChanged);
-
+	Champion->GetInventoryComp()->OnInventorySlotChanged.AddUObject(this, &USkillBarViewModel::HandleInventoryChanged);
+	
 	HandleHPChanged(Champion->StatComp->GetCurrentHP(), Champion->StatComp->GetMaxHP());
 	HandleManaChanged(Champion->StatComp->GetCurrentMana(), Champion->StatComp->GetMaxMana());
 }
@@ -46,4 +48,19 @@ void USkillBarViewModel::HandleHPChanged(float Current, float Max)
 void USkillBarViewModel::HandleManaChanged(float Current, float Max)
 {
 	OnManaChanged.Broadcast(Current, Max);
+}
+
+void USkillBarViewModel::HandleInventoryChanged(int32 /*SlotIndex*/, UItemInstance* /*Item*/)
+{
+	if (!Champion || !Champion->StatComp)
+	{
+		return;
+	}
+
+	// 모디파이어 반영 후 캐시 갱신 → UI 브로드캐스트
+	Champion->StatComp->RecalcMaxHP();
+	Champion->StatComp->RecalcMaxMana();
+
+	OnHPChanged.Broadcast(Champion->StatComp->GetCurrentHP(), Champion->StatComp->GetMaxHP());
+	OnManaChanged.Broadcast(Champion->StatComp->GetCurrentMana(), Champion->StatComp->GetMaxMana());
 }
