@@ -55,7 +55,7 @@ void USessionViewModel::RequestFindOrCreate(const FString& Nickname, int32 MaxPl
 	
 	PRINTLOG_SH(TEXT("[SessionVM] FindOrCreateSession 호출"));
 	
-	SessionSubsystem->FindOrCreateSession(GameInstance->Nickname, MaxPlayers);
+	// SessionSubsystem->FindOrCreateSession(GameInstance->Nickname, MaxPlayers);
 
 	OnSessionStatusChanged.Broadcast(true, TEXT("Searching..."));
 }

@@ -84,8 +84,8 @@ void ULoLSessionSubsystem::CreateSession(FString RoomName, int32 MaxPlayer)
 	sessionSettings.bUseLobbiesIfAvailable = true;
 
 	// 5. 게임 진행 중 참여 허가할지 여부
-	sessionSettings.bAllowJoinViaPresence = false;
-	sessionSettings.bAllowJoinInProgress = false;
+	sessionSettings.bAllowJoinViaPresence = true;
+	sessionSettings.bAllowJoinInProgress = true;
 
 	// 6. session에 참여할 수 있는 공개 (public) 연결의 최대 허용 수
 	sessionSettings.NumPublicConnections = MaxPlayer;
@@ -148,16 +148,20 @@ void ULoLSessionSubsystem::FindOtherSessions()
 
 	if (bIsLAN)
 	{
-		// PIE / LAN(NULL subsystem): PRESENCESEARCH — LAN 브로드캐스트 방식
 		SessionSearch->QuerySettings.Set(FName(TEXT("PRESENCESEARCH")), true, EOnlineComparisonOp::Equals);
 		PRINTLOG_SH(TEXT("FindOtherSessions: LAN 모드"));
 	}
 	else
 	{
-		// Steam standalone: Lobby 검색
 		SessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
 		PRINTLOG_SH(TEXT("FindOtherSessions: Steam Lobby 모드"));
 	}
+
+	// 이 프로젝트 세션만 필터링
+	SessionSearch->QuerySettings.Set(
+		FName(TEXT("GAME_ID")),
+		FString(TEXT("P1_LOL_V0.1")),
+		EOnlineComparisonOp::Equals);
 
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
 }
@@ -177,11 +181,10 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 	            bWasSuccessful,
 	            Results.Num());
 
-	// 실패 + 결과 0개 → 진짜 실패
-	if (!bWasSuccessful && Results.Num() == 0)
+	if (!bWasSuccessful)
 	{
 		bIsOperationPending = false;
-		PRINTLOG_SH(TEXT("*** Session search failed and no results"));
+		PRINTLOG_SH(TEXT("*** Session search failed"));
 		OnFindSessionsDone.Broadcast(false);
 		return;
 	}
@@ -378,8 +381,8 @@ void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWas
 
 	// pending 없음 → 플래그 전체 리셋 후 로비로
 	bIsOperationPending = false;
-	bFindOrCreateMode = false;
-	bFindOrCreateFallback = false;
+	/*bFindOrCreateMode = false;
+	bFindOrCreateFallback = false;*/
 
 	if (auto* PC = GetWorld()->GetFirstPlayerController())
 	{
