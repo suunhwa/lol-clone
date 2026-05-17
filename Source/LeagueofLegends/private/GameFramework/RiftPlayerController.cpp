@@ -148,29 +148,7 @@ void ARiftPlayerController::Tick(float DeltaTime)
 		}
 	}
 
-	// 클릭 이동: Nav Mesh 경로 waypoint를 AddMovementInput으로 순서대로 추종
-	if (bHasMoveTarget && OwnedChamp && MovePath.IsValidIndex(MovePathIndex))
-	{
-		const FVector CurrentLoc = OwnedChamp->GetActorLocation();
-		const FVector WayPoint   = MovePath[MovePathIndex];
-		const FVector ToWP       = (WayPoint - CurrentLoc);
-		const float   Dist2D     = FVector::Dist2D(CurrentLoc, WayPoint);
-
-		if (Dist2D < MoveAcceptanceRadius)
-		{
-			MovePathIndex++;
-			if (MovePathIndex >= MovePath.Num())
-			{
-				bHasMoveTarget = false;
-			}
-		}
-		else
-		{
-			OwnedChamp->AddMovementInput(ToWP.GetSafeNormal2D());
-		}
-	}
-
-	UpdateIndicator();
+UpdateIndicator();
 
 	if (bCameraLocked && OwnedChamp)
 	{
@@ -356,24 +334,12 @@ void ARiftPlayerController::OnMove()
 		return;
 	}
 
-	if (OwnedChamp) OwnedChamp->StopAttackLoop();
+	OwnedChamp->StopAttackLoop();
 
-	// Nav Mesh로 경로 계산 후 waypoint 배열 저장
-	MoveTargetLocation = HitResult.ImpactPoint;
-	MovePath.Empty();
-	MovePathIndex = 0;
-	bHasMoveTarget = false;
+	// 클라이언트 로컬 예측 이동 (Allow Client Side Navigation 켜져 있어야 함)
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
 
-	UNavigationPath* NavPath = UNavigationSystemV1::FindPathToLocationSynchronously(
-		this, OwnedChamp->GetActorLocation(), HitResult.ImpactPoint, OwnedChamp);
-
-	if (NavPath && NavPath->PathPoints.Num() > 1)
-	{
-		MovePath = NavPath->PathPoints;
-		MovePathIndex = 1; // 첫 점은 현재 위치이므로 다음 점부터
-		bHasMoveTarget = true;
-	}
-
+	// 서버 권위 이동
 	Server_MoveToLocation(HitResult.ImpactPoint);
 }
 
@@ -544,16 +510,7 @@ void ARiftPlayerController::FirePendingSkill()
 {
 	if (PendingSkillSlot < 0) { return; }
 
-	// 랭크 0이면 발사 차단
-	if (OwnedChamp && OwnedChamp->SkillComp)
-	{
-		ESkillSlot Slot = static_cast<ESkillSlot>(PendingSkillSlot);
-		if (OwnedChamp->SkillComp->GetRank(Slot) == 0)
-		{
-			HideSkillIndicator();
-			return;
-		}
-	}
+	// 클라이언트는 Ranks가 복제 안 되므로 랭크 체크 스킵 — 서버가 RequestActivateSkill에서 검증
 
 	ESkillSlot Slot = static_cast<ESkillSlot>(PendingSkillSlot);
 	HideSkillIndicator();
@@ -589,24 +546,7 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(AActor* Tar
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 {
 	if (OwnedChamp) OwnedChamp->StopAttackLoop();
-
-	MoveTargetLocation = Loc;
-	MovePath.Empty();
-	MovePathIndex = 0;
-	bHasMoveTarget = false;
-
-	if (OwnedChamp)
-	{
-		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToLocationSynchronously(
-			this, OwnedChamp->GetActorLocation(), Loc, OwnedChamp);
-
-		if (NavPath && NavPath->PathPoints.Num() > 1)
-		{
-			MovePath = NavPath->PathPoints;
-			MovePathIndex = 1;
-			bHasMoveTarget = true;
-		}
-	}
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Loc);
 }
 
 void ARiftPlayerController::Server_AssignSkillPoint_Implementation(ESkillSlot Slot)
