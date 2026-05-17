@@ -10,6 +10,7 @@
 #include "Interfaces/Targetable.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Type/RiftTypes.h"
 
 AChampionSkillProjectile::AChampionSkillProjectile()
 {
@@ -103,6 +104,17 @@ void AChampionSkillProjectile::ApplyHit(AActor* Target)
 	ALoLCharacterBase* Caster = Cast<ALoLCharacterBase>(GetOwner());
 	if (!Caster || !Caster->CombatComp) { return; }
 
+	// 구조물(타워/억제기/넥서스) 피해 차단 플래그
+	if (!bCanDamageStructures && Target->GetClass()->ImplementsInterface(UTargetable::StaticClass()))
+	{
+		EUnitType Type = ITargetable::Execute_GetUnitType(Target);
+		if (Type == EUnitType::Tower || Type == EUnitType::Inhibitor || Type == EUnitType::Nexus)
+		{
+			OnHitDelegate.ExecuteIfBound(Target);
+			return;
+		}
+	}
+
 	// StatComponent 있는 타겟(챔피언, 미니언)은 CombatComp 경유
 	// 없는 타겟(포탑 등)은 IDamageable 인터페이스로 직접 전달
 	if (Target->FindComponentByClass<UStatComponent>())
@@ -113,6 +125,8 @@ void AChampionSkillProjectile::ApplyHit(AActor* Target)
 	{
 		IDamageable::Execute_ReceiveDamage(Target, DamageCtx.RawDamage, DamageCtx.DamageType, Caster);
 	}
+
+	OnHitDelegate.ExecuteIfBound(Target);
 
 	if (bCooldownOnHit && Caster->CooldownComp)
 	{

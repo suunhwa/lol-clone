@@ -10,6 +10,9 @@
 class USphereComponent;
 class UProjectileMovementComponent;
 
+// 발사체 피격 시 추가 처리를 위한 델리게이트 (W 고리 적용, 평타 마크 소비 등)
+DECLARE_DELEGATE_OneParam(FOnProjHit, AActor*)
+
 UCLASS(Blueprintable)
 class LEAGUEOFLEGENDS_API AChampionSkillProjectile : public AActor
 {
@@ -26,6 +29,12 @@ public:
 	// Debug trail 폭 (R=160, Q/E/W=0)
 	UPROPERTY()
 	float DebugTrailHalfWidth = 0.f;
+
+	// true이면 구조물(타워/억제기/넥서스)에 피해를 주지 않음
+	bool bCanDamageStructures = true;
+
+	// 피격 시 추가 콜백 (W 고리 적용, 평타 마크 소비 등). ApplyHit 후 호출됨
+	FOnProjHit OnHitDelegate;
 
 private:
 	FVector PrevLocation = FVector::ZeroVector;

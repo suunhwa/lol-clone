@@ -23,6 +23,8 @@ protected:
 public:
 	virtual void Execute(ESkillSlot Slot, FVector TargetLoc) override;
 
+	virtual void OnBasicAttackFired(AChampionSkillProjectile* Proj, AActor* Target) override;
+
 private:
 	void ExecuteQ(FVector TargetLoc);
 	void ExecuteW(FVector TargetLoc);
@@ -33,6 +35,16 @@ private:
 	class UChampionDataSubsystem* GetDataSub() const;
 	FName GetChampionID() const;
 	int32 GetRank(ESkillSlot Slot) const;
+
+	// ── W 고리 (Essence Flux Mark) ──────────────────
+	void SetWMark(AActor* Target, float BonusDamage);
+	void ClearWMark();
+	void OnWProjectileHit(AActor* Target);    // W 발사체 피격 → 마크 적용
+	void OnWMarkConsumed(AActor* Target);     // 평타/E 미사일이 마크 소비 → 보너스 딜
+
+	TWeakObjectPtr<AActor> WMarkTarget;
+	float WMarkBonusDamage = 0.f;
+	FTimerHandle WMarkExpireTimer;
 	
 	// ── VFX ──────────────────────────────────────
 	// Q: 발사 시 머즐 이펙트
