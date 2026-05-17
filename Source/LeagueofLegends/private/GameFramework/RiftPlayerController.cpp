@@ -437,7 +437,10 @@ void ARiftPlayerController::OnMove()
 
 	OwnedChamp->StopAttackLoop();
 
-	// 서버 권위 이동만 사용 (로컬 예측 제거 — 두 경로 충돌로 인한 찔끔 이동 방지)
+	// 로컬 예측 이동 — velocity가 생겨야 애니메이션(Walk/Idle) 전환이 됨
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
+
+	// 서버 권위 이동
 	Server_MoveToLocation(HitResult.ImpactPoint);
 }
 
