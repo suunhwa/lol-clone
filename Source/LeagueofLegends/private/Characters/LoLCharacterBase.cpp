@@ -460,9 +460,16 @@ void ALoLCharacterBase::OnRep_PlayerState()
 	RefreshHUDDisplay();
 }
 
-void ALoLCharacterBase::Client_CreateFloatingText_Implementation(int32 Amount, bool bIsGold)
+void ALoLCharacterBase::Client_CreateFloatingText_Implementation(int32 Amount, bool bIsGold, FVector SpawnLocation)
 {
     if (!FloatingTextWidgetComp) return;
+	
+	// 부모 캐릭터의 이동, 회전, 스케일 상속을 완전히 끊어버려, 컴포넌트가 월드 공간에 완전히 독립적으로 고정
+	FloatingTextWidgetComp->SetUsingAbsoluteLocation(true);
+	FloatingTextWidgetComp->SetUsingAbsoluteRotation(true);
+    // 📍 [핵심 변경] 골드든 경험치든 인자로 넘어온 월드 좌표에 위젯 컴포넌트를 순간이동 시킵니다!
+    // 이렇게 하면 챔피언에 달린 컴포넌트라 하더라도 완벽하게 미니언 시체 머리 위 허공에 고정됩니다.
+    FloatingTextWidgetComp->SetWorldLocation(SpawnLocation);
 
     // 1. 위젯 컴포넌트 강제 활성화
     FloatingTextWidgetComp->SetVisibility(true);
@@ -471,7 +478,6 @@ void ALoLCharacterBase::Client_CreateFloatingText_Implementation(int32 Amount, b
     UUserWidget* TextWidget = FloatingTextWidgetComp->GetUserWidgetObject();
     if (!TextWidget) return;
 
-    // 🔍 형님이 WB에서 만드신 Txt_Amount(텍스트)와 Img_Icon(이미지)을 이름으로 낚아챕니다.
     UTextBlock* AmountTextBlock = Cast<UTextBlock>(TextWidget->GetWidgetFromName(TEXT("Txt_Amount")));
     UImage* IconImage = Cast<UImage>(TextWidget->GetWidgetFromName(TEXT("Img_Icon"))); 
     
@@ -479,16 +485,13 @@ void ALoLCharacterBase::Client_CreateFloatingText_Implementation(int32 Amount, b
     {
         if (bIsGold)
         {
-            // [골드 셋업] 텍스트 및 컬러 변경 (+300 황금색)
             FString GoldStr = FString::Printf(TEXT("+%d"), Amount);
             AmountTextBlock->SetText(FText::FromString(GoldStr));
             FLinearColor GoldColor(1.0f, 0.85f, 0.0f, 1.0f);
             AmountTextBlock->SetColorAndOpacity(FSlateColor(GoldColor));
 
-            // 💰 [골드 아이콘 변경] 에셋 레퍼런스 주소로 런타임 로드 후 이미지 교체
             if (IconImage)
             {
-                // ⚠️ 프로젝트에 맞는 진짜 텍스처 레퍼런스 경로를 복사해서 아래 TEXT("") 안에 넣어주세요!
                 UTexture2D* GoldTex = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr, TEXT("/Game/Asset/UI/TopBar/nav-icon-store_waifu2x_art_noise1_scale.nav-icon-store_waifu2x_art_noise1_scale")));
                 if (GoldTex)
                 {
@@ -498,16 +501,13 @@ void ALoLCharacterBase::Client_CreateFloatingText_Implementation(int32 Amount, b
         }
         else
         {
-            // [경험치 셋업] 텍스트 및 컬러 변경 (+120 XP 연보라색)
             FString XPStr = FString::Printf(TEXT("+%d XP"), Amount);
             AmountTextBlock->SetText(FText::FromString(XPStr));
             FLinearColor XPColor(0.6f, 0.3f, 1.0f, 1.0f);
             AmountTextBlock->SetColorAndOpacity(FSlateColor(XPColor));
 
-            // 🔮 [경험치 아이콘 변경] 에셋 레퍼런스 주소로 런타임 로드 후 이미지 교체
             if (IconImage)
             {
-                // ⚠️ 프로젝트에 맞는 진짜 텍스처 레퍼런스 경로를 복사해서 아래 TEXT("") 안에 넣어주세요!
                 UTexture2D* XPTex = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr, TEXT("/Game/Asset/UI/Common/npe-rewards-xp-boost.npe-rewards-xp-boost")));
                 if (XPTex)
                 {
@@ -530,5 +530,5 @@ void ALoLCharacterBase::Client_CreateFloatingText_Implementation(int32 Amount, b
         }
     }
 
-    PRINTLOG_HJ(TEXT("[Floating UI] 순수 C++로 UI 가변 이미지, 수치, 애니메이션 처리 완수 ➔ %d"), Amount);
+    PRINTLOG_HJ(TEXT("[Floating UI] 좌표 순간이동 및 UI 처리 완수 ➔ X:%f, Y:%f, Z:%f"), SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z);
 }

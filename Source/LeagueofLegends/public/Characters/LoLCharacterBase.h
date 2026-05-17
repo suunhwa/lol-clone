@@ -145,6 +145,6 @@ private:
 public:
 	// 📣 순수 C++로만 작동하는 플로팅 텍스트 출력 함수 (블루프린트 그래프 필요 없음)
 	UFUNCTION(Client, Reliable)
-	void Client_CreateFloatingText(int32 Amount, bool bIsGold);
-	
+	void Client_CreateFloatingText(int32 Amount, bool bIsGold, FVector SpawnLocation);
+	void Client_CreateFloatingText_Implementation(int32 Amount, bool bIsGold, FVector SpawnLocation);
 };

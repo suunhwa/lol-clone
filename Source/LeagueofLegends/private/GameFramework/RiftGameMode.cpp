@@ -322,6 +322,13 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 	if (!Victim) { return; }
 	Victim->AddDeath();
 
+	// 📍 [해결책] 함수 최상단에서 죽은 챔피언의 위치를 가장 먼저 안전하게 확보합니다!
+	FVector VictimLocation = FVector::ZeroVector;
+	if (APawn* VictimPawn = Victim->GetPawn())
+	{
+		VictimLocation = VictimPawn->GetActorLocation();
+	}
+	
 	if (!Killer || Killer == Victim) { return; }
 	Killer->AddKill();
 
@@ -365,12 +372,12 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 		float DistributedXP = XP / Participants.Num();
 		Participant->AddXP(DistributedXP);
 		
-		// [추가] 경험치를 먹은 챔피언 머리 위에 보라색 UI 팝업!
+		// 🔮 [경험치] 획득한 각 챔피언 자신의 머리 위에 팝업
 		if (ALoLCharacterBase* ChampPawn = Cast<ALoLCharacterBase>(Participant->GetPawn()))
 		{
-			ChampPawn->Client_CreateFloatingText(FMath::RoundToInt(DistributedXP), false);
+			FVector ChampHeadLoc = ChampPawn->GetActorLocation() + FVector(0.f, 0.f, 180.f);
+			ChampPawn->Client_CreateFloatingText(FMath::RoundToInt(DistributedXP), false, ChampHeadLoc);
 		}
-		
 	}
 	
 	
@@ -387,14 +394,14 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 		{
 			KillerInv->AddGold(static_cast<float>(BaseKillGold));
             
-			// [추가] 막타 친 챔피언 머리 위에 노란색 골드 팝업!
+			// 💰 [골드] 킬러 머리 위가 아니라, '죽은 상대방 챔피언 위치' 허공에 고정 팝업!
 			if (ALoLCharacterBase* KillerChampBase = Cast<ALoLCharacterBase>(KillerPawn))
 			{
-				KillerChampBase->Client_CreateFloatingText(BaseKillGold, true);
-				
+				FVector GoldSpawnLoc = VictimLocation + FVector(0.f, 0.f, 120.f);
+				KillerChampBase->Client_CreateFloatingText(BaseKillGold, true, GoldSpawnLoc);
 			}
-			PRINTLOG_HJ(TEXT("[Champion Kill Gold] %s ➔ 상대 %s 처치! 막타 현상금 +%d Gold 주입 (잔액: %.0f)"), 
-				*Killer->GetPlayerName(), *Victim->GetPlayerName(), BaseKillGold, KillerInv->GetGold());
+			PRINTLOG_HJ(TEXT("[Champion Kill Gold] %s ➔ 상대 %s 처치! +%d Gold 주입 (잔액: %.0f)"), 
+			   *Killer->GetPlayerName(), *Victim->GetPlayerName(), BaseKillGold, KillerInv->GetGold());
 		}
 	}
 
@@ -422,11 +429,11 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 				{
 					AssisterInv->AddGold(static_cast<float>(AssistGoldEach));
                     
-					// [추가] 어시스트 한 챔피언 머리 위에도 골드 팝업!
+					// 💰 [골드] 어시스터들도 마찬가지로 '죽은 상대방 챔피언 위치'에서 돈다발이 연출됨
 					if (ALoLCharacterBase* AssisterChampBase = Cast<ALoLCharacterBase>(AssisterPawn))
 					{
-						AssisterChampBase->Client_CreateFloatingText(AssistGoldEach, true);
-						
+						FVector GoldSpawnLoc = VictimLocation + FVector(0.f, 0.f, 140.f); // 약간 겹치지 않게 오프셋 조절 가능
+						AssisterChampBase->Client_CreateFloatingText(AssistGoldEach, true, GoldSpawnLoc);
 					}
 					PRINTLOG_HJ(TEXT("[Champion Assist Gold] %s ➔ 처치 지원 보너스 +%d Gold 주입 (잔액: %.0f)"), 
 						*AssisterPS->GetPlayerName(), AssistGoldEach, AssisterInv->GetGold());
@@ -458,11 +465,12 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
        {
           PS->AddXP(XPEach);
 
-          // [추가] 범위 내에서 경험치를 나눠 먹은 아군들 머리 위에 보라색 UI 팝업!
-          if (ALoLCharacterBase* AllyChamp = Cast<ALoLCharacterBase>(PS->GetPawn()))
-          {
-	          AllyChamp->Client_CreateFloatingText(FMath::RoundToInt(XPEach), false);
-          }
+       	// 🔮 [경험치] 주변에서 짭짤하게 나눠 먹은 아군들 각각의 정수리 위 팝업
+       	if (ALoLCharacterBase* AllyChamp = Cast<ALoLCharacterBase>(PS->GetPawn()))
+       	{
+       		FVector ChampHeadLoc = AllyChamp->GetActorLocation() + FVector(0.f, 0.f, 180.f);
+       		AllyChamp->Client_CreateFloatingText(FMath::RoundToInt(XPEach), false, ChampHeadLoc);
+       	}
        }
     }
 	
@@ -537,16 +545,18 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
                     }
                 }
 
-                // 막타 챔피언 인벤토리에 독식 현상금 지급
-                if (FinalLastHitGold > 0)
-                {
-                    InvComp->AddGold(static_cast<float>(FinalLastHitGold));
-                	// [추가] 미니언/타워 막타 챙긴 챔피언 머리 위에 노란색 골드 팝업!
-                	KillerChamp->Client_CreateFloatingText(FinalLastHitGold, true);
-                	
-                	PRINTLOG_HJ(TEXT("[Reward System] %s 막타 보상 ➔ +%d Gold 주입 완료 (현재 보유: %.0f)"), 
-                        *UnitRowName.ToString(), FinalLastHitGold, InvComp->GetGold());
-                }
+            	// 막타 챔피언 인벤토리 정산 및 UI 호출
+            	if (FinalLastHitGold > 0)
+            	{
+            		InvComp->AddGold(static_cast<float>(FinalLastHitGold));
+                    
+            		// 💰 [골드] 막타 친 챔피언 머리가 아니라 인자로 넘어온 미니언/타워의 'KillLocation'에 소환!
+            		FVector GoldSpawnLoc = KillLocation + FVector(0.f, 0.f, 120.f); 
+            		KillerChamp->Client_CreateFloatingText(FinalLastHitGold, true, GoldSpawnLoc);
+                    
+            		PRINTLOG_HJ(TEXT("[Reward System] %s 막타 보상 ➔ +%d Gold 주입 완료 (현재 보유: %.0f)"), 
+						*UnitRowName.ToString(), FinalLastHitGold, InvComp->GetGold());
+            	}
 
                 // bGlobalDist가 켜져 있으면 같은 팀원 전체에게 보너스 골드 지급
                 if (bShouldDistributeGlobal && FinalGlobalGold > 0 && IsValid(GameState))
@@ -564,14 +574,15 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
                                     {
                                         AlliedInv->AddGold(static_cast<float>(FinalGlobalGold));
                                         
-                                    	// [추가] 구조물 글로벌 보너스 골드를 받은 멀리 있는 팀원들에게도 노란색 골드 팝업!
+                                    	// 💰 [글로벌 골드] 맵 전체 아군에게 보낼 때도 포탑이 터진 'KillLocation' 좌표에 띄웁니다!
+                                    	// 맵 어디에 있든 화면(Screen) 기준 오브젝트 위치에서 돈 오르는 연출이 발생합니다.
                                     	if (ALoLCharacterBase* AlliedChampBase = Cast<ALoLCharacterBase>(AlliedPawn))
                                     	{
-                                    		AlliedChampBase->Client_CreateFloatingText(FinalGlobalGold, true);
-                                    		
+                                    		FVector GlobalGoldSpawnLoc = KillLocation + FVector(0.f, 0.f, 150.f); // 막타 텍스트와 겹치지 않게 살짝 위로 오프셋
+                                    		AlliedChampBase->Client_CreateFloatingText(FinalGlobalGold, true, GlobalGoldSpawnLoc);
                                     	}
-                                        PRINTLOG_HJ(TEXT("[Global Reward] 구조물 파괴 보너스 ➔ %s 플레이어에게 +%d 글로벌 골드 지급 완료!"), 
-                                            *RPS->GetPlayerName(), FinalGlobalGold);
+                                    	PRINTLOG_HJ(TEXT("[Global Reward] 구조물 파괴 보너스 ➔ %s 플레이어에게 +%d 글로벌 골드 지급 완료!"), 
+											*RPS->GetPlayerName(), FinalGlobalGold);
                                     }
                                 }
                             }
