@@ -122,9 +122,9 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 
 		// 스폰 X좌표로 진영 판단 (팀 복제 타이밍과 무관하게 안정적)
 		// Red spawn: X < 0  /  Blue spawn: X > 0
-		const bool bRedSide = Champion->GetActorLocation().X < 0.f;
+		/*const bool bRedSide = Champion->GetActorLocation().X < 0.f;
 		Cam->SetTeamYaw(bRedSide);
-		bIsRedTeam = bRedSide;
+		bIsRedTeam = bRedSide;*/
 	}
 
 	// 클라이언트에서 복제 완료 후 위치 교정 타이머
@@ -296,15 +296,25 @@ void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 	FVector2D MoveInput = FVector2D::ZeroVector;
 
 	if (mouseX <= EdgeThreshold)
+	{
 		MoveInput.X = -1.f;
+	}
+		
 	else if (mouseX >= ViewportSize.X - EdgeThreshold)
+	{
 		MoveInput.X = 1.f;
-
+	}
+	
 	if (mouseY <= EdgeThreshold)
+	{
 		MoveInput.Y = 1.f;
+	}
+		
 	else if (mouseY >= ViewportSize.Y - EdgeThreshold)
+	{
 		MoveInput.Y = -1.f;
-
+	}
+	
 	if (MoveInput.IsNearlyZero()) { return; }
 
 	// 스폰 위치 기준으로 캐시된 팀 방향 사용
