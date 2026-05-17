@@ -158,7 +158,7 @@ bool ALoLCharacterBase::IsDead_Implementation() const
 
 bool ALoLCharacterBase::IsTargetable_Implementation() const
 {
-	return !IsDead() && !TagComp->HasTag(UnitTags::Untargetable);
+	return !IsDead_Implementation() && !TagComp->HasTag(UnitTags::Untargetable);
 }
 
 FVector ALoLCharacterBase::GetTargetLocation_Implementation() const
@@ -247,7 +247,7 @@ void ALoLCharacterBase::OnRep_FOWVisibility()
 {
 	// 로컬 플레이어의 팀 가져오기
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC || !PC->GetPawn()) 
+	if (!PC || !PC->GetPawn())
 	{
 		return;
 	}

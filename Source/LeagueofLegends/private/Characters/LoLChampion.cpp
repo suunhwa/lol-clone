@@ -74,14 +74,45 @@ void ALoLChampion::OnRep_ChampionData()
 	if (Sub && ChampionData)
 	{
 		Sub->ApplyVisuals(this, ChampionData);
+
+		// 클라이언트에서도 MaxWalkSpeed 동기화 (ApplyStats는 서버 전용이라 직접 설정)
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			if (StatComp && StatComp->GetMoveSpeed() > 0.f)
+			{
+				MoveComp->MaxWalkSpeed = StatComp->GetMoveSpeed();
+			}
+		}
 	}
 
-	// 클라이언트 HUD 아이콘 갱신
+	// 컨트롤러가 아직 없으면 HUD 갱신은 PawnClientRestart에서 처리
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		if (ARiftHUD* HUD = Cast<ARiftHUD>(PC->GetHUD()))
 		{
 			HUD->RefreshSkillIcons(this);
+		}
+	}
+}
+
+void ALoLChampion::PawnClientRestart()
+{
+	Super::PawnClientRestart();
+
+	if (ChampionData)
+	{
+		UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+		if (Sub)
+		{
+			Sub->ApplyVisuals(this, ChampionData);
+		}
+
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (ARiftHUD* HUD = Cast<ARiftHUD>(PC->GetHUD()))
+			{
+				HUD->RefreshSkillIcons(this);
+			}
 		}
 	}
 }
@@ -213,7 +244,7 @@ void ALoLChampion::AttackLoopTick()
 	}
 
 	const float Range = StatComp ? StatComp->GetAttackRange() : 150.f;
-	const float AttackSpeed = StatComp ? StatComp->GetAttackSpeed() : 0.65f;
+	const float AttackSpeed = FMath::Max(StatComp ? StatComp->GetAttackSpeed() : 0.65f, 0.1f);
 	const float Dist = FVector::Dist2D(GetActorLocation(), Target->GetActorLocation());
 
 	if (Dist > Range)
@@ -246,7 +277,8 @@ void ALoLChampion::AttackLoopTick()
 
 	ExecuteBasicAttack(Target);
 
-	GetWorldTimerManager().SetTimer(AttackLoopTimer, this, &ALoLChampion::AttackLoopTick, 1.0f / AttackSpeed, false);
+	GetWorldTimerManager().SetTimer(AttackLoopTimer, this, &ALoLChampion::AttackLoopTick,
+		FMath::Max(1.0f / AttackSpeed, 0.1f), false);
 }
 
 void ALoLChampion::OnDeath(AActor* DamageInstigator)
@@ -349,7 +381,10 @@ void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 		Ctx.SourceTag        = TEXT("BasicAttack");
 
 		FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-		SkillExecutor->SpawnProjectile(Dir, 1800.f, 800.f, Ctx, false, false, TEXT("Socket_Q"));
+		AChampionSkillProjectile* Proj = SkillExecutor->SpawnProjectile(Dir, 1800.f, 800.f, Ctx, false, false, TEXT("Socket_Q"));
+
+		// 챔피언별 평타 후처리 (ex. 이즈리얼 W 고리 소비)
+		SkillExecutor->OnBasicAttackFired(Proj, Target);
 		return;
 	}
 

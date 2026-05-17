@@ -7,6 +7,7 @@
 #include "GameFramework/RiftGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Manager/ItemDataSubsystem.h"
+#include "UI/View/ExitPopupWidget.h"
 #include "UI/View/InventoryWidget.h"
 #include "UI/View/MainHUDWidget.h"
 #include "UI/View/ShopWidget.h"
@@ -21,6 +22,7 @@ void ARiftHUD::InitHUD(ALoLChampion* Champion)
 {
 	SetupMainHUD(Champion);
 	SetupShopMVVM(Champion);
+	SetupExitPopup();
 
 	// InventoryWidget 슬롯 클릭 → ShopWidget에 SelectedSlotIndex 전달
 	if (MainHUDWidget && ShopWidget)
@@ -38,6 +40,36 @@ void ARiftHUD::RefreshSkillIcons(ALoLChampion* Champion)
 	if (USkillBarWidget* Bar = MainHUDWidget->GetSkillBar())
 	{
 		Bar->RefreshIcons(Champion->GetChampionData());
+	}
+}
+
+void ARiftHUD::ToggleExitPopup()
+{
+	if (!ExitPopupWidget) { return; }
+
+	if (ExitPopupWidget->IsVisible())
+	{
+		ExitPopupWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	else
+	{
+		ExitPopupWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void ARiftHUD::SetupExitPopup()
+{
+	if (!ExitPopupClass) { return; }
+
+	APlayerController* PC = GetOwningPlayerController();
+	if (!PC) { return; }
+
+	ExitPopupWidget = CreateWidget<UExitPopupWidget>(PC, ExitPopupClass);
+	
+	if (ExitPopupWidget)
+	{
+		ExitPopupWidget->AddToViewport(10); // 다른 HUD 위에 표시
+		ExitPopupWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 

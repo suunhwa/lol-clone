@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/LoLCameraActor.h"
+#include "GameFramework/RiftPlayerCameraManager.h"
 #include "Type/RiftTypes.h"
 #include "AStar/AStarGridManager.h"
 #include "Components/SkillComponent.h"
@@ -26,7 +26,6 @@ protected:
 	virtual void SeamlessTravelTo(APlayerController* NewPC) override;
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void AcknowledgePossession(APawn* P) override;
-	virtual void AutoManageActiveCameraTarget(AActor* SuggestedTarget) override;
 
 public:
 	// Called every frame
@@ -68,11 +67,12 @@ public:
 	
 public:
 	// ---------------------------------- Camera --------------------------------
-	// Edge scrolling
 	void EdgeScrollWithMouse(float DeltaTime);
 
-	UPROPERTY()
-	TObjectPtr<ALoLCameraActor> CameraActor;
+	ARiftPlayerCameraManager* GetRiftCameraManager() const
+	{
+		return Cast<ARiftPlayerCameraManager>(PlayerCameraManager);
+	}
 
 	UPROPERTY()
 	TObjectPtr<ALoLChampion> OwnedChamp;
@@ -96,7 +96,6 @@ public:
 	FVector2D CameraBoundsMax = FVector2D(6000.f, 6000.f);;
 
 	FVector TargetCameraLoc = FVector::ZeroVector;
-
 	FTimerHandle CameraInitTimer;
 
 protected:
@@ -134,17 +133,25 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input|Input Actions")
 	TObjectPtr<UInputAction> IA_Shop;
 	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_Exit;
+	
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
 	TObjectPtr<UInputAction> IA_LevelUp;
 
-	UPROPERTY(EditDefaultsOnly, Category="Camera")
-	TSubclassOf<ALoLCameraActor> CameraActorClass;
 
 	virtual void SetupInputComponent() override;
 
 public:
 	bool bCameraLocked = false;
-	bool bCameraInitialized = false; // 클라이언트 카메라 초기 스냅 완료 여부
+	bool bCameraInitialized = false;
+
+	// 클릭 이동 (Nav Mesh 경로 → AddMovementInput으로 구동)
+	TArray<FVector> MovePath;
+	int32 MovePathIndex = 0;
+	bool bHasMoveTarget = false;
+	FVector MoveTargetLocation = FVector::ZeroVector;
+	static constexpr float MoveAcceptanceRadius = 80.f;
 
 	// y키
 	// 고정시점
@@ -168,6 +175,7 @@ public:
 	void OnAReleased();
 	void OnLeftClick();
 	void OnToggleShop();
+	void OnExit();
 
 	bool bAKeyPressed = false;
 

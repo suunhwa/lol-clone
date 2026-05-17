@@ -36,7 +36,7 @@ void UTeamSlotWidget::SetSlotData(const FPlayerSlotViewData& Data)
 
 	if (txt_champ)
 	{
-		txt_champ->SetVisibility(bChampSelected && !Data.bIsReady
+		txt_champ->SetVisibility(bChampSelected
 			                         ? ESlateVisibility::Visible
 			                         : ESlateVisibility::Collapsed);
 
@@ -51,15 +51,16 @@ void UTeamSlotWidget::SetSlotData(const FPlayerSlotViewData& Data)
 
 	if (Img_ChampIcon)
 	{
+		// 텍스처만 교체 — 색상/불투명도는 건드리지 않아 프레임 항상 유지
 		if (bChampSelected && Data.ChampPortrait)
 		{
 			Img_ChampIcon->SetBrushFromTexture(Data.ChampPortrait);
-			Img_ChampIcon->SetVisibility(ESlateVisibility::Visible);
 		}
 		else
 		{
-			Img_ChampIcon->SetVisibility(ESlateVisibility::Hidden);
+			Img_ChampIcon->SetBrushFromTexture(nullptr);
 		}
+		Img_ChampIcon->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
@@ -82,6 +83,7 @@ void UTeamSlotWidget::ClearSlot()
 	}
 	if (Img_ChampIcon)
 	{
-		Img_ChampIcon->SetVisibility(ESlateVisibility::Hidden);
+		Img_ChampIcon->SetBrushFromTexture(nullptr);
+		Img_ChampIcon->SetVisibility(ESlateVisibility::Visible);
 	}
 }

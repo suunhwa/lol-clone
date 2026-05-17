@@ -34,7 +34,7 @@ void UEnemySlotWidget::SetSlotData(const FPlayerSlotViewData& Data)
 
 	if (txt_champ)
 	{
-		txt_champ->SetVisibility(bChampSelected && !Data.bIsReady
+		txt_champ->SetVisibility(bChampSelected
 			                     ? ESlateVisibility::Visible
 			                     : ESlateVisibility::Collapsed);
 
@@ -51,12 +51,12 @@ void UEnemySlotWidget::SetSlotData(const FPlayerSlotViewData& Data)
 		if (bChampSelected && Data.ChampPortrait)
 		{
 			Img_ChampIcon->SetBrushFromTexture(Data.ChampPortrait);
-			Img_ChampIcon->SetVisibility(ESlateVisibility::Visible);
 		}
 		else
 		{
-			Img_ChampIcon->SetVisibility(ESlateVisibility::Hidden);
+			Img_ChampIcon->SetBrushFromTexture(nullptr);
 		}
+		Img_ChampIcon->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
@@ -80,6 +80,7 @@ void UEnemySlotWidget::ClearSlot()
 
 	if (Img_ChampIcon)
 	{
-		Img_ChampIcon->SetVisibility(ESlateVisibility::Hidden);
+		Img_ChampIcon->SetBrushFromTexture(nullptr);
+		Img_ChampIcon->SetVisibility(ESlateVisibility::Visible);
 	}
 }

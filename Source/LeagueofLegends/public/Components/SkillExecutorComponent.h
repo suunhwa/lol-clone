@@ -29,6 +29,9 @@ public:
 	// LoLChampion이 OnSkillActivated 수신 시 호출
 	virtual void Execute(ESkillSlot Slot, FVector TargetLoc) {}
 
+	// LoLChampion이 평타 발사체를 스폰한 직후 호출 — 챔피언별 평타 후처리 (ex. 이즈 W 고리 소비)
+	virtual void OnBasicAttackFired(AChampionSkillProjectile* Proj, AActor* Target) {}
+
 	// 발사체 BP 클래스. 에디터(BP_EzrealSkillExecutor 등)에서 챔피언별 설정
 	UPROPERTY(EditDefaultsOnly, Category = "Skill")
 	TSubclassOf<AChampionSkillProjectile> ProjectileClass;

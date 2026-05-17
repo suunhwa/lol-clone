@@ -13,8 +13,10 @@
 #include "Characters/Data/ChampionData.h"
 #include "Components/CooldownComponent.h"
 #include "Components/StatComponent.h"
+#include "Interfaces/Targetable.h"
 #include "Kismet/GameplayStatics.h"
 #include "Manager/ChampionDataSubsystem.h"
+#include "Type/RiftTypes.h"
 
 UEzrealSkillExecutor::UEzrealSkillExecutor()
 {
@@ -140,6 +142,9 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 	                                                 TEXT("Socket_Q")
 	                                                 );
 
+	// Q는 타워/구조물에 피해를 주지 않음
+	if (Proj) { Proj->bCanDamageStructures = false; }
+
 	if (Proj && Q_MuzzleEffect)
 	{
 		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
@@ -176,7 +181,7 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 	*/
 }
 
-// W
+// W — 자체 데미지 없음. 챔피언/타워 적중 시 고리(마크) 적용. 이후 평타로 마크 소비 시 실제 데미지
 void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 {
 	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
@@ -189,76 +194,110 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 
 	const float ManaCost = Stats ? Stats->Cost : 50.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 12.f;
+	const float BonusDmg = Stats ? ComputeScaledDamage(*Stats, StatComp) : 80.f;
 
-	if (Stats)
-	{
-		PRINTLOG_SH(
-			TEXT("[W] 테이블 ─ Rank:%d Base:%.1f FactorStat1:%s Coeff1:%s FactorStat2:%s Coeff2:%s Cost:%.1f CD:%.2f"),
-			GetRank(ESkillSlot::W),
-			Stats->Base_Value,
-			*Stats->Factor_Stat1,
-			*Stats->Coefficient1,
-			*Stats->Factor_Stat2,
-			*Stats->Coefficient2,
-			Stats->Cost,
-			Stats->CoolDown);
-	}
-	else
-	{
-		PRINTLOG_SH(TEXT("[W] 테이블 로드 실패 — fallback 수치 사용"));
-	}
+	if (StatComp) { StatComp->ApplyManaCost(ManaCost); }
+	if (CooldownComp) { CooldownComp->StartCooldown(TEXT("Skill.W"), Cooldown); }
 
-	if (StatComp)
-	{
-		StatComp->ApplyManaCost(ManaCost);
-	}
-	if (CooldownComp)
-	{
-		CooldownComp->StartCooldown(TEXT("Skill.W"), Cooldown);
-	}
-
+	// W 발사체 자체는 데미지 0 — 피격 콜백에서 마크 적용
 	FDamageContext Ctx;
-	Ctx.RawDamage = Stats ? ComputeScaledDamage(*Stats, StatComp) : 80.f;
-
-	PRINTLOG_SH(TEXT("[W] 계산 ─ AD:%.1f AP:%.1f  최종데미지:%.1f  마나차감:%.1f  쿨타임:%.2f"),
-	            StatComp ? StatComp->GetAD() : 0.f,
-	            StatComp ? StatComp->GetAP() : 0.f,
-	            Ctx.RawDamage,
-	            ManaCost,
-	            Cooldown);
+	Ctx.RawDamage = 0.f;
 	Ctx.DamageType = EDamageType::Magical;
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("Ezreal.W");
 
 	AChampionSkillProjectile* WProj = SpawnProjectile(
 		(TargetLoc - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-		1600.f,
-		1000.f,
-		Ctx,
-		true,
-		false,
-		TEXT("Socket_Q"));
+		1600.f, 1000.f, Ctx, true, false, TEXT("Socket_Q"));
 
-	if (WProj && W_MuzzleEffect)
+	if (WProj)
 	{
-		if (UNiagaraComponent* WFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			W_MuzzleEffect,
-			WProj->GetRootComponent(),
-			NAME_None,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget,
-			false))
+		// 마크에 사용할 보너스 데미지를 캡처해서 피격 콜백에 전달
+		const float CapturedBonusDmg = BonusDmg;
+		WProj->OnHitDelegate.BindUObject(this, &UEzrealSkillExecutor::OnWProjectileHit);
+		WMarkBonusDamage = CapturedBonusDmg;
+
+		if (W_MuzzleEffect)
 		{
-			WFX->SetWorldScale3D(FVector(0.5f));
+			if (UNiagaraComponent* WFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+				W_MuzzleEffect, WProj->GetRootComponent(), NAME_None,
+				FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false))
+			{
+				WFX->SetWorldScale3D(FVector(0.5f));
+			}
 		}
 	}
 
 	if (W_CastSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(
-			GetWorld(), W_CastSound, OwnerChar->GetActorLocation());
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), W_CastSound, OwnerChar->GetActorLocation());
 	}
+}
+
+void UEzrealSkillExecutor::SetWMark(AActor* Target, float BonusDamage)
+{
+	WMarkTarget = Target;
+	WMarkBonusDamage = BonusDamage;
+
+	// 마크 지속 4초 후 자동 소멸
+	if (OwnerChar)
+	{
+		OwnerChar->GetWorldTimerManager().SetTimer(WMarkExpireTimer, this,
+			&UEzrealSkillExecutor::ClearWMark, 4.f, false);
+	}
+}
+
+void UEzrealSkillExecutor::ClearWMark()
+{
+	WMarkTarget = nullptr;
+	WMarkBonusDamage = 0.f;
+	if (OwnerChar)
+	{
+		OwnerChar->GetWorldTimerManager().ClearTimer(WMarkExpireTimer);
+	}
+}
+
+// W 발사체가 적에게 적중했을 때 — 챔피언/타워에만 마크 적용, 미니언은 무시
+void UEzrealSkillExecutor::OnWProjectileHit(AActor* Target)
+{
+	if (!Target || !Target->GetClass()->ImplementsInterface(UTargetable::StaticClass())) { return; }
+
+	EUnitType Type = ITargetable::Execute_GetUnitType(Target);
+	if (Type != EUnitType::Champion && Type != EUnitType::Tower) { return; }
+
+	SetWMark(Target, WMarkBonusDamage);
+	PRINTLOG_SH(TEXT("[W] 고리 적용 → %s (보너스딜: %.1f)"), *GetNameSafe(Target), WMarkBonusDamage);
+}
+
+// 마크가 걸린 적을 평타/E 미사일로 맞췄을 때 보너스 데미지 적용
+void UEzrealSkillExecutor::OnWMarkConsumed(AActor* Target)
+{
+	if (!WMarkTarget.IsValid() || WMarkTarget.Get() != Target) { return; }
+
+	FDamageContext Ctx;
+	Ctx.RawDamage = WMarkBonusDamage;
+	Ctx.DamageType = EDamageType::Magical;
+	Ctx.DamageInstigator = GetOwner();
+	Ctx.SourceTag = TEXT("Ezreal.W.Mark");
+
+	if (CombatComp)
+	{
+		CombatComp->DealDamage(Target, Ctx);
+	}
+
+	PRINTLOG_SH(TEXT("[W] 고리 소비 → %s 보너스딜: %.1f"), *GetNameSafe(Target), WMarkBonusDamage);
+	ClearWMark();
+}
+
+// 평타 발사체가 스폰된 직후 호출 — 마크 타겟이면 피격 콜백으로 마크 소비 연결
+void UEzrealSkillExecutor::OnBasicAttackFired(AChampionSkillProjectile* Proj, AActor* Target)
+{
+	if (!Proj || !WMarkTarget.IsValid() || WMarkTarget.Get() != Target) { return; }
+
+	EUnitType Type = ITargetable::Execute_GetUnitType(Target);
+	if (Type != EUnitType::Champion && Type != EUnitType::Tower) { return; }
+
+	Proj->OnHitDelegate.BindUObject(this, &UEzrealSkillExecutor::OnWMarkConsumed);
 }
 
 // E
@@ -347,6 +386,12 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	}
 
 	OwnerChar->TeleportTo(ArriveLoc, OwnerChar->GetActorRotation());
+
+	// 블링크 직후 이동 정지
+	if (AController* Ctrl = OwnerChar->GetController())
+	{
+		Ctrl->StopMovement();
+	}
 
 	// 도착지 이펙트
 	if (E_ArriveEffect)
@@ -465,7 +510,7 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 	                                           false);
 }
 
-// TODO: E 스킬 후 평타 (자동, 범위 내에 가장 가까운 적. 범위는 하드코딩)
+// E 블링크 후 도착지 주변 챔피언에게만 유도 미사일 발사 (미니언 제외)
 void UEzrealSkillExecutor::FireESecondaryShot()
 {
 	constexpr float SearchRadius = 750.f;
@@ -487,13 +532,12 @@ void UEzrealSkillExecutor::FireESecondaryShot()
 		AActor* Other = R.GetActor();
 		if (!Other || Other == OwnerChar) { continue; }
 
-		ALoLCharacterBase* OtherChar = Cast<ALoLCharacterBase>(Other);
-		if (!OtherChar || 
-			ITargetable::Execute_GetTeam(OtherChar) == OwnerChar->GetTeam_Implementation() || 
-			!ITargetable::Execute_IsTargetable(OtherChar))
-		{
-			continue;
-		}
+		if (!Other->GetClass()->ImplementsInterface(UTargetable::StaticClass())) { continue; }
+		if (ITargetable::Execute_GetTeam(Other) == OwnerChar->GetTeam_Implementation()) { continue; }
+		if (!ITargetable::Execute_IsTargetable(Other)) { continue; }
+
+		// 챔피언에게만 유도 — 미니언/구조물 제외
+		if (ITargetable::Execute_GetUnitType(Other) != EUnitType::Champion) { continue; }
 
 		const float Dist = FVector::Dist(OwnerChar->GetActorLocation(), Other->GetActorLocation());
 		if (Dist < MinDist)
@@ -516,10 +560,13 @@ void UEzrealSkillExecutor::FireESecondaryShot()
 	Ctx.DamageInstigator = GetOwner();
 	Ctx.SourceTag = TEXT("Ezreal.E");
 
-	SpawnProjectile(
+	AChampionSkillProjectile* EProj = SpawnProjectile(
 		(NearestEnemy->GetActorLocation() - OwnerChar->GetActorLocation()).GetSafeNormal2D(),
-		2000.f,
-		750.f,
-		Ctx,
-		false);
+		2000.f, 750.f, Ctx, false);
+
+	// E 미사일이 W 마크 챔피언을 맞추면 마크 소비
+	if (EProj && WMarkTarget.IsValid() && WMarkTarget.Get() == NearestEnemy)
+	{
+		EProj->OnHitDelegate.BindUObject(this, &UEzrealSkillExecutor::OnWMarkConsumed);
+	}
 }

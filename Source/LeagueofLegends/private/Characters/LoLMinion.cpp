@@ -48,10 +48,11 @@ ALoLMinion::ALoLMinion()
     if (auto* Capsule = GetCapsuleComponent())
     {
         Capsule->SetCanEverAffectNavigation(false);
-        // 물리 시뮬레이션은 끄고, 단순 Overlap/Block만 사용
-        Capsule->SetSimulatePhysics(false); 
-        
+        Capsule->SetSimulatePhysics(false);
         Capsule->SetCollisionProfileName(TEXT("Pawn"));
+        // 미니언이 챔피언/다른 폰을 물리적으로 밀어내지 않도록 Overlap 처리
+        // 실제 충돌 회피는 RVO avoidance가 담당
+        Capsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
     }
     
 }
