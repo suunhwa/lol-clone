@@ -198,24 +198,21 @@ void ARiftPlayerController::Tick(float DeltaTime)
 
 	UpdateIndicator();
 
-	// 커서 방향으로 챔피언 페이싱 (멈춰있을 때만 — 이동 중엔 CMC가 이동 방향으로 처리)
+	// 커서 방향으로 챔피언 페이싱 — 서버 RPC만 사용 (로컬 즉시 스냅 제거)
+	// 멈춰있을 때 10Hz로 서버에 전달 → 서버가 RotationRate로 부드럽게 회전
 	if (OwnedChamp && bCameraInitialized && IsValid(OwnedChamp))
 	{
 		const bool bIsMoving = OwnedChamp->GetVelocity().SizeSquared2D() > 100.f;
 		if (!bIsMoving)
 		{
-			FHitResult CursorHit;
-			if (GetHitResultUnderCursor(ECC_Visibility, false, CursorHit) && CursorHit.bBlockingHit)
+			const float Now = GetWorld()->GetTimeSeconds();
+			if (Now - LastFacingUpdateTime >= FacingUpdateInterval)
 			{
-				FVector Dir = (CursorHit.ImpactPoint - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
-				if (!Dir.IsNearlyZero())
+				FHitResult CursorHit;
+				if (GetHitResultUnderCursor(ECC_Visibility, false, CursorHit) && CursorHit.bBlockingHit)
 				{
-					// 로컬 즉시 반영 (시각적 반응성)
-					OwnedChamp->SetActorRotation(Dir.Rotation());
-
-					// 서버 동기화 (20Hz 쓰로틀)
-					const float Now = GetWorld()->GetTimeSeconds();
-					if (Now - LastFacingUpdateTime >= FacingUpdateInterval)
+					FVector Dir = (CursorHit.ImpactPoint - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
+					if (!Dir.IsNearlyZero())
 					{
 						LastFacingUpdateTime = Now;
 						Server_SetFacingDirection(Dir);

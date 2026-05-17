@@ -199,7 +199,7 @@ public:
 	void Server_SetFacingDirection(FVector_NetQuantizeNormal Direction);
 
 	float LastFacingUpdateTime = 0.f;
-	static constexpr float FacingUpdateInterval = 0.05f; // 20Hz
+	static constexpr float FacingUpdateInterval = 0.1f; // 10Hz
 
 	UFUNCTION(Server, Reliable)
 	void Server_AddXP();
