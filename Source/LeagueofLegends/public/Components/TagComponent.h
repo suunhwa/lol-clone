@@ -60,7 +60,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_Tags)
 	TArray<FName> Tags;
 	
-	UPROPERTY(EditAnywhere, Category = "Sight")
+	UPROPERTY(EditAnywhere, Replicated, Category = "Sight")
 	ERiftSightTag SightTag = ERiftSightTag::None;
 
 	UFUNCTION()

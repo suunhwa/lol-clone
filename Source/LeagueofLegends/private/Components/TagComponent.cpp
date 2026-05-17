@@ -18,6 +18,7 @@ void UTagComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME(UTagComponent, Team);
 	DOREPLIFETIME(UTagComponent, UnitType);
 	DOREPLIFETIME(UTagComponent, Tags);
+	DOREPLIFETIME(UTagComponent, SightTag);
 }
 
 void UTagComponent::SetTeam(ETeam InTeam)

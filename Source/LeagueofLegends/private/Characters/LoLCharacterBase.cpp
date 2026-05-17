@@ -281,11 +281,22 @@ void ALoLCharacterBase::OnRep_FOWVisibility()
 		return;
 	}
     
-	// 같은 팀은 항상 보임
-	if (TagComp && TagComp->GetSightTag() == ViewerTeam)
+	// 같은 팀은 항상 보임 (SightTag 우선, 미설정 시 Team으로 폴백)
+	if (TagComp)
 	{
-		ApplyVisibility(true);
-		return;
+		ERiftSightTag MyTag = TagComp->GetSightTag();
+		if (MyTag == ERiftSightTag::None)
+		{
+			// SightTag 복제 전 타이밍 대비 — Team으로 추정
+			ETeam T = TagComp->GetTeam();
+			if (T == ETeam::Red)       MyTag = ERiftSightTag::Red;
+			else if (T == ETeam::Blue) MyTag = ERiftSightTag::Blue;
+		}
+		if (MyTag == ViewerTeam)
+		{
+			ApplyVisibility(true);
+			return;
+		}
 	}
     
 	// 적팀 비트 체크
