@@ -68,10 +68,11 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CreateSession(FString RoomName, int32 MaxPlayer);
-	
-	// LobbyUI에 있는 start game 버튼으로 방 없으면 생성, 있으면 join
+
+	/* [미사용] UI 분리 구조로 교체됨
 	UFUNCTION(BlueprintCallable)
 	void FindOrCreateSession(FString InNickname, int32 MaxPlayers = 10);
+	*/
 	
 	UFUNCTION(BlueprintCallable)
 	void ExitRoom_BP() { ExitRoom(); }
@@ -131,21 +132,24 @@ public:
 	FString StringBase64Encode(const FString& Str);
 	FString StringBase64Decode(const FString& Str);
 	
+	/* [미사용]
 	void RetryFindOrCreate();
+	*/
 
 private:
-	bool bFindOrCreateMode = false;
-	bool bFindOrCreateFallback = false;
 	bool bIsOperationPending = false;
-	bool bPendingCreateAfterDestroy       = false;  // 기존 세션 정리 후 재생성 대기
-	bool bPendingFindOrCreateAfterDestroy = false;  // 기존 세션 정리 후 FindOrCreate 재시도
-	bool bPendingJoinAfterDestroy         = false;  // 기존 세션 정리 후 조인 대기
+	bool bPendingCreateAfterDestroy = false;  // 기존 세션 정리 후 재생성 대기
+	bool bPendingJoinAfterDestroy   = false;  // 기존 세션 정리 후 조인 대기
 	int32 PendingJoinIndex = -1;
 	FString PendingNickname;
 	int32 PendingMaxPlayers = 10;
 
-	// FindOrCreate 재검색 재시도
+	/* [미사용] FindOrCreate 관련 플래그
+	bool bFindOrCreateMode = false;
+	bool bFindOrCreateFallback = false;
+	bool bPendingFindOrCreateAfterDestroy = false;
 	int32 FindOrCreateRetryCount = 0;
 	FTimerHandle FindOrCreateRetryTimer;
+	*/
 
 };

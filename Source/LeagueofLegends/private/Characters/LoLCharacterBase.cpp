@@ -3,6 +3,7 @@
 #include "Characters/LoLCharacterBase.h"
 
 #include "LeagueofLegends.h"
+#include "Animation/WidgetAnimation.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/StatComponent.h"
 #include "Components/CombatComponent.h"
@@ -21,6 +22,11 @@
 #include "UI/View/HPBarWidget.h"
 #include "UI/Widget/PlayerHUDWidget.h"
 #include "GameFramework/PlayerState.h"
+#include "Misc/OutputDeviceNull.h"
+#include "Components/TextBlock.h"
+#include "Blueprint/UserWidget.h"    
+#include "Components/Image.h"
+
 
 ALoLCharacterBase::ALoLCharacterBase()
 {
@@ -48,6 +54,14 @@ ALoLCharacterBase::ALoLCharacterBase()
 	HPBarWidgetComp->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 	HPBarWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 	HPBarWidgetComp->SetDrawSize(FVector2D(100.f, 12.f));
+	
+	// ─── 플로팅 텍스트 위젯 컴포넌트 초기화 ───
+	FloatingTextWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("FloatingTextWidgetComp"));
+	FloatingTextWidgetComp->SetupAttachment(GetRootComponent());
+	FloatingTextWidgetComp->SetRelativeLocation(FVector(0.f, 0.f, 180.f)); 
+	FloatingTextWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
+	FloatingTextWidgetComp->SetDrawSize(FVector2D(300.f, 100.f)); 
+	FloatingTextWidgetComp->SetVisibility(false);
 }
 
 void ALoLCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -446,3 +460,75 @@ void ALoLCharacterBase::OnRep_PlayerState()
 	RefreshHUDDisplay();
 }
 
+void ALoLCharacterBase::Client_CreateFloatingText_Implementation(int32 Amount, bool bIsGold, FVector SpawnLocation)
+{
+    if (!FloatingTextWidgetComp) return;
+	
+	// 부모 캐릭터의 이동, 회전, 스케일 상속을 완전히 끊어버려, 컴포넌트가 월드 공간에 완전히 독립적으로 고정
+	FloatingTextWidgetComp->SetUsingAbsoluteLocation(true);
+	FloatingTextWidgetComp->SetUsingAbsoluteRotation(true);
+    // 📍 [핵심 변경] 골드든 경험치든 인자로 넘어온 월드 좌표에 위젯 컴포넌트를 순간이동 시킵니다!
+    // 이렇게 하면 챔피언에 달린 컴포넌트라 하더라도 완벽하게 미니언 시체 머리 위 허공에 고정됩니다.
+    FloatingTextWidgetComp->SetWorldLocation(SpawnLocation);
+
+    // 1. 위젯 컴포넌트 강제 활성화
+    FloatingTextWidgetComp->SetVisibility(true);
+
+    // 2. 컴포넌트에 꽂힌 실제 UserWidget 객체 반환
+    UUserWidget* TextWidget = FloatingTextWidgetComp->GetUserWidgetObject();
+    if (!TextWidget) return;
+
+    UTextBlock* AmountTextBlock = Cast<UTextBlock>(TextWidget->GetWidgetFromName(TEXT("Txt_Amount")));
+    UImage* IconImage = Cast<UImage>(TextWidget->GetWidgetFromName(TEXT("Img_Icon"))); 
+    
+    if (AmountTextBlock)
+    {
+        if (bIsGold)
+        {
+            FString GoldStr = FString::Printf(TEXT("+%d"), Amount);
+            AmountTextBlock->SetText(FText::FromString(GoldStr));
+            FLinearColor GoldColor(1.0f, 0.85f, 0.0f, 1.0f);
+            AmountTextBlock->SetColorAndOpacity(FSlateColor(GoldColor));
+
+            if (IconImage)
+            {
+                UTexture2D* GoldTex = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr, TEXT("/Game/Asset/UI/TopBar/nav-icon-store_waifu2x_art_noise1_scale.nav-icon-store_waifu2x_art_noise1_scale")));
+                if (GoldTex)
+                {
+                    IconImage->SetBrushFromTexture(GoldTex);
+                }
+            }
+        }
+        else
+        {
+            FString XPStr = FString::Printf(TEXT("+%d XP"), Amount);
+            AmountTextBlock->SetText(FText::FromString(XPStr));
+            FLinearColor XPColor(0.6f, 0.3f, 1.0f, 1.0f);
+            AmountTextBlock->SetColorAndOpacity(FSlateColor(XPColor));
+
+            if (IconImage)
+            {
+                UTexture2D* XPTex = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr, TEXT("/Game/Asset/UI/Common/npe-rewards-xp-boost.npe-rewards-xp-boost")));
+                if (XPTex)
+                {
+                    IconImage->SetBrushFromTexture(XPTex);
+                }
+            }
+        }
+    }
+
+    // 🎬 3. 블루프린트 노드 없이 "PopUp" 애니메이션 C++ 강제 구동
+    FProperty* AnimProp = TextWidget->GetClass()->FindPropertyByName(TEXT("PopUp"));
+    if (AnimProp)
+    {
+        if (FObjectProperty* ObjProp = CastField<FObjectProperty>(AnimProp))
+        {
+            if (UWidgetAnimation* PopUpAnim = Cast<UWidgetAnimation>(ObjProp->GetObjectPropertyValue_InContainer(TextWidget)))
+            {
+                TextWidget->PlayAnimation(PopUpAnim);
+            }
+        }
+    }
+
+    PRINTLOG_HJ(TEXT("[Floating UI] 좌표 순간이동 및 UI 처리 완수 ➔ X:%f, Y:%f, Z:%f"), SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z);
+}
