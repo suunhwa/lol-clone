@@ -2,6 +2,7 @@
 
 #include "Champions/Ezreal/EzrealSkillExecutor.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 #include "LeagueofLegends.h"
 #include "DrawDebugHelpers.h"
@@ -589,12 +590,26 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 			GetWorld(), R_CastSound, OwnerChar->GetActorLocation());
 	}
 
+	// 장전 중 이동 차단
+	if (UCharacterMovementComponent* MoveComp = OwnerChar->GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->MaxWalkSpeed = 0.f;
+	}
+
 	// 애니메이션 차지 후 발사 (1초 딜레이)
 	FTimerHandle RTimer;
 	OwnerChar->GetWorldTimerManager().SetTimer(RTimer,
 	                                           [this, Dir, Ctx]()
 	                                           {
 		                                           if (!OwnerChar) return;
+
+		                                           // 이동 복구
+		                                           if (UCharacterMovementComponent* MoveComp = OwnerChar->GetCharacterMovement())
+		                                           {
+			                                           MoveComp->MaxWalkSpeed = StatComp ? StatComp->GetMoveSpeed() : 350.f;
+		                                           }
+
 		                                           PRINTLOG_SH(TEXT("[R] 발사!"));
 		                                           if (AChampionSkillProjectile* Proj = SpawnProjectile(
 			                                           Dir,

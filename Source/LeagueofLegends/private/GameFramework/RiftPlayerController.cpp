@@ -198,6 +198,33 @@ void ARiftPlayerController::Tick(float DeltaTime)
 
 	UpdateIndicator();
 
+	// 커서 방향으로 챔피언 페이싱 (멈춰있을 때만 — 이동 중엔 CMC가 이동 방향으로 처리)
+	if (OwnedChamp && bCameraInitialized && IsValid(OwnedChamp))
+	{
+		const bool bIsMoving = OwnedChamp->GetVelocity().SizeSquared2D() > 100.f;
+		if (!bIsMoving)
+		{
+			FHitResult CursorHit;
+			if (GetHitResultUnderCursor(ECC_Visibility, false, CursorHit) && CursorHit.bBlockingHit)
+			{
+				FVector Dir = (CursorHit.ImpactPoint - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
+				if (!Dir.IsNearlyZero())
+				{
+					// 로컬 즉시 반영 (시각적 반응성)
+					OwnedChamp->SetActorRotation(Dir.Rotation());
+
+					// 서버 동기화 (20Hz 쓰로틀)
+					const float Now = GetWorld()->GetTimeSeconds();
+					if (Now - LastFacingUpdateTime >= FacingUpdateInterval)
+					{
+						LastFacingUpdateTime = Now;
+						Server_SetFacingDirection(Dir);
+					}
+				}
+			}
+		}
+	}
+
 	if (bCameraLocked && OwnedChamp)
 	{
 		// 챔피언 잠금: 스페이스바
@@ -640,6 +667,12 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(AActor* Tar
 {
 	if (!OwnedChamp || !Target) { return; }
 	OwnedChamp->StartAttackLoop(Target);
+}
+
+void ARiftPlayerController::Server_SetFacingDirection_Implementation(FVector_NetQuantizeNormal Direction)
+{
+	if (!OwnedChamp || Direction.IsNearlyZero()) { return; }
+	OwnedChamp->SetActorRotation(Direction.Rotation());
 }
 
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)

@@ -194,6 +194,13 @@ public:
 
 	bool bAKeyPressed = false;
 
+	// 커서 방향 회전 동기화 (Unreliable — 고빈도, 드롭 허용)
+	UFUNCTION(Server, Unreliable)
+	void Server_SetFacingDirection(FVector_NetQuantizeNormal Direction);
+
+	float LastFacingUpdateTime = 0.f;
+	static constexpr float FacingUpdateInterval = 0.05f; // 20Hz
+
 	UFUNCTION(Server, Reliable)
 	void Server_AddXP();
 
