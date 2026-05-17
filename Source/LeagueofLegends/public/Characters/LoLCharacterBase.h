@@ -136,4 +136,15 @@ public:
 
 private:
 	void InitPlayerHUDWidget();
+	
+private:
+	// 💰 롤 스타일 골드 / XP 플로팅 텍스트 위젯 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UWidgetComponent> FloatingTextWidgetComp;
+
+public:
+	// 📣 순수 C++로만 작동하는 플로팅 텍스트 출력 함수 (블루프린트 그래프 필요 없음)
+	UFUNCTION(Client, Reliable)
+	void Client_CreateFloatingText(int32 Amount, bool bIsGold);
+	
 };

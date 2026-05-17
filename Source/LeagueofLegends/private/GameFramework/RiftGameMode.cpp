@@ -361,7 +361,16 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 		if (!Participant) { continue; }
 		// 레벨 보정 → 참여자 수로 균등 분배
 		float XP = CalcChampionKillXP(Row->RewardXP, Participant->GetChampionLevel(), Victim->GetChampionLevel());
-		Participant->AddXP(XP / Participants.Num());
+		// 💡 이 부분 수정: 균등 분배된 실제 지급용 XP 변수화 및 UI 호출
+		float DistributedXP = XP / Participants.Num();
+		Participant->AddXP(DistributedXP);
+		
+		// [추가] 경험치를 먹은 챔피언 머리 위에 보라색 UI 팝업!
+		if (ALoLCharacterBase* ChampPawn = Cast<ALoLCharacterBase>(Participant->GetPawn()))
+		{
+			ChampPawn->Client_CreateFloatingText(FMath::RoundToInt(DistributedXP), false);
+		}
+		
 	}
 	
 	
@@ -378,6 +387,12 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 		{
 			KillerInv->AddGold(static_cast<float>(BaseKillGold));
             
+			// [추가] 막타 친 챔피언 머리 위에 노란색 골드 팝업!
+			if (ALoLCharacterBase* KillerChampBase = Cast<ALoLCharacterBase>(KillerPawn))
+			{
+				KillerChampBase->Client_CreateFloatingText(BaseKillGold, true);
+				
+			}
 			PRINTLOG_HJ(TEXT("[Champion Kill Gold] %s ➔ 상대 %s 처치! 막타 현상금 +%d Gold 주입 (잔액: %.0f)"), 
 				*Killer->GetPlayerName(), *Victim->GetPlayerName(), BaseKillGold, KillerInv->GetGold());
 		}
@@ -407,6 +422,12 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 				{
 					AssisterInv->AddGold(static_cast<float>(AssistGoldEach));
                     
+					// [추가] 어시스트 한 챔피언 머리 위에도 골드 팝업!
+					if (ALoLCharacterBase* AssisterChampBase = Cast<ALoLCharacterBase>(AssisterPawn))
+					{
+						AssisterChampBase->Client_CreateFloatingText(AssistGoldEach, true);
+						
+					}
 					PRINTLOG_HJ(TEXT("[Champion Assist Gold] %s ➔ 처치 지원 보너스 +%d Gold 주입 (잔액: %.0f)"), 
 						*AssisterPS->GetPlayerName(), AssistGoldEach, AssisterInv->GetGold());
 				}
@@ -431,14 +452,20 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
     
     // [1] 경험치 정산 파트 (기존 코드 유지)
     if (!Nearby.IsEmpty())
-    {
+    {	
        float XPEach = Nearby.Num() == 1 ? UnitXP : UnitXP * Row->SharingMultiplier / Nearby.Num();
        for (ARiftPlayerState* PS : Nearby)
        {
           PS->AddXP(XPEach);
+
+          // [추가] 범위 내에서 경험치를 나눠 먹은 아군들 머리 위에 보라색 UI 팝업!
+          if (ALoLCharacterBase* AllyChamp = Cast<ALoLCharacterBase>(PS->GetPawn()))
+          {
+	          AllyChamp->Client_CreateFloatingText(FMath::RoundToInt(XPEach), false);
+          }
        }
     }
-
+	
     // 골드 정산 파트 (구조체 필드 및 글로벌 골드 규칙 완벽 매칭)
     if (IsValid(DamageInstigator))
     {
@@ -514,7 +541,10 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
                 if (FinalLastHitGold > 0)
                 {
                     InvComp->AddGold(static_cast<float>(FinalLastHitGold));
-                    PRINTLOG_HJ(TEXT("[Reward System] %s 막타 보상 ➔ +%d Gold 주입 완료 (현재 보유: %.0f)"), 
+                	// [추가] 미니언/타워 막타 챙긴 챔피언 머리 위에 노란색 골드 팝업!
+                	KillerChamp->Client_CreateFloatingText(FinalLastHitGold, true);
+                	
+                	PRINTLOG_HJ(TEXT("[Reward System] %s 막타 보상 ➔ +%d Gold 주입 완료 (현재 보유: %.0f)"), 
                         *UnitRowName.ToString(), FinalLastHitGold, InvComp->GetGold());
                 }
 
@@ -534,6 +564,12 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
                                     {
                                         AlliedInv->AddGold(static_cast<float>(FinalGlobalGold));
                                         
+                                    	// [추가] 구조물 글로벌 보너스 골드를 받은 멀리 있는 팀원들에게도 노란색 골드 팝업!
+                                    	if (ALoLCharacterBase* AlliedChampBase = Cast<ALoLCharacterBase>(AlliedPawn))
+                                    	{
+                                    		AlliedChampBase->Client_CreateFloatingText(FinalGlobalGold, true);
+                                    		
+                                    	}
                                         PRINTLOG_HJ(TEXT("[Global Reward] 구조물 파괴 보너스 ➔ %s 플레이어에게 +%d 글로벌 골드 지급 완료!"), 
                                             *RPS->GetPlayerName(), FinalGlobalGold);
                                     }
@@ -545,6 +581,7 @@ void ARiftGameMode::OnUnitKilled(FName UnitRowName, FVector KillLocation, ETeam 
             }
         }
     }
+	
 }
 
 float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 VictimLevel)
