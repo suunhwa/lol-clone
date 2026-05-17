@@ -144,8 +144,15 @@ void ULoLSessionSubsystem::FindOtherSessions()
 	bIsOperationPending = true;
 
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	
+	IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get();
+	const FName SubsystemName = Subsystem ? Subsystem->GetSubsystemName() : NAME_None;
 
-	const bool bIsLAN = IOnlineSubsystem::Get()->GetSubsystemName() == FName("NULL");
+	PRINTLOG_SH(TEXT("FindOtherSessions: Subsystem=%s"), *SubsystemName.ToString());
+
+	const bool bIsLAN = SubsystemName == FName("NULL");
+
+	// const bool bIsLAN = IOnlineSubsystem::Get()->GetSubsystemName() == FName("NULL");
 	SessionSearch->bIsLanQuery = bIsLAN;
 	SessionSearch->MaxSearchResults = 10;
 
