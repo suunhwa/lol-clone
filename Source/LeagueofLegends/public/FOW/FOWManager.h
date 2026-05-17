@@ -122,6 +122,8 @@ public:
 	virtual void PostInitializeComponents() override;
 
 protected:
+	void BroadcastFOWReadyIfValid();
+	bool IsLocalTileMapReady() const;
 	virtual void BeginPlay() override;
 
 public:

@@ -70,8 +70,18 @@ void UMainHUDWidget::InitHUD(ALoLChampion* Champion, ARiftPlayerState* PS, ARift
 		{
 			WBP_Minimap->SetLocalTileMap(LocalTileMap);
 		}
+		
+		// 1) 이미 준비됐으면 즉시 적용
+		if (LocalTileMap && LocalTileMap->GetFogTexture())
+		{
+			if (WBP_Minimap)
+			{
+				WBP_Minimap->SetMinimapFOWTexture(LocalTileMap->GetFogTexture());
+			}
+		}
 
-		FOW->OnFOWReady.AddLambda([this](UTexture2D* Tex)
+		// 2) 아직 안 됐거나, 팀이 나중에 정정될 경우 대비해 바인딩도 같이
+		FOW->OnFOWReady.AddWeakLambda(this, [this](UTexture2D* Tex)
 		{
 			if (WBP_Minimap && Tex)
 			{

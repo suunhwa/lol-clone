@@ -3,6 +3,7 @@
 #include "EngineUtils.h"
 #include "Characters/LoLCharacterBase.h"
 #include "FOW/FOWManager.h"
+#include "GameFramework/RiftPlayerState.h"
 #include "Net/UnrealNetwork.h"
 
 ARiftGameState::ARiftGameState()
@@ -85,6 +86,31 @@ int32 ARiftGameState::GetTeamGold(ETeam Team) const
 	return 0;
 }
 
+void ARiftGameState::SetFOWManager(AFOWManager* Manager)
+{
+	FOWManager = Manager;
+	
+	// SightProvider 등록
+	for (TActorIterator<ALoLCharacterBase> It(GetWorld()); It; ++It)
+	{
+		FOWManager->RegisterSightProvider(*It);
+	}
+	
+	// FOWManager가 늦게 들어왔을 때, 이미 PlayerState에 Team이 있다면 즉시 푸시
+	if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
+	{
+		if (ARiftPlayerState* PS = LocalPC->GetPlayerState<ARiftPlayerState>())
+		{
+			if (PS->GetTeam() != ETeam::None)
+			{
+				const ERiftSightTag Tag = (PS->GetTeam() == ETeam::Blue) 
+					? ERiftSightTag::Blue : ERiftSightTag::Red;
+				Manager->SetLocalClientTeam(Tag);
+			}
+		}
+	}
+}
+
 void ARiftGameState::OnRep_CurrentPhase()
 {
 	HandlePhaseChanged();
@@ -108,5 +134,19 @@ void ARiftGameState::OnRep_FOWManager()
 	for (TActorIterator<ALoLCharacterBase> It(GetWorld()); It; ++It)
 	{
 		FOWManager->RegisterSightProvider(*It);
+	}
+	
+	// OnRep_Team이 먼저 왔을 때를 대비: FOWManager 복제 시점에 팀 재푸시
+	if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
+	{
+		if (ARiftPlayerState* PS = LocalPC->GetPlayerState<ARiftPlayerState>())
+		{
+			if (PS->GetTeam() != ETeam::None)
+			{
+				const ERiftSightTag Tag = (PS->GetTeam() == ETeam::Blue)
+					? ERiftSightTag::Blue : ERiftSightTag::Red;
+				FOWManager->SetLocalClientTeam(Tag);
+			}
+		}
 	}
 }

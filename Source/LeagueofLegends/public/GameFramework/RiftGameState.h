@@ -38,9 +38,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	AFOWManager* GetFOWManager() const { return FOWManager; }
 	UFUNCTION(BlueprintCallable)
-	void SetFOWManager(AFOWManager* Manager) { FOWManager = Manager; }
+	void SetFOWManager(AFOWManager* Manager);
 
-	
+
 	// 타워가 깨지거나 억제기가 재생성될 때 호출될 이벤트
 	UPROPERTY(BlueprintAssignable, Category = "GameEvents")
 	FOnStructureStateChanged OnStructureStateChanged;

@@ -33,6 +33,23 @@ void AFOWManager::PostInitializeComponents()
 	}
 }
 
+void AFOWManager::BroadcastFOWReadyIfValid()
+{
+	if (AFOWTileMap* LocalTileMap = GetLocalTileMap())
+	{
+		if (UTexture2D* Tex = LocalTileMap->GetFogTexture())
+		{
+			OnFOWReady.Broadcast(Tex);
+		}
+	}
+}
+
+bool AFOWManager::IsLocalTileMapReady() const
+{
+	AFOWTileMap* TM = GetLocalTileMap();
+	return TM && TM->GetFogTexture() != nullptr;
+}
+
 // Called when the game starts or when spawned
 void AFOWManager::BeginPlay()
 {
@@ -58,27 +75,24 @@ void AFOWManager::BeginPlay()
 	{
 		if (HasAuthority()) // 서버는 양쪽 타일맵 모두 생성
 		{
-			// 호스트 팀 → 렌더링 리소스 포함, 상대 팀 → 타일 데이터만
-			if (LocalClientTeam == ERiftSightTag::Red)
-			{
-				RedTileMap->Generate(FOWVolume, false);  // 비주얼 O
-				BlueTileMap->Generate(FOWVolume, true);   // 타일만
-			}
-			else
-			{
-				RedTileMap->Generate(FOWVolume, true);
-				BlueTileMap->Generate(FOWVolume, false);
-			}
+			// 서버는 양 팀 TileMap 모두 즉시 생성 (시야 판정용)
+			// 호스트의 LocalClientTeam은 GameMode/Lobby에서 미리 세팅돼 있어야 함
+			const bool bHostIsRed = (LocalClientTeam == ERiftSightTag::Red);
+        
+			RedTileMap->Generate(FOWVolume, /*bServerOnly=*/!bHostIsRed);
+			BlueTileMap->Generate(FOWVolume, /*bServerOnly=*/bHostIsRed);
+
+			BroadcastFOWReadyIfValid();
 		}
 		else
 		{
-			if (LocalClientTeam == ERiftSightTag::Red)
+			// 클라이언트는 BeginPlay 시점에 Generate 시도하지 않음
+			// OnRep_Team 또는 SetFOWManager의 역방향 트리거가 SetLocalClientTeam을 호출하면 그때 Generate
+			// 만약 이미 BeginPlay 전에 OnRep_Team이 발화했다면 SetLocalClientTeam에서 Generate 완료된 상태일 수 있음
+			if (LocalClientTeam != ERiftSightTag::None && !IsLocalTileMapReady())
 			{
-				RedTileMap->Generate(FOWVolume);
-			}
-			else
-			{
-				BlueTileMap->Generate(FOWVolume);
+				GetLocalTileMap()->Generate(FOWVolume, /*bServerOnly=*/false);
+				BroadcastFOWReadyIfValid();
 			}
 		}
 	}
@@ -87,14 +101,6 @@ void AFOWManager::BeginPlay()
 	// 현재 playerPawn을 TestActor로 할당
 	TestActor = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 #endif
-	
-	if (AFOWTileMap* LocalTileMap = GetLocalTileMap())
-	{
-		if (UTexture2D* Tex = LocalTileMap->GetFogTexture())
-		{
-			OnFOWReady.Broadcast(Tex);
-		}
-	}
 }
 
 void AFOWManager::Tick(float DeltaTime)
@@ -127,14 +133,15 @@ void AFOWManager::Tick(float DeltaTime)
 	}
 	else
 	{
-		if (LocalClientTeam == ERiftSightTag::Red)
+		if (LocalClientTeam == ERiftSightTag::None || !IsLocalTileMapReady())
 		{
-			UpdateFOV(RedTileMap, RedSightProviders, true);
+			return;
 		}
-		else
-		{
-			UpdateFOV(BlueTileMap, BlueSightProviders, true);
-		}
+    
+		AFOWTileMap* LocalTM = GetLocalTileMap();
+		TArray<TScriptInterface<ISightProvider>>& Providers = 
+			(LocalClientTeam == ERiftSightTag::Red) ? RedSightProviders : BlueSightProviders;
+		UpdateFOV(LocalTM, Providers, true);
 	}
 #endif
 }
@@ -375,32 +382,30 @@ AFOWTileMap* AFOWManager::GetLocalTileMap() const
 
 void AFOWManager::SetLocalClientTeam(ERiftSightTag InTeam)
 {
-	if (LocalClientTeam == InTeam) { return; }
+	// 유효하지 않은 팀 무시
+	if (InTeam == ERiftSightTag::None) { return; }
+    
+	// 이미 같은 팀으로 세팅됐고 TileMap도 준비됐으면 무시 (중복 호출 방지)
+	if (LocalClientTeam == InTeam && IsLocalTileMapReady())
+	{
+		return;
+	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[FOWManager] SetLocalClientTeam %d → %d"), (int32)LocalClientTeam, (int32)InTeam);
+	PRINTLOG_TK(TEXT("[FOWManager] SetLocalClientTeam %d → %d"), (int32)LocalClientTeam, (int32)InTeam);
+    
 	LocalClientTeam = InTeam;
 
-	// 클라이언트: 이미 잘못된 팀으로 TileMap이 생성됐으므로 올바른 팀으로 재생성
+	// 서버는 이미 BeginPlay에서 Generate 완료. 클라이언트만 여기서 Generate.
 	if (!HasAuthority() && FOWVolume)
 	{
-		if (LocalClientTeam == ERiftSightTag::Red)
+		AFOWTileMap* TargetTileMap = GetLocalTileMap();
+		if (TargetTileMap)
 		{
-			RedTileMap->Generate(FOWVolume);
-		}
-		
-		else
-		{
-			BlueTileMap->Generate(FOWVolume);
-		}
-		
-		if (AFOWTileMap* LocalTileMap = GetLocalTileMap())
-		{
-			if (UTexture2D* Tex = LocalTileMap->GetFogTexture())
-			{
-				OnFOWReady.Broadcast(Tex);
-			}
+			TargetTileMap->Generate(FOWVolume, /*bServerOnly=*/false);
 		}
 	}
+
+	BroadcastFOWReadyIfValid();
 }
 
 

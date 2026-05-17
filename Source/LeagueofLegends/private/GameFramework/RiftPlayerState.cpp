@@ -3,6 +3,8 @@
 #include "LeagueofLegends.h"
 #include "Characters/LoLCharacterBase.h"
 #include "Components/StatComponent.h"
+#include "FOW/FOWManager.h"
+#include "GameFramework/RiftGameState.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
@@ -199,6 +201,20 @@ void ARiftPlayerState::OnRep_Team()
 		if (ALoLCharacterBase* Char = Cast<ALoLCharacterBase>(Pawn))
 		{
 			Char->RefreshHUDDisplay();
+		}
+	}
+	
+	// 로컬 플레이어의 PlayerState일 때만 FOWManager에 통보
+	APlayerController* PC = Cast<APlayerController>(GetOwner());
+	if (!PC || !PC->IsLocalController()) { return; }
+
+	if (ARiftGameState* GS = GetWorld()->GetGameState<ARiftGameState>())
+	{
+		if (AFOWManager* FOW = GS->GetFOWManager())
+		{
+			const ERiftSightTag Tag = (Team == ETeam::Blue) 
+				? ERiftSightTag::Blue : ERiftSightTag::Red;
+			FOW->SetLocalClientTeam(Tag);
 		}
 	}
 }
