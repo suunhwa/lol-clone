@@ -144,7 +144,14 @@ protected:
 
 public:
 	bool bCameraLocked = false;
-	bool bCameraInitialized = false; // 클라이언트 카메라 초기 스냅 완료 여부
+	bool bCameraInitialized = false;
+
+	// 클릭 이동 (Nav Mesh 경로 → AddMovementInput으로 구동)
+	TArray<FVector> MovePath;
+	int32 MovePathIndex = 0;
+	bool bHasMoveTarget = false;
+	FVector MoveTargetLocation = FVector::ZeroVector;
+	static constexpr float MoveAcceptanceRadius = 80.f;
 
 	// y키
 	// 고정시점

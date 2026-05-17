@@ -12,6 +12,8 @@
 #include "GameFramework/RiftPlayerState.h"
 #include "GameFramework/RiftHUD.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "NavigationSystem.h"
+#include "NavigationPath.h"
 #include "Components/CombatComponent.h"
 #include "Components/StatComponent.h"
 #include "GameFramework/LoLGameInstance.h"
@@ -143,6 +145,28 @@ void ARiftPlayerController::Tick(float DeltaTime)
 			Cam->CurrentCameraLoc = ChampLoc;
 			bCameraInitialized = true;
 			PRINTLOG_SH(TEXT("[Camera] 스냅 완료 → %s"), *ChampLoc.ToString());
+		}
+	}
+
+	// 클릭 이동: Nav Mesh 경로 waypoint를 AddMovementInput으로 순서대로 추종
+	if (bHasMoveTarget && OwnedChamp && MovePath.IsValidIndex(MovePathIndex))
+	{
+		const FVector CurrentLoc = OwnedChamp->GetActorLocation();
+		const FVector WayPoint   = MovePath[MovePathIndex];
+		const FVector ToWP       = (WayPoint - CurrentLoc);
+		const float   Dist2D     = FVector::Dist2D(CurrentLoc, WayPoint);
+
+		if (Dist2D < MoveAcceptanceRadius)
+		{
+			MovePathIndex++;
+			if (MovePathIndex >= MovePath.Num())
+			{
+				bHasMoveTarget = false;
+			}
+		}
+		else
+		{
+			OwnedChamp->AddMovementInput(ToWP.GetSafeNormal2D());
 		}
 	}
 
@@ -332,10 +356,23 @@ void ARiftPlayerController::OnMove()
 		return;
 	}
 
-	// 클라이언트에서도 즉시 호출해서 CMC prediction이 서버와 일치하게 함
-	// (서버만 호출하면 클라이언트 prediction=0과 충돌해서 이동 안 됨)
-	OwnedChamp->StopAttackLoop();
-	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
+	if (OwnedChamp) OwnedChamp->StopAttackLoop();
+
+	// Nav Mesh로 경로 계산 후 waypoint 배열 저장
+	MoveTargetLocation = HitResult.ImpactPoint;
+	MovePath.Empty();
+	MovePathIndex = 0;
+	bHasMoveTarget = false;
+
+	UNavigationPath* NavPath = UNavigationSystemV1::FindPathToLocationSynchronously(
+		this, OwnedChamp->GetActorLocation(), HitResult.ImpactPoint, OwnedChamp);
+
+	if (NavPath && NavPath->PathPoints.Num() > 1)
+	{
+		MovePath = NavPath->PathPoints;
+		MovePathIndex = 1; // 첫 점은 현재 위치이므로 다음 점부터
+		bHasMoveTarget = true;
+	}
 
 	Server_MoveToLocation(HitResult.ImpactPoint);
 }
@@ -551,12 +588,25 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(AActor* Tar
 
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 {
-	PRINTLOG_SH(TEXT("[Server_Move] OwnedChamp=%s Loc=%s"), *GetNameSafe(OwnedChamp), *Loc.ToString());
+	if (OwnedChamp) OwnedChamp->StopAttackLoop();
+
+	MoveTargetLocation = Loc;
+	MovePath.Empty();
+	MovePathIndex = 0;
+	bHasMoveTarget = false;
+
 	if (OwnedChamp)
 	{
-		OwnedChamp->StopAttackLoop();
+		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToLocationSynchronously(
+			this, OwnedChamp->GetActorLocation(), Loc, OwnedChamp);
+
+		if (NavPath && NavPath->PathPoints.Num() > 1)
+		{
+			MovePath = NavPath->PathPoints;
+			MovePathIndex = 1;
+			bHasMoveTarget = true;
+		}
 	}
-	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Loc);
 }
 
 void ARiftPlayerController::Server_AssignSkillPoint_Implementation(ESkillSlot Slot)
