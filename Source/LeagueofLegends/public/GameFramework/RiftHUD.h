@@ -9,6 +9,7 @@ class UShopViewModel;
 class UShopWidget;
 class UMainHUDWidget;
 class UExitPopupWidget;
+class USkillBarWidget;
 class ALoLChampion;
 
 UCLASS()
@@ -26,6 +27,8 @@ public:
 
 	void ToggleShop();
 	void ToggleExitPopup();
+	void InitSpellSlots(ALoLChampion* Champion);
+	UMainHUDWidget* GetMainHUDWidget() const { return MainHUDWidget; }
 
 private:
 	void SetupMainHUD(ALoLChampion* Champion);
@@ -44,6 +47,7 @@ protected:
 	// Exit Popup
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UExitPopupWidget> ExitPopupClass;
+
 
 private:
 	UPROPERTY()

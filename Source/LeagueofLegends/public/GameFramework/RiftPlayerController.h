@@ -136,6 +136,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
 	TObjectPtr<UInputAction> IA_Exit;
 	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_Spell_D;
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_Spell_F;
+	
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
 	TObjectPtr<UInputAction> IA_LevelUp;
 
@@ -177,6 +183,14 @@ public:
 	void OnLeftClick();
 	void OnToggleShop();
 	void OnExit();
+	void OnSpellD();
+	void OnSpellF();
+
+	UFUNCTION(Server, Reliable)
+	void Server_CastSummonerSpell(int32 SlotIndex, FVector TargetLoc);
+
+	UFUNCTION(Client, Reliable)
+	void Client_OnSpellCast(int32 SlotIndex, float Cooldown);
 
 	bool bAKeyPressed = false;
 
@@ -191,6 +205,16 @@ public:
 
 	// 스킬 조준 상태 (-1 = 없음, 0=Q, 1=W, 2=E, 3=R)
 	int32 PendingSkillSlot = -1;
+
+	// 소환사 주문 데이터 테이블
+	UPROPERTY(EditDefaultsOnly, Category = "SummonerSpell")
+	TObjectPtr<UDataTable> SpellBaseTable;
+
+	UPROPERTY(EditDefaultsOnly, Category = "SummonerSpell")
+	TObjectPtr<UDataTable> SpellTargetingTable;
+
+	UPROPERTY(EditDefaultsOnly, Category = "SummonerSpell")
+	TObjectPtr<UDataTable> SpellSecondaryEffectTable;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Skill|Indicators")
 	TSubclassOf<AActor> CircleIndicatorClass;

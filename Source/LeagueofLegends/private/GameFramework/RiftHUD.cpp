@@ -8,6 +8,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Manager/ItemDataSubsystem.h"
 #include "UI/View/ExitPopupWidget.h"
+#include "UI/View/SkillBarWidget.h"
+#include "GameFramework/RiftPlayerState.h"
 #include "UI/View/InventoryWidget.h"
 #include "UI/View/MainHUDWidget.h"
 #include "UI/View/ShopWidget.h"
@@ -23,6 +25,7 @@ void ARiftHUD::InitHUD(ALoLChampion* Champion)
 	SetupMainHUD(Champion);
 	SetupShopMVVM(Champion);
 	SetupExitPopup();
+	InitSpellSlots(Champion);
 
 	// InventoryWidget 슬롯 클릭 → ShopWidget에 SelectedSlotIndex 전달
 	if (MainHUDWidget && ShopWidget)
@@ -40,6 +43,22 @@ void ARiftHUD::RefreshSkillIcons(ALoLChampion* Champion)
 	if (USkillBarWidget* Bar = MainHUDWidget->GetSkillBar())
 	{
 		Bar->RefreshIcons(Champion->GetChampionData());
+	}
+}
+
+void ARiftHUD::InitSpellSlots(ALoLChampion* Champion)
+{
+	// SkillBar 안의 Spell_D/Spell_F 위젯에 직접 초기화
+	if (!MainHUDWidget) { return; }
+
+	APlayerController* PC = GetOwningPlayerController();
+	ARiftPlayerState* PS = PC ? PC->GetPlayerState<ARiftPlayerState>() : nullptr;
+	if (!PS) { return; }
+
+	if (USkillBarWidget* Bar = MainHUDWidget->GetSkillBar())
+	{
+		UCooldownComponent* CD = Champion ? Champion->CooldownComp : nullptr;
+		Bar->InitSpellSlots(PS, CD);
 	}
 }
 

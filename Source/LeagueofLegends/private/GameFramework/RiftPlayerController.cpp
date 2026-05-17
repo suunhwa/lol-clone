@@ -18,6 +18,12 @@
 #include "Components/StatComponent.h"
 #include "GameFramework/LoLGameInstance.h"
 #include "GameFramework/RiftGameState.h"
+#include "Components/CooldownComponent.h"
+#include "Components/StatComponent.h"
+#include "Struct/SpellStruct.h"
+#include "UI/View/MainHUDWidget.h"
+#include "UI/View/SkillBarWidget.h"
+#include "UI/View/SpellSlotWidget.h"
 #include "Interfaces/Damageable.h"
 #include "Interfaces/Targetable.h"
 #include "Kismet/GameplayStatics.h"
@@ -341,6 +347,8 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_Shop, ETriggerEvent::Started, this, &ARiftPlayerController::OnToggleShop);
 
 	EIC->BindAction(IA_LevelUp, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddXP);
+	EIC->BindAction(IA_Spell_D, ETriggerEvent::Started, this, &ARiftPlayerController::OnSpellD);
+	EIC->BindAction(IA_Spell_F, ETriggerEvent::Started, this, &ARiftPlayerController::OnSpellF);
 }
 
 void ARiftPlayerController::OnCameraFocusHeld()
@@ -666,10 +674,182 @@ void ARiftPlayerController::Server_AddXP_Implementation()
 
 void ARiftPlayerController::Server_SelectSummonerSpells_Implementation(ESummonerSpell Spell1, ESummonerSpell Spell2)
 {
+	// TODO: 픽창 스펠 선택 UI 구현 후 주석 해제
+	// ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>();
+	// if (!PS) { return; }
+	// PS->SetSummonerSpells(Spell1, Spell2);
+}
+
+// ── 소환사 주문 ────────────────────────────────────────────────────────────
+
+void ARiftPlayerController::OnSpellD()
+{
+	if (!OwnedChamp) { return; }
+	FHitResult Hit;
+	GetHitResultUnderCursor(ECC_Visibility, false, Hit);
+	FVector TargetLoc = Hit.bBlockingHit ? Hit.ImpactPoint : OwnedChamp->GetActorLocation();
+	Server_CastSummonerSpell(0, TargetLoc);
+}
+
+void ARiftPlayerController::OnSpellF()
+{
+	if (!OwnedChamp) { return; }
+	FHitResult Hit;
+	GetHitResultUnderCursor(ECC_Visibility, false, Hit);
+	FVector TargetLoc = Hit.bBlockingHit ? Hit.ImpactPoint : OwnedChamp->GetActorLocation();
+	Server_CastSummonerSpell(1, TargetLoc);
+}
+
+void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIndex, FVector TargetLoc)
+{
+	if (!OwnedChamp) { return; }
+
 	ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>();
 	if (!PS) { return; }
 
-	PS->SetSummonerSpells(Spell1, Spell2);
+	ESummonerSpell Spell = (SlotIndex == 0) ? PS->GetSummonerSpell1() : PS->GetSummonerSpell2();
+	if (Spell == ESummonerSpell::None) { return; }
+
+	// 스펠별 쿨타임 (FindRow 불일치 우회용 하드코딩)
+	auto GetSpellCooldown = [](ESummonerSpell S) -> float {
+		switch (S) {
+		case ESummonerSpell::Flash:   return 300.f;
+		case ESummonerSpell::Heal:    return 240.f;
+		case ESummonerSpell::Ignite:  return 180.f;
+		case ESummonerSpell::Ghost:   return 210.f;
+		case ESummonerSpell::Exhaust: return 210.f;
+		case ESummonerSpell::Cleanse: return 210.f;
+		default: return 300.f;
+		}
+	};
+
+	const FName SpellRowName = FName(*UEnum::GetValueAsString(Spell).Replace(TEXT("ESummonerSpell::"), TEXT("")));
+
+	UCooldownComponent* CD = OwnedChamp->CooldownComp;
+	const FName CoolTag = FName(*FString::Printf(TEXT("SummonerSpell.%d"), SlotIndex));
+	if (CD && CD->IsOnCooldown(CoolTag)) { return; }
+
+	// 1단계: SpellBase 조회 (하드코딩 쿨타임 + 데이터 테이블 보조)
+	float Cooldown       = GetSpellCooldown(Spell); // 확실한 쿨타임
+	float Range          = 400.f;
+	float BaseValue      = 0.f;
+	float ValueGrowth    = 0.f;
+	FString TargetLogicID;
+	FString EffectTag;
+
+	if (SpellBaseTable)
+	{
+		if (const FSpellBaseRow* Row = SpellBaseTable->FindRow<FSpellBaseRow>(SpellRowName, TEXT("")))
+		{
+			Range         = Row->Range;
+			BaseValue     = Row->BaseValue;
+			ValueGrowth   = Row->ValueGrowth;
+			TargetLogicID = Row->TargetLogic_ID;
+			EffectTag     = Row->EffectTag;
+		}
+	}
+
+	// 레벨 보정 (PlayerState ChampionLevel 기준)
+	const int32 Level = PS->GetChampionLevel();
+	const float FinalValue = BaseValue + ValueGrowth * FMath::Max(Level - 1, 0);
+
+	// 2단계: SpellTargeting 조회 (TargetLogicID 키 사용)
+	float SearchRadius = Range;
+	bool  bAffectsAlly = false;
+	int32 MaxTarget    = 1;
+
+	if (SpellTargetingTable && !TargetLogicID.IsEmpty())
+	{
+		if (const FSpellTargetingRow* Row = SpellTargetingTable->FindRow<FSpellTargetingRow>(FName(*TargetLogicID), TEXT("")))
+		{
+			bAffectsAlly = Row->AffectsAlly;
+			MaxTarget    = Row->MaxTarget;
+			SearchRadius = (Row->SearchRadius > 0) ? (float)Row->SearchRadius : Range;
+		}
+	}
+
+	// 3단계: SpellSecondaryEffect 조회 (EffectTag 키 사용)
+	float SecondaryValue = 0.f;
+
+	if (SpellSecondaryEffectTable && !EffectTag.IsEmpty())
+	{
+		if (const FSpellSecondaryEffectRow* Row = SpellSecondaryEffectTable->FindRow<FSpellSecondaryEffectRow>(FName(*EffectTag), TEXT("")))
+		{
+			SecondaryValue = Row->SecondaryValue;
+		}
+	}
+
+	switch (Spell)
+	{
+	case ESummonerSpell::Flash:
+	{
+		// Range = 최대 블링크 거리
+		FVector Dir  = (TargetLoc - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
+		float    Dist = FVector::Dist2D(OwnedChamp->GetActorLocation(), TargetLoc);
+		FVector  Dest = OwnedChamp->GetActorLocation() + Dir * FMath::Min(Dist, Range);
+		OwnedChamp->TeleportTo(Dest, OwnedChamp->GetActorRotation());
+		break;
+	}
+	case ESummonerSpell::Heal:
+	{
+		// 자신 회복 (레벨 보정 적용)
+		if (OwnedChamp->StatComp)
+		{
+			OwnedChamp->StatComp->ApplyHealthChange(FinalValue);
+		}
+		// 주변 아군 챔피언 회복 (SecondaryValue = 아군 회복 비율)
+		if (bAffectsAlly)
+		{
+			const float AllyHeal = (SecondaryValue > 0.f) ? FinalValue * SecondaryValue : FinalValue * 0.3f;
+			int32 HealedAllies = 0;
+
+			TArray<AActor*> Actors;
+			UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UTargetable::StaticClass(), Actors);
+			// 가장 HP가 낮은 아군 우선 (Logic_HealPriority)
+			Actors.Sort([](const AActor& A, const AActor& B)
+			{
+				UStatComponent* SA = A.FindComponentByClass<UStatComponent>();
+				UStatComponent* SB = B.FindComponentByClass<UStatComponent>();
+				float RatioA = SA ? SA->GetCurrentHP() / FMath::Max(SA->GetMaxHP(), 1.f) : 1.f;
+				float RatioB = SB ? SB->GetCurrentHP() / FMath::Max(SB->GetMaxHP(), 1.f) : 1.f;
+				return RatioA < RatioB;
+			});
+
+			for (AActor* Actor : Actors)
+			{
+				if (HealedAllies >= MaxTarget - 1) { break; } // -1: 자신 제외
+				if (Actor == OwnedChamp) { continue; }
+				if (ITargetable::Execute_GetTeam(Actor) != OwnedChamp->GetTeam_Implementation()) { continue; }
+				if (ITargetable::Execute_GetUnitType(Actor) != EUnitType::Champion) { continue; }
+				if (FVector::Dist2D(Actor->GetActorLocation(), OwnedChamp->GetActorLocation()) > SearchRadius) { continue; }
+				if (UStatComponent* SC = Actor->FindComponentByClass<UStatComponent>())
+				{
+					SC->ApplyHealthChange(AllyHeal);
+					HealedAllies++;
+				}
+			}
+		}
+		break;
+	}
+	default: break;
+	}
+
+	if (CD) { CD->StartCooldown(CoolTag, Cooldown); }
+
+	// 클라이언트 UI에 쿨타임 알림
+	Client_OnSpellCast(SlotIndex, Cooldown);
+}
+
+void ARiftPlayerController::Client_OnSpellCast_Implementation(int32 SlotIndex, float Cooldown)
+{
+	ARiftHUD* HUD = GetHUD<ARiftHUD>();
+	if (!HUD) { return; }
+
+	USkillBarWidget* Bar = HUD->GetMainHUDWidget() ? HUD->GetMainHUDWidget()->GetSkillBar() : nullptr;
+	if (!Bar) { return; }
+
+	USpellSlotWidget* Slot = (SlotIndex == 0) ? Bar->GetSpellD() : Bar->GetSpellF();
+	if (Slot) { Slot->TriggerCooldown(Cooldown); }
 }
 
 void ARiftPlayerController::Server_SelectLane_Implementation(ELane Lane)
