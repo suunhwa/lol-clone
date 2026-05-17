@@ -5,10 +5,13 @@
 #include "SkillBarWidget.generated.h"
 
 class USkillSlotWidget;
+class USpellSlotWidget;
 class UImage;
 class UTextBlock;
 class UChampionData;
 class USkillBarViewModel;
+class ARiftPlayerState;
+class UCooldownComponent;
 
 // WBP_SkillBar의 C++ 부모 클래스
 UCLASS()
@@ -21,6 +24,9 @@ public:
 
 	void RefreshIcons(UChampionData* Data);
 	void RefreshSkillLevelUpButtons();
+	void InitSpellSlots(ARiftPlayerState* PS, UCooldownComponent* CD);
+	USpellSlotWidget* GetSpellD() const { return Spell_D; }
+	USpellSlotWidget* GetSpellF() const { return Spell_F; }
 
 private:
 	UFUNCTION()
@@ -51,6 +57,12 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USkillSlotWidget> Slot_R;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USpellSlotWidget> Spell_D;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USpellSlotWidget> Spell_F;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> Img_HP;

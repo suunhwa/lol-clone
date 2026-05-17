@@ -57,6 +57,8 @@ public:
 
 	ETeam GetTeam() const { return Team; }
 	ELane GetLane() const { return Lane; }
+	ESummonerSpell GetSummonerSpell1() const { return SummonerSpell1; }
+	ESummonerSpell GetSummonerSpell2() const { return SummonerSpell2; }
 	int32 GetKills() const { return Kills; }
 	int32 GetDeaths() const { return Deaths; }
 	int32 GetAssists() const { return Assists; }
@@ -75,11 +77,12 @@ private:
 	UPROPERTY(Replicated)
 	ELane Lane = ELane::None;
 
+	// 픽창 선택 로직 구현 전 임시 기본값: D=Heal, F=Flash
 	UPROPERTY(Replicated)
-	ESummonerSpell SummonerSpell1 = ESummonerSpell::None;
+	ESummonerSpell SummonerSpell1 = ESummonerSpell::Heal;
 
 	UPROPERTY(Replicated)
-	ESummonerSpell SummonerSpell2 = ESummonerSpell::None;
+	ESummonerSpell SummonerSpell2 = ESummonerSpell::Flash;
 
 	UPROPERTY(Replicated)
 	int32 Kills = 0;

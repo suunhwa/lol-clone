@@ -6,8 +6,11 @@
 #include "Characters/Data/ChampionData.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "UI/View/SkillSlotWidget.h"
+#include "UI/View/SpellSlotWidget.h"
+#include "Components/CooldownComponent.h"
 #include "UI/ViewModel/SkillBarViewModel.h"
 #include "Components/StatComponent.h"
+#include "GameFramework/RiftPlayerState.h"
 
 void USkillBarWidget::BindViewModel(UViewModelBase* InViewModel)
 {
@@ -160,6 +163,13 @@ void USkillBarWidget::OnLevelChanged(int32 /*NewLevel*/)
 void USkillBarWidget::OnRankChanged()
 {
 	RefreshSkillLevelUpButtons();
+}
+
+void USkillBarWidget::InitSpellSlots(ARiftPlayerState* PS, UCooldownComponent* CD)
+{
+	if (!PS) { return; }
+	if (Spell_D) { Spell_D->InitSlot(0, PS->GetSummonerSpell1()); }
+	if (Spell_F) { Spell_F->InitSlot(1, PS->GetSummonerSpell2()); }
 }
 
 void USkillBarWidget::RefreshIcons(UChampionData* Data)

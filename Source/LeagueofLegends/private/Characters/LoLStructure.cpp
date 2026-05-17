@@ -149,9 +149,15 @@ void ALoLStructure::ReceiveDamage_Implementation(float Amount, EDamageType Damag
         PRINTLOG_HJ(TEXT("[%d] 무적 상태! 상위 오브젝트를 먼저 파괴하세요."), ObjectID);
         return;
     }
-    
+    // 데미지를 적용하기 전에 무조건 가해자부터 변수에 확실하게 가둬둡니다!!
+    LastDamageInstigator = DamageInstigator;
     PRINTLOG_HJ(TEXT("[포탑 피격] %s로부터 %.1f 대미지 전달됨!"), DamageInstigator ? *DamageInstigator->GetName() : TEXT("Unknown"), Amount);
+    
+    // 포탑이 부서지기 직전, 현재 타격을 준 가해자를 멤버 변수에 박아둡니다.
+    LastDamageInstigator = DamageInstigator;
+    
     ObjectStatComp->ApplyDamage(Amount);
+    // 체력이 다 달았다면 OnDestroyed() 호출
     if (ObjectStatComp->IsDead()) OnDestroyed();
 }
 
@@ -161,7 +167,10 @@ ETeam ALoLStructure::GetTeam_Implementation() const { return TagComp->GetTeam();
 
 EUnitType ALoLStructure::GetUnitType_Implementation() const
 {
-    return TagComp->GetUnitType();
+    if (ObjectID >= 11001 && ObjectID <= 11004) return EUnitType::Tower;
+    if (ObjectID == 11101) return EUnitType::Inhibitor;
+    if (ObjectID == 11111) return EUnitType::Nexus;
+    return EUnitType::Tower;
 }
 
 void ALoLStructure::RefreshVulnerability()
@@ -291,15 +300,17 @@ void ALoLStructure::OnDestroyed()
             // 3. 미니언과 완벽히 동일한 범용 RiftGameMode 파이프라인으로 토스!
             // 구조물의 위치(GetActorLocation)를 기점으로 주변 RewardWinnerTeam의 플레이어들을 찾아 1/N 쪼개줍니다.
             FVector StructureLocation = GetActorLocation();
-            GM->OnUnitKilled(RewardRowName, StructureLocation, RewardWinnerTeam);
+            GM->OnUnitKilled(RewardRowName, StructureLocation, RewardWinnerTeam, LastDamageInstigator.Get());
 
-            PRINTLOG_HJ(TEXT("[Structure Reward] ID:%d (%s) 파괴됨 ➔ %s 팀에게 경험치 보상 지급 처리 요청 완료!"), 
-                ObjectID, *RewardRowName.ToString(), RewardWinnerTeam == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+            PRINTLOG_HJ(TEXT("[Structure Reward] ID:%d (%s) 파괴됨 ➔ 막타 가해자: %s ➔ %s 팀 정산 처리!"), 
+                ObjectID, *RewardRowName.ToString(), 
+                LastDamageInstigator ? *LastDamageInstigator->GetName() : TEXT("Unknown"),
+                RewardWinnerTeam == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
         }
     }
+    // 정산이 끝났으므로 가해자 포인터 변수 깔끔하게 비우기    
+    LastDamageInstigator = nullptr;
     // =========================================================================
-    
-    
     
     // 포탑 파괴 시 인디케이터 즉시 제거 및 타이머 중지
     GetWorldTimerManager().ClearTimer(ProximityTimerHandle);

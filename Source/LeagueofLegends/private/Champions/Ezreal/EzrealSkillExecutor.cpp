@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Champions/Ezreal/EzrealSkillExecutor.h"
+#include "Components/CapsuleComponent.h"
 
 #include "LeagueofLegends.h"
 #include "DrawDebugHelpers.h"
@@ -102,13 +103,6 @@ void UEzrealSkillExecutor::Execute(ESkillSlot Slot, FVector TargetLoc)
 // Q
 void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 {
-	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
-
-	if (Data && Data->QSkillMontage)
-	{
-		OwnerChar->Multicast_PlayMontage(Data->QSkillMontage);
-	}
-
 	UChampionDataSubsystem* Sub = GetDataSub();
 	const FDetailSkillStatsRow* Stats = Sub
 		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("Q"), GetRank(ESkillSlot::Q))
@@ -116,6 +110,19 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 
 	const float ManaCost = Stats ? Stats->Cost : 28.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 5.5f;
+
+	if (StatComp && StatComp->GetCurrentMana() < ManaCost)
+	{
+		PRINTLOG_SH(TEXT("[Q] 마나 부족 (현재:%.0f 필요:%.0f)"), StatComp->GetCurrentMana(), ManaCost);
+		return;
+	}
+
+	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
+
+	if (Data && Data->QSkillMontage)
+	{
+		OwnerChar->Multicast_PlayMontage(Data->QSkillMontage);
+	}
 
 	if (StatComp)
 	{
@@ -144,6 +151,12 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 
 	// Q는 타워/구조물에 피해를 주지 않음
 	if (Proj) { Proj->bCanDamageStructures = false; }
+
+	// W 마크 대상 적중 시 마크 소비 (실제 롤과 동일)
+	if (Proj && WMarkTarget.IsValid())
+	{
+		Proj->OnHitDelegate.BindUObject(this, &UEzrealSkillExecutor::OnWMarkConsumed);
+	}
 
 	if (Proj && Q_MuzzleEffect)
 	{
@@ -184,9 +197,6 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 // W — 자체 데미지 없음. 챔피언/타워 적중 시 고리(마크) 적용. 이후 평타로 마크 소비 시 실제 데미지
 void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 {
-	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
-	PlayMontage(Data ? Data->WSkillMontage : nullptr);
-
 	UChampionDataSubsystem* Sub = GetDataSub();
 	const FDetailSkillStatsRow* Stats = Sub
 		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("W"), GetRank(ESkillSlot::W))
@@ -195,6 +205,15 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 	const float ManaCost = Stats ? Stats->Cost : 50.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 12.f;
 	const float BonusDmg = Stats ? ComputeScaledDamage(*Stats, StatComp) : 80.f;
+
+	if (StatComp && StatComp->GetCurrentMana() < ManaCost)
+	{
+		PRINTLOG_SH(TEXT("[W] 마나 부족 (현재:%.0f 필요:%.0f)"), StatComp->GetCurrentMana(), ManaCost);
+		return;
+	}
+
+	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
+	PlayMontage(Data ? Data->WSkillMontage : nullptr);
 
 	if (StatComp) { StatComp->ApplyManaCost(ManaCost); }
 	if (CooldownComp) { CooldownComp->StartCooldown(TEXT("Skill.W"), Cooldown); }
@@ -212,7 +231,7 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 
 	if (WProj)
 	{
-		// 마크에 사용할 보너스 데미지를 캡처해서 피격 콜백에 전달
+		WProjectile = WProj;
 		const float CapturedBonusDmg = BonusDmg;
 		WProj->OnHitDelegate.BindUObject(this, &UEzrealSkillExecutor::OnWProjectileHit);
 		WMarkBonusDamage = CapturedBonusDmg;
@@ -239,6 +258,79 @@ void UEzrealSkillExecutor::SetWMark(AActor* Target, float BonusDamage)
 	WMarkTarget = Target;
 	WMarkBonusDamage = BonusDamage;
 
+	// 이전 마크 이펙트 정리 (중복 방지)
+	if (WMarkEffectComp)
+	{
+		WMarkEffectComp->DestroyComponent();
+		WMarkEffectComp = nullptr;
+	}
+
+	// 대상 몸에 이펙트 부착
+	if (W_MarkEffect && Target)
+	{
+		USceneComponent* AttachTarget = nullptr;
+
+		// 챔피언/미니언: 스켈레탈 메시에 붙여야 몸을 따라다님
+		if (USkeletalMeshComponent* Mesh = Target->FindComponentByClass<USkeletalMeshComponent>())
+		{
+			AttachTarget = Mesh;
+		}
+		else
+		{
+			AttachTarget = Target->GetRootComponent();
+		}
+
+		if (AttachTarget)
+		{
+			float TargetRadius = 42.f;
+			FVector EffectWorldLoc = Target->GetActorLocation();
+
+			if (UCapsuleComponent* Capsule = Target->FindComponentByClass<UCapsuleComponent>())
+			{
+				TargetRadius = Capsule->GetScaledCapsuleRadius();
+				EffectWorldLoc = Capsule->GetComponentLocation();
+				EffectWorldLoc.Z += W_MarkEffectZOffset_Champion;
+
+				PRINTLOG_SH(TEXT("[W Mark Champ] CapsuleLoc.Z=%.1f HalfH=%.1f FinalZ=%.1f"),
+				            Capsule->GetComponentLocation().Z,
+				            Capsule->GetScaledCapsuleHalfHeight(),
+				            EffectWorldLoc.Z);
+			}
+			else
+			{
+				// 타워: GetActorBounds의 Origin이 바운딩박스 중심
+				FVector Origin, Extent;
+				Target->GetActorBounds(true, Origin, Extent);
+				TargetRadius = FMath::Max(Extent.X, Extent.Y);
+				EffectWorldLoc = Origin;
+				EffectWorldLoc.Z += W_MarkEffectZOffset_Tower;
+
+				PRINTLOG_SH(TEXT("[W Mark] OriginZ=%.1f ExtentZ=%.1f FinalZ=%.1f"),
+				            Origin.Z, Extent.Z, EffectWorldLoc.Z);
+			}
+
+			WMarkEffectComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+				W_MarkEffect,
+				AttachTarget,
+				NAME_None,
+				FVector::ZeroVector,
+				FRotator::ZeroRotator,
+				EAttachLocation::SnapToTarget,
+				true);
+
+			if (WMarkEffectComp)
+			{
+				const float Scale = (TargetRadius / 42.f) * W_MarkEffectScale;
+				WMarkEffectComp->SetWorldScale3D(FVector(Scale));
+				WMarkEffectComp->SetWorldLocation(EffectWorldLoc);
+
+				PRINTLOG_SH(TEXT("[W Mark] SetWorldLocation 요청=%.1f / 실제 컴포넌트Z=%.1f"),
+				            EffectWorldLoc.Z,
+				            WMarkEffectComp->GetComponentLocation().Z);
+			}
+		}
+	}
+
 	// 마크 지속 4초 후 자동 소멸
 	if (OwnerChar)
 	{
@@ -255,9 +347,15 @@ void UEzrealSkillExecutor::ClearWMark()
 	{
 		OwnerChar->GetWorldTimerManager().ClearTimer(WMarkExpireTimer);
 	}
+
+	if (WMarkEffectComp)
+	{
+		WMarkEffectComp->DestroyComponent();
+		WMarkEffectComp = nullptr;
+	}
 }
 
-// W 발사체가 적에게 적중했을 때 — 챔피언/타워에만 마크 적용, 미니언은 무시
+// W 발사체가 적에게 적중했을 때 — 챔피언/타워에만 마크 적용 후 발사체 소멸, 미니언은 무시하고 통과
 void UEzrealSkillExecutor::OnWProjectileHit(AActor* Target)
 {
 	if (!Target || !Target->GetClass()->ImplementsInterface(UTargetable::StaticClass())) { return; }
@@ -267,6 +365,13 @@ void UEzrealSkillExecutor::OnWProjectileHit(AActor* Target)
 
 	SetWMark(Target, WMarkBonusDamage);
 	PRINTLOG_SH(TEXT("[W] 고리 적용 → %s (보너스딜: %.1f)"), *GetNameSafe(Target), WMarkBonusDamage);
+
+	// 챔피언/타워 적중 시 발사체 소멸 (마크만 남김)
+	if (WProjectile.IsValid())
+	{
+		WProjectile->Destroy();
+		WProjectile = nullptr;
+	}
 }
 
 // 마크가 걸린 적을 평타/E 미사일로 맞췄을 때 보너스 데미지 적용
@@ -303,6 +408,22 @@ void UEzrealSkillExecutor::OnBasicAttackFired(AChampionSkillProjectile* Proj, AA
 // E
 void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 {
+	UChampionDataSubsystem* Sub = GetDataSub();
+	const FDetailSkillStatsRow* Stats = Sub
+		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("E"), GetRank(ESkillSlot::E))
+		                                    : nullptr;
+	const FSkillMechanicsRow* Mech = Sub ? Sub->GetSkillMechanics(GetChampionID(), TEXT("E")) : nullptr;
+
+	const float ManaCost = Stats ? Stats->Cost : 90.f;
+	const float Cooldown = Stats ? Stats->CoolDown : 11.f;
+	const float BlinkRange = Mech ? Mech->Param1_Value : 475.f;
+
+	if (StatComp && StatComp->GetCurrentMana() < ManaCost)
+	{
+		PRINTLOG_SH(TEXT("[E] 마나 부족 (현재:%.0f 필요:%.0f)"), StatComp->GetCurrentMana(), ManaCost);
+		return;
+	}
+
 	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
 
 	/* TODO: 몽타주에 방향별 섹션(E_0/90/180/-90/-180) 추가 후 활성화
@@ -324,16 +445,6 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	{
 		OwnerChar->Multicast_PlayMontage(Data->ESkillMontage);
 	}
-
-	UChampionDataSubsystem* Sub = GetDataSub();
-	const FDetailSkillStatsRow* Stats = Sub
-		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("E"), GetRank(ESkillSlot::E))
-		                                    : nullptr;
-	const FSkillMechanicsRow* Mech = Sub ? Sub->GetSkillMechanics(GetChampionID(), TEXT("E")) : nullptr;
-
-	const float ManaCost = Stats ? Stats->Cost : 90.f;
-	const float Cooldown = Stats ? Stats->CoolDown : 11.f;
-	const float BlinkRange = Mech ? Mech->Param1_Value : 475.f;
 
 	if (Stats)
 	{
@@ -421,9 +532,6 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 // R
 void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 {
-	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
-	PlayMontage(Data ? Data->RSkillMontage : nullptr);
-
 	UChampionDataSubsystem* Sub = GetDataSub();
 	const FDetailSkillStatsRow* Stats = Sub
 		                                    ? Sub->GetSkillStats(GetChampionID(), TEXT("R"), GetRank(ESkillSlot::R))
@@ -431,6 +539,15 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 
 	const float ManaCost = Stats ? Stats->Cost : 100.f;
 	const float Cooldown = Stats ? Stats->CoolDown : 120.f;
+
+	if (StatComp && StatComp->GetCurrentMana() < ManaCost)
+	{
+		PRINTLOG_SH(TEXT("[R] 마나 부족 (현재:%.0f 필요:%.0f)"), StatComp->GetCurrentMana(), ManaCost);
+		return;
+	}
+
+	UChampionData* Data = OwnerChampion ? OwnerChampion->GetChampionData() : nullptr;
+	PlayMontage(Data ? Data->RSkillMontage : nullptr);
 
 	if (StatComp)
 	{
@@ -489,6 +606,7 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 			                                           TEXT("Socket_Q")))
 			                                           {
 			                                           	Proj->DebugTrailHalfWidth = 160.f;
+			                                           	Proj->SetCollisionRadius(160.f);
 
 			                                           	if (R_MuzzleEffect)
 			                                           	{

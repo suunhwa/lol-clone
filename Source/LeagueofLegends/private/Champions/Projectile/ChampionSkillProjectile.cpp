@@ -97,6 +97,12 @@ void AChampionSkillProjectile::OnBeginOverlap(UPrimitiveComponent* Overlapped, A
 
 	HitActors.Add(Other);
 	ApplyHit(Other);
+
+	// 관통 아닌 발사체(Q/E)는 첫 타겟 적중 후 소멸
+	if (!bIsPiercing)
+	{
+		Destroy();
+	}
 }
 
 void AChampionSkillProjectile::ApplyHit(AActor* Target)

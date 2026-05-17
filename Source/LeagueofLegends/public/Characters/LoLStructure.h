@@ -54,6 +54,10 @@ protected:
 
     bool bIsDestroyed = false;
 
+    // 막타 가해자를 정산 시점까지 캐싱해둘 임시 포인터 변수
+    UPROPERTY(Transient)
+    TObjectPtr<AActor> LastDamageInstigator = nullptr;
+    
     // SkeletalMesh 컴포넌트 추가
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<USkeletalMeshComponent> MeshComp;
@@ -69,7 +73,7 @@ protected:
 public:
     virtual void ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator) override;
     virtual bool IsDead_Implementation() const override;
-    virtual bool IsTargetable_Implementation() const override { return !IsDead(); }
+    virtual bool IsTargetable_Implementation() const override { return !IDamageable::Execute_IsDead(const_cast<ALoLStructure*>(this)); }
     virtual ETeam GetTeam_Implementation() const override;
     virtual FVector GetTargetLocation_Implementation() const override { return GetActorLocation(); }
     virtual EUnitType GetUnitType_Implementation() const override;

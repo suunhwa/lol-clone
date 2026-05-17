@@ -131,6 +131,8 @@ public:
 	FString StringBase64Encode(const FString& Str);
 	FString StringBase64Decode(const FString& Str);
 	
+	void RetryFindOrCreate();
+
 private:
 	bool bFindOrCreateMode = false;
 	bool bFindOrCreateFallback = false;
@@ -141,5 +143,9 @@ private:
 	int32 PendingJoinIndex = -1;
 	FString PendingNickname;
 	int32 PendingMaxPlayers = 10;
+
+	// FindOrCreate 재검색 재시도
+	int32 FindOrCreateRetryCount = 0;
+	FTimerHandle FindOrCreateRetryTimer;
 
 };
