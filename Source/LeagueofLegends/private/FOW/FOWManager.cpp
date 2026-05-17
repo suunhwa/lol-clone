@@ -366,7 +366,7 @@ void AFOWManager::SetLocalClientTeam(ERiftSightTag InTeam)
 	// 3) 클라이언트는 자기 팀 타일 데이터를 여기서 생성
 	//    (서버는 BeginPlay에서 이미 양 팀 모두 생성됨)
 	//    GetTileSize() < 0.f면 아직 GenerateTileData 안 된 상태
-	if (!HasAuthority() && LocalTM->GetTileSize() < 0.f)
+	if (LocalTM->GetTileSize() < 0.f)
 	{
 		LocalTM->GenerateTileData(FOWVolume);
 	}

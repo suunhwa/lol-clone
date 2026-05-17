@@ -12,6 +12,7 @@
 AFOWTileMap::AFOWTileMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	Tiles.SetNum(MapSize * MapSize); // 타일 배열 초기화
 }
 
 AFOWTileMap::~AFOWTileMap() = default;
@@ -19,8 +20,6 @@ AFOWTileMap::~AFOWTileMap() = default;
 void AFOWTileMap::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	
-	Tiles.SetNum(MapSize * MapSize); // 타일 배열 초기화
 }
 
 void AFOWTileMap::BeginPlay()
@@ -63,6 +62,17 @@ void AFOWTileMap::Tick(float DeltaTime)
 
 void AFOWTileMap::GenerateTileData(AFOWVolume* FOWVolume)
 {
+	// 중복 호출 가드: 이미 생성됐으면 스킵
+	if (TileSize > 0.f)
+	{
+		return;
+	}
+    
+	if (Tiles.Num() != MapSize * MapSize)
+	{
+		Tiles.SetNum(MapSize * MapSize);
+	}
+	
 	GenerateTileMap(FOWVolume);
 }
 

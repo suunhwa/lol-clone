@@ -92,7 +92,7 @@ protected:
 	UPROPERTY()
 	FVector WorldMin;
 	
-	UPROPERTY()
+	UPROPERTY(Transient)
 	TArray<FTile> Tiles;
 	
 #pragma region Texture (Create in runtime)
