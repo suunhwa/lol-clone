@@ -191,7 +191,7 @@ void ARiftGameMode::HandleStartingNewPlayer_Implementation(APlayerController* Ne
 	ARiftPlayerState* RPS = NewPlayer->GetPlayerState<ARiftPlayerState>();
 	if (Champ && RPS)
 	{
-		const FName ChampionID = RPS->GetSelectedChampionID();
+		const FName ChampionID = RPS->GetSelectedChampion();
 		if (!ChampionID.IsNone())
 		{
 			UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();

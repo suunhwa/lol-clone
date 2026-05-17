@@ -20,6 +20,8 @@
 #include "Interfaces/Damageable.h"
 #include "Interfaces/Targetable.h"
 #include "Manager/ChampionDataSubsystem.h"
+#include "FOW/FOWManager.h"
+#include "GameFramework/RiftGameState.h"
 #include "GameFramework/RiftHUD.h"
 #include "GameFramework/RiftGameMode.h"
 #include "GameFramework/RiftPlayerState.h"
@@ -91,22 +93,33 @@ void ALoLChampion::PawnClientRestart()
 {
 	Super::PawnClientRestart();
 
-	if (!ChampionData) { return; }
-
-	UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
-	if (!Sub) { return; }
-
-	Sub->ApplyVisuals(this, ChampionData);
-
-	PRINTLOG_SH(TEXT("[PawnClientRestart] ChampionData 이미 존재 → 비주얼 재적용: %s"),
-		*ChampionData->ChampionID.ToString());
-
-	// HUD 스킬 아이콘도 갱신 (InitHUD 이후이므로 안전)
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (ChampionData)
 	{
-		if (ARiftHUD* HUD = Cast<ARiftHUD>(PC->GetHUD()))
+		UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>();
+		if (Sub)
 		{
-			HUD->RefreshSkillIcons(this);
+			Sub->ApplyVisuals(this, ChampionData);
+			PRINTLOG_SH(TEXT("[PawnClientRestart] ChampionData 이미 존재 → 비주얼 재적용: %s"),
+				*ChampionData->ChampionID.ToString());
+		}
+
+		// HUD 스킬 아이콘도 갱신 (InitHUD 이후이므로 안전)
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (ARiftHUD* HUD = Cast<ARiftHUD>(PC->GetHUD()))
+			{
+				HUD->RefreshSkillIcons(this);
+			}
+		}
+	}
+
+	// BeginPlay 시점에 FOWManager가 없었을 수 있으므로 possession 완료 후 재등록
+	if (ARiftGameState* GS = GetWorld()->GetGameState<ARiftGameState>())
+	{
+		if (AFOWManager* FOW = GS->GetFOWManager())
+		{
+			FOW->RegisterSightProvider(this);
+			PRINTLOG_SH(TEXT("[PawnClientRestart] FOW SightProvider 재등록: %s"), *GetName());
 		}
 	}
 }
