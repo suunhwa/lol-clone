@@ -164,9 +164,8 @@ void ULoLSessionSubsystem::FindOtherSessions()
 	// sharedptr 사용할 때 MakeShareable로 해줘야 함
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
 
-	// 세션 생성 시 bUsesPresence=true, bUseLobbiesIfAvailable=true 이므로 PRESENCE로 검색
-	// SEARCH_LOBBIES 단독 사용 시 Steam 검색 실패 케이스 있음
-	SessionSearch->QuerySettings.Set(FName(TEXT("PRESENCESEARCH")), true, EOnlineComparisonOp::Equals);
+	// bUseLobbiesIfAvailable=true로 생성한 세션은 SEARCH_LOBBIES로 찾아야 함
+	SessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
 
 	// 2. LAN 여부
 	SessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == FName("NULL");
@@ -243,8 +242,11 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 			PRINTLOG_SH(TEXT("FindOrCreate: 세션 없음 → 3초 후 재검색 (%d/2)"), FindOrCreateRetryCount);
 			if (UWorld* World = GetGameInstance()->GetWorld())
 			{
-				World->GetTimerManager().SetTimer(FindOrCreateRetryTimer, this,
-				                                  &ULoLSessionSubsystem::RetryFindOrCreate, 3.f, false);
+				World->GetTimerManager().SetTimer(FindOrCreateRetryTimer,
+				                                  this,
+				                                  &ULoLSessionSubsystem::RetryFindOrCreate,
+				                                  3.f,
+				                                  false);
 			}
 		}
 		else
@@ -451,7 +453,7 @@ void ULoLSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWas
 	{
 		PC->ClientTravel(TEXT("/Game/Maps/Lv_Lobby"), ETravelType::TRAVEL_Absolute);
 	}
-	
+
 	/*// 세션 정리 후 재생성 대기 중이면 맵 이동 없이 바로 생성
 	if (bPendingCreateAfterDestroy)
 	{
