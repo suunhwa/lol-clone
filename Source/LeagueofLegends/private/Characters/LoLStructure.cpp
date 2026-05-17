@@ -14,6 +14,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Components/DecalComponent.h"
+#include "GameFramework/RiftGameMode.h"
 
 
 ALoLStructure::ALoLStructure()
@@ -253,6 +254,53 @@ void ALoLStructure::CheckPlayerProximity()
 void ALoLStructure::OnDestroyed()
 {
     if (bIsDestroyed) return;
+    
+    // =========================================================================
+    // [추가] 구조물(포탑, 억제기, 넥서스) 파괴 시 적군에게 경험치 지급 파이프라인
+    // =========================================================================
+    if (HasAuthority())
+    {
+        if (ARiftGameMode* GM = GetWorld()->GetAuthGameMode<ARiftGameMode>())
+        {
+            // 1. 롤 규칙: 파괴된 구조물의 '반대 팀'이 경험치 보상을 획득합니다.
+            ETeam MyTeam = TagComp ? TagComp->GetTeam() : InitialTeam;
+            ETeam RewardWinnerTeam = (MyTeam == ETeam::Blue) ? ETeam::Red : ETeam::Blue;
+
+            // 2. ObjectID에 따라 데이터 테이블(UnitRewardExp)과 일치할 검색용 FName 키값 매칭
+            FName RewardRowName = NAME_None;
+            switch (ObjectID)
+            {
+                // 포탑 계열 (11001 ~ 11004)
+                case 11001: RewardRowName = FName(TEXT("Tower_Outer")); break;
+                case 11002: RewardRowName = FName(TEXT("Tower_Inner")); break;
+                case 11003: RewardRowName = FName(TEXT("Tower_Inhibitor")); break; // 억제기 앞 포탑
+                case 11004: RewardRowName = FName(TEXT("Tower_Nexus")); break;     // 쌍둥이 포탑
+                
+                // 억제기 (11101)
+                case 11101: RewardRowName = FName(TEXT("Inhibitor")); break;
+                
+                // 넥서스 (11111)
+                case 11111: RewardRowName = FName(TEXT("Nexus")); break;
+
+                default:
+                    // 예외 방지: 혹시 모를 커스텀 ID 대비용 폴백
+                    RewardRowName = FName(TEXT("Tower_Outer"));
+                    break;
+            }
+
+            // 3. 미니언과 완벽히 동일한 범용 RiftGameMode 파이프라인으로 토스!
+            // 구조물의 위치(GetActorLocation)를 기점으로 주변 RewardWinnerTeam의 플레이어들을 찾아 1/N 쪼개줍니다.
+            FVector StructureLocation = GetActorLocation();
+            GM->OnUnitKilled(RewardRowName, StructureLocation, RewardWinnerTeam);
+
+            PRINTLOG_HJ(TEXT("[Structure Reward] ID:%d (%s) 파괴됨 ➔ %s 팀에게 경험치 보상 지급 처리 요청 완료!"), 
+                ObjectID, *RewardRowName.ToString(), RewardWinnerTeam == ETeam::Blue ? TEXT("Blue") : TEXT("Red"));
+        }
+    }
+    // =========================================================================
+    
+    
+    
     // 포탑 파괴 시 인디케이터 즉시 제거 및 타이머 중지
     GetWorldTimerManager().ClearTimer(ProximityTimerHandle);
     if (RangeIndicatorDecal) RangeIndicatorDecal->SetVisibility(false);
