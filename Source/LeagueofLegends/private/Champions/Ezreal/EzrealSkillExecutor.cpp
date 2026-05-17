@@ -161,12 +161,26 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 
 	if (Proj && Q_MuzzleEffect)
 	{
-		// 서버: 직접 스폰 + 복제 속성 설정 (클라는 BeginPlay에서 자동 스폰)
+		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			Q_MuzzleEffect,
+			Proj->GetRootComponent(),
+			NAME_None,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget,
+			false); // bAutoDestroy = false, 발사체 수명에 맞춰 같이 사라짐
+		
+		if (NiagaraComp)
+		{
+			NiagaraComp->SetWorldScale3D(FVector(0.4f));
+		}
+		
+		/*// 서버: 직접 스폰 + 복제 속성 설정 (클라는 BeginPlay에서 자동 스폰)
 		UNiagaraFunctionLibrary::SpawnSystemAttached(
 			Q_MuzzleEffect, Proj->GetRootComponent(), NAME_None,
 			FVector::ZeroVector, FRotator::ZeroRotator,
 			EAttachLocation::SnapToTarget, false);
-		Proj->SetReplicatedVFX(Q_MuzzleEffect, FVector(0.4f));
+		Proj->SetReplicatedVFX(Q_MuzzleEffect, FVector(0.4f));*/
 	}
 	
 	if (Q_CastSound)
