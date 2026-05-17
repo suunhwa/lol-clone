@@ -166,11 +166,11 @@ void USessionWidget::OnJoinClicked()
 {
 	if (SelectedSessionIndex < 0) { return; }
 
-	if (auto* VM = Cast<USessionViewModel>(OwnerViewModel))
-	{
-		VM->RequestJoin(SelectedSessionIndex);
-	}
-		
+	auto* VM = Cast<USessionViewModel>(OwnerViewModel);
+	if (!VM) { return; }
+
+	FString Nickname = ET_Nickname ? ET_Nickname->GetText().ToString() : TEXT("Player");
+	VM->RequestJoin(SelectedSessionIndex, Nickname);
 }
 
 void USessionWidget::OnBackClicked()
