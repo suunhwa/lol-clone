@@ -106,17 +106,17 @@ void ARiftPlayerController::AcknowledgePossession(APawn* P)
 		HUD->InitHUD(OwnedChamp);
 	}
 
-	// CameraManager에 초기 위치 + 팀 Yaw 설정
+	// CameraManager에 초기 위치 + 방향 설정
 	TargetCameraLoc = Champion->GetActorLocation();
 	if (ARiftPlayerCameraManager* Cam = GetRiftCameraManager())
 	{
 		Cam->CurrentCameraLoc = TargetCameraLoc;
 
-		// 팀에 따라 카메라 방향 설정 (레드팀은 반대 방향으로 맵을 바라봄)
-		if (ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>())
-		{
-			Cam->SetTeamYaw(PS->GetTeam() == ETeam::Red);
-		}
+		// 스폰 X좌표로 진영 판단 (팀 복제 타이밍과 무관하게 안정적)
+		// Red spawn: X < 0  /  Blue spawn: X > 0
+		const bool bRedSide = Champion->GetActorLocation().X < 0.f;
+		Cam->SetTeamYaw(bRedSide);
+		bIsRedTeam = bRedSide;
 	}
 
 	// 클라이언트에서 복제 완료 후 위치 교정 타이머
@@ -294,8 +294,8 @@ void ARiftPlayerController::EdgeScrollWithMouse(float DeltaTime)
 
 	if (MoveInput.IsNearlyZero()) { return; }
 
-	// 팀에 따라 Forward/Right 방향 결정 (레드팀은 반전)
-	const float Dir = (OwnedChamp && OwnedChamp->GetTeam_Implementation() == ETeam::Red) ? -1.f : 1.f;
+	// 스폰 위치 기준으로 캐시된 팀 방향 사용
+	const float Dir = bIsRedTeam ? -1.f : 1.f;
 	const FVector Forward(0.f,  Dir, 0.f);
 	const FVector Right  (-Dir, 0.f, 0.f);
 

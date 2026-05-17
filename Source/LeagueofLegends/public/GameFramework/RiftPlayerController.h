@@ -145,6 +145,7 @@ protected:
 public:
 	bool bCameraLocked = false;
 	bool bCameraInitialized = false;
+	bool bIsRedTeam = false; // 스폰 위치 기준으로 설정됨
 
 	// 클릭 이동 (Nav Mesh 경로 → AddMovementInput으로 구동)
 	TArray<FVector> MovePath;
