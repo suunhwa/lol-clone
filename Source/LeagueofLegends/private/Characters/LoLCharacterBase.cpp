@@ -38,7 +38,9 @@ ALoLCharacterBase::ALoLCharacterBase()
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+	GetCharacterMovement()->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComp"));
 	CombatComp = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComp"));
@@ -108,13 +110,6 @@ void ALoLCharacterBase::BeginPlay()
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
 	}
 
-	// 시뮬레이션 프록시(다른 플레이어)는 CMC 로컬 회전 비활성화
-	// → 복제된 FacingRotation만 사용, 떠있음/방향 어긋남 방지
-	if (GetLocalRole() == ROLE_SimulatedProxy)
-	{
-		GetCharacterMovement()->bOrientRotationToMovement = false;
-		GetCharacterMovement()->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
-	}
 
 	/*auto* GS = GetWorld()->GetGameState<ARiftGameState>();                                                                                  
 	GS->GetFOWManager()->RegisterSightProvider(this);    */

@@ -198,29 +198,7 @@ void ARiftPlayerController::Tick(float DeltaTime)
 
 	UpdateIndicator();
 
-	// 커서 방향으로 챔피언 페이싱 — 서버 RPC만 사용 (로컬 즉시 스냅 제거)
-	// 멈춰있을 때 10Hz로 서버에 전달 → 서버가 RotationRate로 부드럽게 회전
-	if (OwnedChamp && bCameraInitialized && IsValid(OwnedChamp))
-	{
-		const bool bIsMoving = OwnedChamp->GetVelocity().SizeSquared2D() > 100.f;
-		if (!bIsMoving)
-		{
-			const float Now = GetWorld()->GetTimeSeconds();
-			if (Now - LastFacingUpdateTime >= FacingUpdateInterval)
-			{
-				FHitResult CursorHit;
-				if (GetHitResultUnderCursor(ECC_Visibility, false, CursorHit) && CursorHit.bBlockingHit)
-				{
-					FVector Dir = (CursorHit.ImpactPoint - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
-					if (!Dir.IsNearlyZero())
-					{
-						LastFacingUpdateTime = Now;
-						Server_SetFacingDirection(Dir);
-					}
-				}
-			}
-		}
-	}
+	// 커서 페이싱 없음 — 이동 방향은 CMC가 처리, 스킬 방향은 Server_RequestSkill에서 처리
 
 	if (bCameraLocked && OwnedChamp)
 	{
@@ -657,6 +635,15 @@ void ARiftPlayerController::RequestSkill(ESkillSlot Slot)
 void ARiftPlayerController::Server_RequestSkill_Implementation(ESkillSlot Slot, FVector TargetLoc)
 {
 	if (!OwnedChamp || !OwnedChamp->SkillComp) { return; }
+
+	// 스킬 발사 전 마우스 방향으로 한 번만 회전 (Tick 커서 페이싱 대신)
+	FVector Dir = (TargetLoc - OwnedChamp->GetActorLocation());
+	Dir.Z = 0.f;
+	if (!Dir.IsNearlyZero())
+	{
+		OwnedChamp->SetActorRotation(Dir.GetSafeNormal().Rotation());
+	}
+
 	OwnedChamp->SkillComp->RequestActivateSkill(Slot, TargetLoc);
 }
 
@@ -664,12 +651,6 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(AActor* Tar
 {
 	if (!OwnedChamp || !Target) { return; }
 	OwnedChamp->StartAttackLoop(Target);
-}
-
-void ARiftPlayerController::Server_SetFacingDirection_Implementation(FVector_NetQuantizeNormal Direction)
-{
-	if (!OwnedChamp || Direction.IsNearlyZero()) { return; }
-	OwnedChamp->SetActorRotation(Direction.Rotation());
 }
 
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
