@@ -106,6 +106,6 @@ void UMinimapWidget::UpdateViewRect(APlayerController* PC, AFOWTileMap* TileMap)
         CanvasPanelSlot->SetAlignment(FVector2D(0.f, 0.f));
     	
     	// 값 디버깅 로그
-    	PRINTLOG_TK(TEXT("Minimap ViewRect Updated: Left=%.1f Top=%.1f Width=%.1f Height=%.1f"), Left, Top, Width, Height);
+    	// PRINTLOG_TK(TEXT("Minimap ViewRect Updated: Left=%.1f Top=%.1f Width=%.1f Height=%.1f"), Left, Top, Width, Height);
     }
 }
