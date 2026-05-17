@@ -634,6 +634,12 @@ void ARiftPlayerController::RequestSkill(ESkillSlot Slot)
 
 void ARiftPlayerController::Server_RequestSkill_Implementation(ESkillSlot Slot, FVector TargetLoc)
 {
+	PRINTLOG_SH(TEXT("[Skill RPC] Slot=%d OwnedChamp=%s SkillComp=%s Executor=%s"),
+		(int32)Slot,
+		*GetNameSafe(OwnedChamp),
+		OwnedChamp ? *GetNameSafe(OwnedChamp->SkillComp) : TEXT("NULL"),
+		(OwnedChamp && OwnedChamp->SkillExecutor) ? TEXT("OK") : TEXT("NULL"));
+
 	if (!OwnedChamp || !OwnedChamp->SkillComp) { return; }
 
 	// 스킬 발사 전 마우스 방향으로 한 번만 회전 (Tick 커서 페이싱 대신)
