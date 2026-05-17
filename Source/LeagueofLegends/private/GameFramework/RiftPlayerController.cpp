@@ -325,6 +325,7 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_FocusChamp, ETriggerEvent::Triggered, this, &ARiftPlayerController::OnCameraFocusHeld);
 	EIC->BindAction(IA_FocusChamp, ETriggerEvent::Completed, this, &ARiftPlayerController::OnCameraFocusReleased);
 	EIC->BindAction(IA_Move, ETriggerEvent::Started, this, &ARiftPlayerController::OnMove);
+	EIC->BindAction(IA_Exit, ETriggerEvent::Started, this, &ARiftPlayerController::OnExit);
 
 	EIC->BindAction(IA_SkillQ, ETriggerEvent::Started,   this, &ARiftPlayerController::OnSkillQPressed);
 	EIC->BindAction(IA_SkillQ, ETriggerEvent::Completed, this, &ARiftPlayerController::OnSkillQReleased);
@@ -405,6 +406,22 @@ void ARiftPlayerController::OnToggleShop()
 	if (ARiftHUD* HUD = GetHUD<ARiftHUD>())
 	{
 		HUD->ToggleShop();
+	}
+}
+
+void ARiftPlayerController::OnExit()
+{
+	const FString CurrentMap = UGameplayStatics::GetCurrentLevelName(this, true);
+	PRINTLOG_SH(TEXT("[OnExit] 현재 맵: %s"), *CurrentMap);
+
+	if (!CurrentMap.Contains(TEXT("SummonerRift"))) { return; }
+
+	ARiftHUD* HUD = GetHUD<ARiftHUD>();
+	PRINTLOG_SH(TEXT("[OnExit] HUD: %s"), *GetNameSafe(HUD));
+
+	if (HUD)
+	{
+		HUD->ToggleExitPopup();
 	}
 }
 

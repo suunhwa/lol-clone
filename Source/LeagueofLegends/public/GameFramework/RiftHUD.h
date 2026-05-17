@@ -8,6 +8,7 @@ class UInventoryWidget;
 class UShopViewModel;
 class UShopWidget;
 class UMainHUDWidget;
+class UExitPopupWidget;
 class ALoLChampion;
 
 UCLASS()
@@ -24,10 +25,12 @@ public:
 	void RefreshSkillIcons(ALoLChampion* Champion);
 
 	void ToggleShop();
-	
-private:	
+	void ToggleExitPopup();
+
+private:
 	void SetupMainHUD(ALoLChampion* Champion);
 	void SetupShopMVVM(ALoLChampion* Champion);
+	void SetupExitPopup();
 	
 protected:
 	// Main HUD
@@ -37,6 +40,10 @@ protected:
 	// Shop
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UShopWidget> ShopWidgetClass;
+
+	// Exit Popup
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UExitPopupWidget> ExitPopupClass;
 
 private:
 	UPROPERTY()
@@ -48,5 +55,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UShopViewModel> ShopVM;
+
+	// Exit Popup
+	UPROPERTY()
+	TObjectPtr<UExitPopupWidget> ExitPopupWidget;
 };
 
