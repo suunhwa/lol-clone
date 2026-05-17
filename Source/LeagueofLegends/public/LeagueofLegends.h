@@ -9,7 +9,7 @@ DECLARE_LOG_CATEGORY_EXTERN(HJ, Warning, All)
 DECLARE_LOG_CATEGORY_EXTERN(TK, Warning, All)
 
 // --- 개별 로그 활성화 설정 (1: 켬, 0: 끔) ---
-#define USE_LOG_SH 0
+#define USE_LOG_SH 1
 #define USE_LOG_HJ 0
 #define USE_LOG_TK 1
 // ------------------------------------------

@@ -30,7 +30,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;
-	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f) override;
+	// [FacingRotation 제거] SetReplicateMovement(true)가 회전 복제를 이미 처리하므로 중복.
+	// SetActorRotation() sweep이 CMC와 충돌하여 상대 캐릭터 공중 부유 유발.
+	// virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f) override;
 	virtual void OnRep_PlayerState() override;
 
 public:
@@ -119,11 +121,13 @@ public:
 	void Multicast_PlayMontageSection(UAnimMontage* Montage, FName SectionName);
 
 private:
-	UPROPERTY(ReplicatedUsing = OnRep_FacingRotation)
-	FRotator FacingRotation;
+	// [FacingRotation 제거] SetReplicateMovement(true)가 회전 복제를 이미 처리하므로 중복.
+	// SetActorRotation() sweep이 CMC와 충돌하여 상대 캐릭터 공중 부유 유발.
+	// UPROPERTY(ReplicatedUsing = OnRep_FacingRotation)
+	// FRotator FacingRotation;
 
-	UFUNCTION()
-	void OnRep_FacingRotation() { SetActorRotation(FacingRotation); }
+	// UFUNCTION()
+	// void OnRep_FacingRotation() { SetActorRotation(FacingRotation); }
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator);

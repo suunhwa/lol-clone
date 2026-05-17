@@ -67,19 +67,23 @@ ALoLCharacterBase::ALoLCharacterBase()
 void ALoLCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ALoLCharacterBase, FacingRotation);
+	// [FacingRotation 제거] SetReplicateMovement(true)가 회전 복제를 이미 처리하므로 중복.
+	// SetActorRotation() sweep이 CMC와 충돌하여 상대 캐릭터 공중 부유 유발.
+	// DOREPLIFETIME(ALoLCharacterBase, FacingRotation);
 	DOREPLIFETIME(ALoLCharacterBase, FOWVisibilityFlags);
 }
 
-void ALoLCharacterBase::FaceRotation(FRotator NewControlRotation, float DeltaTime)
-{
-	Super::FaceRotation(NewControlRotation, DeltaTime);
-
-	if (HasAuthority())
-	{
-		FacingRotation = GetActorRotation();
-	}
-}
+// [FacingRotation 제거] SetReplicateMovement(true)가 회전 복제를 이미 처리하므로 중복.
+// SetActorRotation() sweep이 CMC와 충돌하여 상대 캐릭터 공중 부유 유발.
+// void ALoLCharacterBase::FaceRotation(FRotator NewControlRotation, float DeltaTime)
+// {
+// 	Super::FaceRotation(NewControlRotation, DeltaTime);
+// 
+// 	if (HasAuthority())
+// 	{
+// 		FacingRotation = GetActorRotation();
+// 	}
+// }
 
 void ALoLCharacterBase::PossessedBy(AController* NewController)
 {
