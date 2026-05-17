@@ -260,6 +260,16 @@ void ULoLSessionSubsystem::JoinSelectedSession(int32 Index)
 		return;
 	}
 
+	// 로컬에 동일 이름 세션이 남아있으면 먼저 파괴 후 재조인
+	if (SessionInterface->GetNamedSession(FName(*MySessionName)))
+	{
+		PRINTLOG_SH(TEXT("JoinSelectedSession: 기존 세션 발견 → 파괴 후 재조인"));
+		PendingJoinIndex = Index;
+		bPendingJoinAfterDestroy = true;
+		SessionInterface->DestroySession(FName(*MySessionName));
+		return;
+	}
+
 	const FOnlineSessionSearchResult& sr = SessionSearch->SearchResults[Index];
 	SessionInterface->JoinSession(0, FName(MySessionName), sr);
 }
