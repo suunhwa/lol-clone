@@ -156,8 +156,18 @@ void UStatComponent::SetLevel(int32 NewLevel)
 
 void UStatComponent::RecalcMaxHP()
 {
+	const float Ratio = CachedMaxHP > 0.f ? CurrentHP / CachedMaxHP : 1.f;
 	const float Base = BaseHP + HP_G * (Level - 1);
 	CachedMaxHP = StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::HP, Base) : Base;
+	CurrentHP = FMath::Clamp(CachedMaxHP * Ratio, 0.f, CachedMaxHP);
+}
+
+void UStatComponent::RecalcMaxMana()
+{
+	const float Ratio = CachedMaxMana > 0.f ? CurrentMana / CachedMaxMana : 1.f;
+	const float Base = BaseMana + Mana_G * (Level - 1);
+	CachedMaxMana = StatModifierComp ? StatModifierComp->GetFinalValue(ELolStatType::MP, Base) : Base;
+	CurrentMana = FMath::Clamp(CachedMaxMana * Ratio, 0.f, CachedMaxMana);
 }
 
 void UStatComponent::OnRep_CurrentHP()

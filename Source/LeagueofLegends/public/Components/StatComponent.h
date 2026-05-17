@@ -59,8 +59,9 @@ public:
 	void ApplyManaCost(float Cost); // 항상 양수로 전달
 	void SetLevel(int32 NewLevel);
 
-	// HP 관련 모디파이어 추가/제거 후 외부에서 호출
+	// HP/Mana 관련 모디파이어 추가/제거 후 외부에서 호출
 	void RecalcMaxHP();
+	void RecalcMaxMana();
 
 	// --- delegates 
 	FOnHPChanged OnHPChanged;

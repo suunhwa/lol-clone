@@ -9,6 +9,7 @@ class UCooldownComponent;
 class UChampionData;
 class UStatComponent;
 class USkillComponent;
+class UItemInstance;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStatValueChanged, float /*Current*/, float /*Max*/);
 
@@ -36,6 +37,9 @@ private:
 
 	UFUNCTION()
 	void HandleManaChanged(float Current, float Max);
+
+	UFUNCTION()
+	void HandleInventoryChanged(int32 SlotIndex, UItemInstance* Item);
 
 	UPROPERTY()
 	TObjectPtr<ALoLChampion> Champion;
