@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Online/OnlineSessionNames.h"
 #include "Misc/CoreDelegates.h"
+#include "GameFramework/LoLGameInstance.h"
 
 void ULoLSessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -95,9 +96,11 @@ void ULoLSessionSubsystem::CreateSession(FString RoomName, int32 MaxPlayer)
 	                    StringBase64Encode(RoomName),
 	                    EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
-	// 8. host name 설정
+	// 8. host name 설정 — GameInstance에 저장된 닉네임 사용
+	ULoLGameInstance* GI = Cast<ULoLGameInstance>(GetGameInstance());
+	const FString HostDisplayName = (GI && !GI->Nickname.IsEmpty()) ? GI->Nickname : MySessionName;
 	sessionSettings.Set(FName("HOST_NAME"),
-	                    StringBase64Encode(MySessionName),
+	                    StringBase64Encode(HostDisplayName),
 	                    EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 	// 9. 고유 게임 식별자 — 내 세션만 검색되도록 필터용
@@ -238,7 +241,7 @@ void ULoLSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 		SessionInfo.MaxPlayer = FString::Printf(TEXT("%d/%d"), CurrentPlayerCount, MaxPlayerCount);
 
 		// 핑 정보
-		// int32 pingSpeed = sr.PingInMs;
+		// int32 pingSpeed = sr.PingInMSs;
 		SessionInfo.PingSpeed = sr.PingInMs;
 
 		PRINTLOG_SH(TEXT("*** %s"), *SessionInfo.ToString());
