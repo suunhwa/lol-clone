@@ -163,12 +163,7 @@ void ALoLChampion::CreateSkillExecutor()
 // 스킬 활성화 → Executor 위임 
 void ALoLChampion::HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc)
 {
-	FVector direction = (TargetLoc - GetActorLocation()).GetSafeNormal2D();
-	if (!direction.IsNearlyZero())
-	{
-		SetActorRotation(direction.Rotation());
-	}
-		
+	// 회전은 Server_RequestSkill에서 이미 처리 — 여기서 중복 호출 제거
 	if (!SkillExecutor) { return; }
 	SkillExecutor->Execute(Slot, TargetLoc);
 }

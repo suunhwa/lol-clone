@@ -38,7 +38,9 @@ ALoLCharacterBase::ALoLCharacterBase()
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+	GetCharacterMovement()->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComp"));
 	CombatComp = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComp"));
@@ -107,6 +109,7 @@ void ALoLCharacterBase::BeginPlay()
 		// TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
 	}
+
 
 	/*auto* GS = GetWorld()->GetGameState<ARiftGameState>();                                                                                  
 	GS->GetFOWManager()->RegisterSightProvider(this);    */
