@@ -9,6 +9,8 @@ class ULoLGameInstance;
 class ULoLSessionSubsystem;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionStatusChanged, bool /*bSuccess*/, const FString& /*Message*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionInfoReceived, const FLoLSessionInfo& /*Info*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnFindDone, bool /*bSuccess*/);
 
 UCLASS()
 class LEAGUEOFLEGENDS_API USessionViewModel : public UViewModelBase
@@ -23,10 +25,13 @@ public:
 
 	void SetSelectedMode(EMatchMode InMode);
 	void RequestFindOrCreate(const FString& Nickname, int32 MaxPlayers = 10);
-	// Start 버튼용 — 검색 없이 즉시 방 생성 (레이스 컨디션 방지)
-	void RequestCreate(const FString& Nickname, int32 MaxPlayers = 10);
+	void RequestCreate(const FString& RoomName, const FString& Nickname, int32 MaxPlayers = 10);
+	void RequestFind();
+	void RequestJoin(int32 Index);
 
 	FOnSessionStatusChanged OnSessionStatusChanged;
+	FOnSessionInfoReceived  OnSessionInfoReceived;
+	FOnFindDone             OnFindDone;
 
 private:
 	UFUNCTION()
@@ -34,6 +39,12 @@ private:
 
 	UFUNCTION()
 	void HandleJoinResult(bool bWasSuccessful);
+
+	UFUNCTION()
+	void HandleSessionFound(const FLoLSessionInfo& Info);
+
+	UFUNCTION()
+	void HandleFindSessionsDone(bool bWasSuccessful);
 
 	UPROPERTY()
 	TObjectPtr<ULoLGameInstance> GameInstance;
