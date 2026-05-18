@@ -3,6 +3,8 @@
 #include "Characters/LoLCharacterBase.h"
 
 #include "LeagueofLegends.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Animation/WidgetAnimation.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/StatComponent.h"
@@ -359,6 +361,15 @@ void ALoLCharacterBase::Multicast_PlayMontage_Implementation(UAnimMontage* Monta
 {
 	if (!Montage) { return; }
 	PlayAnimMontage(Montage);
+}
+
+void ALoLCharacterBase::Multicast_SpawnNiagaraAtLocation_Implementation(UNiagaraSystem* Effect, FVector Location, FVector Scale)
+{
+	if (!Effect) { return; }
+	if (UNiagaraComponent* FX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, Location))
+	{
+		FX->SetWorldScale3D(Scale);
+	}
 }
 
 void ALoLCharacterBase::Multicast_PlayMontageSection_Implementation(UAnimMontage* Montage, FName SectionName)

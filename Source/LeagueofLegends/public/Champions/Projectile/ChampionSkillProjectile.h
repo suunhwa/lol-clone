@@ -34,14 +34,21 @@ public:
 	UPROPERTY()
 	float DebugTrailHalfWidth = 0.f;
 
-	// 클라이언트 비주얼 이펙트 — 서버에서 설정, 복제 후 BeginPlay에서 스폰
-	UPROPERTY(Replicated)
+	// 클라이언트 비주얼 이펙트 — OnRep로 수신 즉시 스폰
+	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedVFX)
 	TObjectPtr<UNiagaraSystem> ReplicatedVFX;
 
 	UPROPERTY(Replicated)
 	FVector ReplicatedVFXScale = FVector(1.f);
 
-	// 서버에서 호출: VFX 설정 (BeginPlay 전에 설정해야 복제에 포함됨)
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> VFXComp;
+
+	UFUNCTION()
+	void OnRep_ReplicatedVFX();
+
+	void SpawnReplicatedVFX();
+
 	void SetReplicatedVFX(UNiagaraSystem* VFX, FVector Scale = FVector(1.f))
 	{
 		ReplicatedVFX = VFX;

@@ -26,20 +26,36 @@ void AChampionSkillProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 클라이언트에서 발사체 스폰 시 복제된 VFX 부착 (서버에서 설정한 이펙트)
-	if (ReplicatedVFX && !HasAuthority())
+	// 클라이언트: BeginPlay 시점에 이미 복제된 경우 스폰
+	// (OnRep_ReplicatedVFX가 BeginPlay보다 먼저 도착했을 경우 대비)
+	if (!HasAuthority())
 	{
-		if (UNiagaraComponent* FX = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			ReplicatedVFX,
-			GetRootComponent(),
-			NAME_None,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget,
-			true))
-		{
-			FX->SetWorldScale3D(ReplicatedVFXScale);
-		}
+		SpawnReplicatedVFX();
+	}
+}
+
+void AChampionSkillProjectile::OnRep_ReplicatedVFX()
+{
+	// 복제값이 도착하면 즉시 스폰 (BeginPlay보다 나중에 도착하는 경우 처리)
+	SpawnReplicatedVFX();
+}
+
+void AChampionSkillProjectile::SpawnReplicatedVFX()
+{
+	if (!ReplicatedVFX || VFXComp) { return; } // 이미 스폰됐으면 스킵
+
+	VFXComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		ReplicatedVFX,
+		GetRootComponent(),
+		NAME_None,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		EAttachLocation::SnapToTarget,
+		false);
+
+	if (VFXComp)
+	{
+		VFXComp->SetWorldScale3D(ReplicatedVFXScale);
 	}
 }
 

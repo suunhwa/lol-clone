@@ -161,7 +161,7 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 
 	if (Proj && Q_MuzzleEffect)
 	{
-		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		/*UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			Q_MuzzleEffect,
 			Proj->GetRootComponent(),
 			NAME_None,
@@ -173,14 +173,14 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 		if (NiagaraComp)
 		{
 			NiagaraComp->SetWorldScale3D(FVector(0.4f));
-		}
+		}*/
 		
-		/*// 서버: 직접 스폰 + 복제 속성 설정 (클라는 BeginPlay에서 자동 스폰)
+		// 서버: 직접 스폰 (서버 비주얼) + 복제 설정 (클라는 OnRep_ReplicatedVFX에서 자동 스폰)
 		UNiagaraFunctionLibrary::SpawnSystemAttached(
 			Q_MuzzleEffect, Proj->GetRootComponent(), NAME_None,
 			FVector::ZeroVector, FRotator::ZeroRotator,
 			EAttachLocation::SnapToTarget, false);
-		Proj->SetReplicatedVFX(Q_MuzzleEffect, FVector(0.4f));*/
+		Proj->SetReplicatedVFX(Q_MuzzleEffect, FVector(0.4f));
 	}
 	
 	if (Q_CastSound)
@@ -488,14 +488,10 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 	const float Dist = FMath::Min(FVector::Dist2D(TargetLoc, CurLoc), BlinkRange);
 	const FVector ArriveLoc = CurLoc + Dir2D * Dist;
 
-	// 출발지 이펙트
+	// 출발지 이펙트 — Multicast로 모든 클라에 재생
 	if (E_DepartEffect)
 	{
-		if (UNiagaraComponent* DepartFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), E_DepartEffect, CurLoc, FRotator::ZeroRotator))
-		{
-			DepartFX->SetWorldScale3D(FVector(0.5f));
-		}
+		OwnerChar->Multicast_SpawnNiagaraAtLocation(E_DepartEffect, CurLoc, FVector(0.5f));
 	}
 
 	if (E_BlinkSound)
@@ -512,14 +508,10 @@ void UEzrealSkillExecutor::ExecuteE(FVector TargetLoc)
 		Ctrl->StopMovement();
 	}
 
-	// 도착지 이펙트
+	// 도착지 이펙트 — Multicast
 	if (E_ArriveEffect)
 	{
-		if (UNiagaraComponent* ArriveFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), E_ArriveEffect, ArriveLoc, FRotator::ZeroRotator))
-		{
-			ArriveFX->SetWorldScale3D(FVector(0.5f));
-		}
+		OwnerChar->Multicast_SpawnNiagaraAtLocation(E_ArriveEffect, ArriveLoc, FVector(0.5f));
 	}
 
 	/* TODO: 몽타주에 ExitRun/ExitIdle 섹션 추가 후 활성화

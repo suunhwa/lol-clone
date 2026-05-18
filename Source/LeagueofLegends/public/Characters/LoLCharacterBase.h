@@ -115,6 +115,10 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontage(UAnimMontage* Montage);
 
+	// 위치 기반 순간 이펙트 (E 블링크, W 마크 등)
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_SpawnNiagaraAtLocation(UNiagaraSystem* Effect, FVector Location, FVector Scale);
+
 	// 클라이언트 쿨타임 동기화
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_StartCooldown(FName Tag, float Duration);
