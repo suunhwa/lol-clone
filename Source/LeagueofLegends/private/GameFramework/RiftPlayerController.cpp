@@ -435,11 +435,11 @@ void ARiftPlayerController::OnMove()
 
 	OwnedChamp->StopAttackLoop();
 
-	// 로컬 예측 이동 — velocity가 생겨야 애니메이션(Walk/Idle) 전환이 됨
-	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
-
 	// 서버 권위 이동
 	Server_MoveToLocation(HitResult.ImpactPoint);
+
+	// 로컬 예측 이동 (NavMesh 없어도 되도록 SimpleMoveToLocation 유지)
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
 }
 
 void ARiftPlayerController::OnCameraLockToggled()
@@ -679,18 +679,18 @@ void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 		return;
 	}*/
 	
-	ALoLChampion* Champ = Cast<ALoLChampion>(GetPawn());
+	/*ALoLChampion* Champ = Cast<ALoLChampion>(GetPawn());
 	if (!Champ)
 	{
 		PRINTLOG_SH(TEXT("[Server_Move] GetPawn Champion 없음"));
 		return;
 	}
-	Champ->StopAttackLoop();
+	Champ->StopAttackLoop();*/
 	
-	/*if (OwnedChamp)
+	if (OwnedChamp)
 	{
 		OwnedChamp->StopAttackLoop();
-	}*/
+	}
 	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Loc);
 }
 
