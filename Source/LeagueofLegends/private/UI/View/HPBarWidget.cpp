@@ -45,7 +45,9 @@ void UHPBarWidget::InitWidgetFromDamageable(AActor* InActor)
 void UHPBarWidget::OnHPChanged(float Current, float Max)
 {
 	if (!HPBar) { return; }
-
+	
+	// Max가 0 이하일 때 예외처리 및 비율을 0.0 ~ 1.0 사이로 제한
+	float Percent = (Max > 0.f) ? (Current / Max) : 0.f;
 	HPBar->SetPercent(Max > 0.f ? Current / Max : 0.f);
 }
 

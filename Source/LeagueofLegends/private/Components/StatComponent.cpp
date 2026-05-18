@@ -177,12 +177,16 @@ void UStatComponent::OnRep_CachedMaxHP()
 
 void UStatComponent::OnRep_CurrentHP()
 {
-	OnHPChanged.Broadcast(CurrentHP, GetMaxHP());
+	// OnHPChanged.Broadcast(CurrentHP, GetMaxHP());
+	// OnRep_CurrentHP와 동일한 로직을 수행하도록 일치화
+	OnHPChanged.Broadcast(CurrentHP, CachedMaxHP);
+	
 }
 
 void UStatComponent::OnRep_CurrentMana()
 {
-	OnManaChanged.Broadcast(CurrentMana, GetMaxMana());
+	// OnManaChanged.Broadcast(CurrentMana, GetMaxMana());
+	OnManaChanged.Broadcast(CurrentMana, CachedMaxMana);
 }
 
 void UStatComponent::OnRep_CachedMaxMana()
