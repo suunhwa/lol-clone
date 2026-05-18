@@ -1,12 +1,14 @@
 #include "UI/View/PickWindowWidget.h"
 
 #include "LeagueofLegends.h"
+#include "Components/AudioComponent.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/WrapBox.h"
 #include "GameFramework/RiftPlayerController.h"
 #include "GameFramework/LoLSessionSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "Type/RiftTypes.h"
 #include "UI/View/ChampSlotWidget.h"
 #include "UI/View/TeamSlotWidget.h"
@@ -52,10 +54,14 @@ void UPickWindowWidget::BindViewModel(UViewModelBase* InViewModel)
 	}
 
 	UpdateReadyButton();
+	
+	PlayLobbyMusic();
 }
 
 void UPickWindowWidget::UnbindViewModel()
 {
+	
+	StopLobbyMusic(1.5f);
 	if (auto* VM = Cast<UPickWindowViewModel>(OwnerViewModel))
 	{
 		VM->OnPickWindowUpdated.RemoveAll(this);
@@ -267,6 +273,7 @@ void UPickWindowWidget::OnReadyOrStart()
 
 void UPickWindowWidget::OnQuit()
 {
+	StopLobbyMusic(0.3f);
 	auto* GI = GetGameInstance();
 	if (GI)
 	{
@@ -276,3 +283,26 @@ void UPickWindowWidget::OnQuit()
 		}
 	}
 }
+// --- 사운드 재생 및 중지 구현부 ---
+void UPickWindowWidget::PlayLobbyMusic()
+{
+	// 중복 재생 방지 및 로컬 컨트롤러 기반 위젯인지 확인
+	if (PickWindowBGM && !BGMComponent && GetOwningPlayer() && GetOwningPlayer()->IsLocalController())
+	{
+		// 픽창 전용 2D 공간감 없는 배경음으로 재생
+		BGMComponent = UGameplayStatics::SpawnSound2D(GetWorld(), PickWindowBGM, 1.0f, 1.0f, 0.0f, nullptr, true);
+		PRINTLOG_SH(TEXT("[PickWindow] 픽창 배경음악 재생 시작"));
+	}
+}
+
+void UPickWindowWidget::StopLobbyMusic(float FadeOutTime)
+{
+	if (BGMComponent && BGMComponent->IsPlaying())
+	{
+		// 인게임 로딩창으로 넘어갈 때 자연스럽게 소리가 줄어들도록 롤 특유의 페이드아웃 처리
+		BGMComponent->FadeOut(FadeOutTime, 0.0f);
+		BGMComponent = nullptr;
+		PRINTLOG_SH(TEXT("[PickWindow] 픽창 배경음악 페이드아웃 중지"));
+	}
+}
+// --------------------------------

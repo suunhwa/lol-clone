@@ -13,6 +13,8 @@ class UEnemySlotWidget;
 class UChampSlotWidget;
 class UPickWindowViewModel;
 struct FChampSlotViewData;
+class USoundBase;
+class UAudioComponent;
 
 UCLASS()
 class LEAGUEOFLEGENDS_API UPickWindowWidget : public UWidgetViewBase
@@ -78,4 +80,17 @@ private:
 
 	float RefreshAccum = 0.f;
 	static constexpr float RefreshInterval = 0.5f;
+	
+private:
+	// --- 픽창 BGM 설정을 위한 변수 추가 ---
+	UPROPERTY(EditDefaultsOnly, Category = "UI|Sound", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> PickWindowBGM;
+
+	UPROPERTY()
+	TObjectPtr<UAudioComponent> BGMComponent;
+
+	void PlayLobbyMusic();
+	void StopLobbyMusic(float FadeOutTime = 1.0f);
+	
+	// ------------------------------------
 };
