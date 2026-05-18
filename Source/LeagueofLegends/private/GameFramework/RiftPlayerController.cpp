@@ -411,40 +411,19 @@ void ARiftPlayerController::OnMove()
 
 	if (!HitResult.bBlockingHit) { return; }
 
-	// 커서가 적 위에 있으면 이동 대신 공격
-	// 1차: 커서 히트 결과에서 직접 적 확인
+	// 우클릭: 커서가 직접 적 위에 올라간 경우만 공격 (영역 탐색 제거)
+	// A클릭 영역 공격은 TryBasicAttackAtCursor에서 별도 처리
 	AActor* AttackTarget = nullptr;
 	AActor* HitActor = HitResult.GetActor();
 	if (HitActor && HitActor != OwnedChamp &&
 		HitActor->GetClass()->ImplementsInterface(UDamageable::StaticClass()) &&
-		!IDamageable::Execute_IsDead(HitActor))
+		!IDamageable::Execute_IsDead(HitActor) &&
+		HitActor->GetClass()->ImplementsInterface(UTargetable::StaticClass()))
 	{
-		AttackTarget = HitActor;
-	}
-
-	// 2차: 커서 히트 위치 주변에서 가장 가까운 적 탐색 (미니언/타워 Visibility 미차단 보완)
-	if (!AttackTarget && HitResult.bBlockingHit)
-	{
-		const FVector CursorLoc = HitResult.ImpactPoint;
-		constexpr float SearchRadius = 150.f;
-		float NearestDist = SearchRadius;
-
-		TArray<AActor*> AllDamageables;
-		UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UDamageable::StaticClass(), AllDamageables);
-
-		for (AActor* Actor : AllDamageables)
+		ETeam ActorTeam = ITargetable::Execute_GetTeam(HitActor);
+		if (ActorTeam != OwnedChamp->GetTeam_Implementation() && ActorTeam != ETeam::None)
 		{
-			if (Actor == OwnedChamp || IDamageable::Execute_IsDead(Actor)) { continue; }
-			if (!Actor->GetClass()->ImplementsInterface(UTargetable::StaticClass())) { continue; }
-			ETeam ActorTeam = ITargetable::Execute_GetTeam(Actor);
-			if (ActorTeam == OwnedChamp->GetTeam_Implementation() || ActorTeam == ETeam::None) { continue; }
-
-			const float Dist = FVector::Dist2D(Actor->GetActorLocation(), CursorLoc);
-			if (Dist < NearestDist)
-			{
-				NearestDist = Dist;
-				AttackTarget = Actor;
-			}
+			AttackTarget = HitActor;
 		}
 	}
 
