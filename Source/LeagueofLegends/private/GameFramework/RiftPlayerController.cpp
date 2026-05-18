@@ -391,7 +391,7 @@ void ARiftPlayerController::OnMove()
 		return;
 	}
 
-	// MaxWalkSpeed 0이면 로그
+	/*// MaxWalkSpeed 0이면 로그
 	if (UCharacterMovementComponent* MC = OwnedChamp->GetCharacterMovement())
 	{
 		if (MC->MaxWalkSpeed < 1.f)
@@ -399,7 +399,7 @@ void ARiftPlayerController::OnMove()
 			PRINTLOG_SH(TEXT("[OnMove] MaxWalkSpeed=0 — R 장전 잠금 상태"));
 			return;
 		}
-	}
+	}*/
 
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
@@ -677,7 +677,7 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(AActor* Tar
 
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 {
-	PRINTLOG_SH(TEXT("[Server_Move] PC=%s HasAuthority=%d Pawn=%s OwnedChamp=%s Loc=%s"),
+	/*PRINTLOG_SH(TEXT("[Server_Move] PC=%s HasAuthority=%d Pawn=%s OwnedChamp=%s Loc=%s"),
 		*GetNameSafe(this),
 		HasAuthority(),
 		*GetNameSafe(GetPawn()),
@@ -693,12 +693,20 @@ void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 	{
 		PRINTLOG_SH(TEXT("[Server_Move] OwnedChamp 없음"));
 		return;
-	}
+	}*/
 	
-	if (OwnedChamp)
+	ALoLChampion* Champ = Cast<ALoLChampion>(GetPawn());
+	if (!Champ)
+	{
+		PRINTLOG_SH(TEXT("[Server_Move] GetPawn Champion 없음"));
+		return;
+	}
+	Champ->StopAttackLoop();
+	
+	/*if (OwnedChamp)
 	{
 		OwnedChamp->StopAttackLoop();
-	}
+	}*/
 	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Loc);
 }
 
