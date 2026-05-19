@@ -126,14 +126,6 @@ void ARiftPlayerState::AddGold(int32 Amount)
 	TotalGold += Amount;
 }
 
-/*// 레벨별 필요 경험치 (레벨 1→2부터 17→18)
-static const float GXPRequired[] =
-{
-	280, 380, 480, 580, 680, 780, 880,
-	1080, 1280, 1480, 1780, 2080, 2380,
-	2680, 2980, 3280, 3480
-};*/
-
 void ARiftPlayerState::AddXP(float Amount)
 {
 	if (!HasAuthority() || ChampionLevel >= 18) { return; }
@@ -144,8 +136,6 @@ void ARiftPlayerState::AddXP(float Amount)
 	XP += Amount;
 	OnXPChanged.Broadcast(XP, ChampionLevel);
 
-	PRINTLOG_SH(TEXT("[AddXP] +%.1f → 누적 XP: %.1f / 현재 레벨: %d"), Amount, XP, ChampionLevel);
-
 	while (ChampionLevel < 18)
 	{
 		// 행 N+1 = 레벨 N에서 N+1로 가는 데 필요한 XP
@@ -154,15 +144,12 @@ void ARiftPlayerState::AddXP(float Amount)
 
 		if (!Row)
 		{
-			PRINTLOG_SH(TEXT("[AddXP] PlayerLevelExpTable Row %d 없음 — DataTable 미생성 또는 경로 오류"), ChampionLevel + 1);
 			break;
 		}
 		if (XP < Row->RequiredXP) { break; }
 
 		XP -= Row->RequiredXP;
 		ChampionLevel++;
-
-		PRINTLOG_SH(TEXT("[AddXP] 레벨업! → %d"), ChampionLevel);
 
 		OnLevelUp.Broadcast(ChampionLevel);
 

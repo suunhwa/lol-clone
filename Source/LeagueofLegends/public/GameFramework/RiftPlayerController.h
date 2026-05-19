@@ -153,13 +153,6 @@ public:
 	bool bCameraInitialized = false;
 	bool bIsRedTeam = false; // 스폰 위치 기준으로 설정됨
 
-	// 클릭 이동 (Nav Mesh 경로 → AddMovementInput으로 구동)
-	TArray<FVector> MovePath;
-	int32 MovePathIndex = 0;
-	bool bHasMoveTarget = false;
-	FVector MoveTargetLocation = FVector::ZeroVector;
-	static constexpr float MoveAcceptanceRadius = 80.f;
-
 	// y키
 	// 고정시점
 	void OnCameraLockToggled();

@@ -11,9 +11,6 @@
 #include "GameFramework/PickWindowGameMode.h"
 #include "GameFramework/RiftPlayerState.h"
 #include "GameFramework/RiftHUD.h"
-#include "Blueprint/AIBlueprintHelperLibrary.h"
-#include "NavigationSystem.h"
-#include "NavigationPath.h"
 #include "Components/CombatComponent.h"
 #include "Components/StatComponent.h"
 #include "GameFramework/LoLGameInstance.h"
@@ -433,13 +430,11 @@ void ARiftPlayerController::OnMove()
 		return;
 	}
 
-	OwnedChamp->StopAttackLoop();
-
-	// 서버 권위 이동
+	// 서버 권위 이동 (서버에서 StopAttackLoop + SetMoveTarget 처리)
 	Server_MoveToLocation(HitResult.ImpactPoint);
 
-	// 로컬 예측 이동 (NavMesh 없어도 되도록 SimpleMoveToLocation 유지)
-	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitResult.ImpactPoint);
+	// 로컬 예측 이동
+	OwnedChamp->SetMoveTarget(HitResult.ImpactPoint);
 }
 
 void ARiftPlayerController::OnCameraLockToggled()
@@ -661,37 +656,10 @@ void ARiftPlayerController::Server_RequestBasicAttack_Implementation(AActor* Tar
 
 void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 {
-	/*PRINTLOG_SH(TEXT("[Server_Move] PC=%s HasAuthority=%d Pawn=%s OwnedChamp=%s Loc=%s"),
-		*GetNameSafe(this),
-		HasAuthority(),
-		*GetNameSafe(GetPawn()),
-		*GetNameSafe(OwnedChamp),
-		*Loc.ToString());
+	if (!OwnedChamp) { return; }
 
-	if (!OwnedChamp)
-	{
-		OwnedChamp = Cast<ALoLChampion>(GetPawn());
-	}
-
-	if (!OwnedChamp)
-	{
-		PRINTLOG_SH(TEXT("[Server_Move] OwnedChamp 없음"));
-		return;
-	}*/
-	
-	/*ALoLChampion* Champ = Cast<ALoLChampion>(GetPawn());
-	if (!Champ)
-	{
-		PRINTLOG_SH(TEXT("[Server_Move] GetPawn Champion 없음"));
-		return;
-	}
-	Champ->StopAttackLoop();*/
-	
-	if (OwnedChamp)
-	{
-		OwnedChamp->StopAttackLoop();
-	}
-	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Loc);
+	OwnedChamp->StopAttackLoop();
+	OwnedChamp->SetMoveTarget(Loc);
 }
 
 void ARiftPlayerController::Server_AssignSkillPoint_Implementation(ESkillSlot Slot)
@@ -758,8 +726,7 @@ void ARiftPlayerController::Server_SelectSummonerSpells_Implementation(ESummoner
 	// PS->SetSummonerSpells(Spell1, Spell2);
 }
 
-// ── 소환사 주문 ────────────────────────────────────────────────────────────
-
+// ---------------스펠---------------
 void ARiftPlayerController::OnSpellD()
 {
 	if (!OwnedChamp) { return; }
@@ -809,8 +776,8 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 	const FName CoolTag = FName(*FString::Printf(TEXT("SummonerSpell.%d"), SlotIndex));
 	if (CD && CD->IsOnCooldown(CoolTag)) { return; }
 
-	// 1단계: SpellBase 조회 (하드코딩 쿨타임 + 데이터 테이블 보조)
-	float Cooldown = GetSpellCooldown(Spell); // 확실한 쿨타임
+	// Step 1: SpellBase 조회
+	float Cooldown = GetSpellCooldown(Spell); 
 	float Range = 400.f;
 	float BaseValue = 0.f;
 	float ValueGrowth = 0.f;
@@ -833,7 +800,7 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 	const int32 Level = PS->GetChampionLevel();
 	const float FinalValue = BaseValue + ValueGrowth * FMath::Max(Level - 1, 0);
 
-	// 2단계: SpellTargeting 조회 (TargetLogicID 키 사용)
+	// Step 2: SpellTargeting 조회 (TargetLogicID 키 사용)
 	float SearchRadius = Range;
 	bool bAffectsAlly = false;
 	int32 MaxTarget = 1;
@@ -850,7 +817,7 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 		}
 	}
 
-	// 3단계: SpellSecondaryEffect 조회 (EffectTag 키 사용)
+	// Step 3: SpellSecondaryEffect 조회 (EffectTag 키 사용)
 	float SecondaryValue = 0.f;
 
 	if (SpellSecondaryEffectTable && !EffectTag.IsEmpty())
@@ -921,7 +888,10 @@ void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIn
 	default: break;
 	}
 
-	if (CD) { CD->StartCooldown(CoolTag, Cooldown); }
+	if (CD)
+	{
+		CD->StartCooldown(CoolTag, Cooldown);
+	}
 
 	// 클라이언트 UI에 쿨타임 알림
 	Client_OnSpellCast(SlotIndex, Cooldown);
@@ -936,7 +906,10 @@ void ARiftPlayerController::Client_OnSpellCast_Implementation(int32 SlotIndex, f
 	if (!Bar) { return; }
 
 	USpellSlotWidget* Slot = (SlotIndex == 0) ? Bar->GetSpellD() : Bar->GetSpellF();
-	if (Slot) { Slot->TriggerCooldown(Cooldown); }
+	if (Slot)
+	{
+		Slot->TriggerCooldown(Cooldown);
+	}
 }
 
 void ARiftPlayerController::Server_SelectLane_Implementation(ELane Lane)

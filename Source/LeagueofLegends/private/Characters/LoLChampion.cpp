@@ -3,8 +3,9 @@
 #include "Characters/LoLChampion.h"
 
 #include "LeagueofLegends.h"
-#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Characters/Data/ChampionData.h"
+#include "NavigationSystem.h"
+#include "NavigationPath.h"
 #include "Champions/Projectile/ChampionSkillProjectile.h"
 #include "Components/CombatComponent.h"
 #include "Components/InventoryComponent.h"
@@ -29,7 +30,7 @@
 ALoLChampion::ALoLChampion()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	
+
 	StatModifierComp = CreateDefaultSubobject<UStatModifierComponent>(TEXT("StatModifierComp"));
 	InventoryComp = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComp"));
 
@@ -73,6 +74,7 @@ void ALoLChampion::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 void ALoLChampion::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	UpdateMovement(DeltaTime);
 }
 
 void ALoLChampion::OnRep_ChampionData()
@@ -141,7 +143,89 @@ void ALoLChampion::SetChampionData(UChampionData* Data)
 	CreateSkillExecutor();
 }
 
-// SkillExecutor 동적 생성 
+// ----------------------- 이동 시스템 -----------------------
+
+void ALoLChampion::SetMoveTarget(FVector Destination)
+{
+	UNavigationPath* Path = UNavigationSystemV1::FindPathToLocationSynchronously(
+		GetWorld(),
+		GetActorLocation(),
+		Destination);
+
+	if (Path && Path->PathPoints.Num() >= 2)
+	{
+		PathPoints = Path->PathPoints;
+	}
+	else
+	{
+		// NavMesh 없을 때 직선 이동 폴백
+		PathPoints = {GetActorLocation(), Destination};
+	}
+
+	PathIndex = 1;
+	MoveDestination = Destination;
+	bHasMoveTarget = true;
+
+	if (HasAuthority() && StateComp)
+	{
+		StateComp->TryChangeState(ECharacterState::Moving);
+	}
+}
+
+void ALoLChampion::CancelMove()
+{
+	bHasMoveTarget = false;
+	PathPoints.Empty();
+	PathIndex = 0;
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+	}
+}
+
+void ALoLChampion::UpdateMovement(float DeltaTime)
+{
+	// server or local player
+	if (!HasAuthority() && !IsLocallyControlled()) { return; }
+	if (!bHasMoveTarget || PathPoints.Num() == 0) { return; }
+
+	const FVector CurrentLoc = GetActorLocation();
+
+	// 현재 웨이포인트에 충분히 가까우면 다음으로 진행
+	while (PathIndex < PathPoints.Num() &&
+		FVector::Dist2D(CurrentLoc, PathPoints[PathIndex]) <= MoveAcceptanceRadius)
+	{
+		++PathIndex;
+	}
+
+	if (PathIndex >= PathPoints.Num())
+	{
+		// 목적지 도착
+		bHasMoveTarget = false;
+		PathPoints.Empty();
+		if (HasAuthority() && StateComp &&
+			StateComp->GetCurrentState() == ECharacterState::Moving)
+		{
+			StateComp->TryChangeState(ECharacterState::Idle);
+		}
+		return;
+	}
+
+	const FVector Dir = (PathPoints[PathIndex] - CurrentLoc).GetSafeNormal2D();
+	if (!Dir.IsNearlyZero())
+	{
+		AddMovementInput(Dir);
+
+		// 이동 방향으로 회전 (서버에서 처리 → SetReplicateMovement로 복제됨)
+		if (HasAuthority())
+		{
+			SetActorRotation(Dir.Rotation());
+		}
+	}
+}
+
+// SkillExecutor 동적 생성
 void ALoLChampion::CreateSkillExecutor()
 {
 	if (!ChampionData || !ChampionData->SkillExecutorClass) { return; }
@@ -152,12 +236,10 @@ void ALoLChampion::CreateSkillExecutor()
 	}
 
 	SkillExecutor = NewObject<USkillExecutorComponent>(
-		this, ChampionData->SkillExecutorClass, TEXT("SkillExecutor"));
+		this,
+		ChampionData->SkillExecutorClass,
+		TEXT("SkillExecutor"));
 	SkillExecutor->RegisterComponent();
-
-	PRINTLOG_SH(TEXT("[%s] SkillExecutor 생성: %s"),
-		*ChampionData->ChampionID.ToString(),
-		*ChampionData->SkillExecutorClass->GetName());
 }
 
 // 스킬 활성화 → Executor 위임 
@@ -200,10 +282,15 @@ void ALoLChampion::StopAttackLoop()
 	AttackTarget = nullptr;
 	GetWorldTimerManager().ClearTimer(AttackLoopTimer);
 	GetWorldTimerManager().ClearTimer(BasicAttackImpactTimer);
+	CancelMove();
 
-	if (StateComp && StateComp->GetCurrentState() == ECharacterState::BasicAttacking)
+	if (StateComp)
 	{
-		StateComp->TryChangeState(ECharacterState::Idle);
+		const ECharacterState Cur = StateComp->GetCurrentState();
+		if (Cur == ECharacterState::BasicAttacking || Cur == ECharacterState::Moving)
+		{
+			StateComp->TryChangeState(ECharacterState::Idle);
+		}
 	}
 }
 
@@ -251,23 +338,16 @@ void ALoLChampion::AttackLoopTick()
 
 	if (Dist > Range)
 	{
-		// 사거리 밖 → 이동
+		// 사거리 밖 → 타겟 추적
 		StateComp->TryChangeState(ECharacterState::Moving);
-
-		if (AController* Ctrl = GetController())
-		{
-			UAIBlueprintHelperLibrary::SimpleMoveToActor(Ctrl, Target);
-		}
+		SetMoveTarget(Target->GetActorLocation());
 
 		GetWorldTimerManager().SetTimer(AttackLoopTimer, this, &ALoLChampion::AttackLoopTick, 0.1f, false);
 		return;
 	}
 
-	// 사거리 안 → 공격
-	if (AController* Ctrl = GetController())
-	{
-		Ctrl->StopMovement();
-	}
+	// 사거리 안 → 이동 중단 후 공격
+	CancelMove();
 
 	StateComp->TryChangeState(ECharacterState::BasicAttacking);
 
@@ -279,8 +359,11 @@ void ALoLChampion::AttackLoopTick()
 
 	ExecuteBasicAttack(Target);
 
-	GetWorldTimerManager().SetTimer(AttackLoopTimer, this, &ALoLChampion::AttackLoopTick,
-		FMath::Max(1.0f / AttackSpeed, 0.1f), false);
+	GetWorldTimerManager().SetTimer(AttackLoopTimer,
+	                                this,
+	                                &ALoLChampion::AttackLoopTick,
+	                                FMath::Max(1.0f / AttackSpeed, 0.1f),
+	                                false);
 }
 
 void ALoLChampion::OnDeath(AActor* DamageInstigator)
@@ -302,7 +385,7 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 			ARiftPlayerState* KillerPS = KillerChamp ? KillerChamp->GetPlayerState<ARiftPlayerState>() : nullptr;
 			ARiftPlayerState* VictimPS = GetPlayerState<ARiftPlayerState>();
 			// GM->OnChampionKilled(KillerPS, VictimPS);
-			
+
 			// 사망 직전 10초 이내에 공격한 적 플레이어 수집
 			TArray<ARiftPlayerState*> Assisters;
 			if (CombatComp)
@@ -321,12 +404,6 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 	}
 
 	Super::OnDeath(DamageInstigator);
-
-	// 리스폰 비활성화 (테스트용)
-	// if (HasAuthority())
-	// {
-	// 	GetWorldTimerManager().SetTimer(RespawnTimer, this, &ALoLChampion::Respawn, RespawnDelay, false);
-	// }
 }
 
 void ALoLChampion::Respawn()
@@ -377,13 +454,20 @@ void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 	if (SkillExecutor && SkillExecutor->ProjectileClass)
 	{
 		FDamageContext Ctx;
-		Ctx.RawDamage        = StatComp ? StatComp->GetAD() : 0.f;
-		Ctx.DamageType       = EDamageType::Physical;
+		Ctx.RawDamage = StatComp ? StatComp->GetAD() : 0.f;
+		Ctx.DamageType = EDamageType::Physical;
 		Ctx.DamageInstigator = this;
-		Ctx.SourceTag        = TEXT("BasicAttack");
+		Ctx.SourceTag = TEXT("BasicAttack");
 
 		FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-		AChampionSkillProjectile* Proj = SkillExecutor->SpawnProjectile(Dir, 1800.f, 800.f, Ctx, false, false, TEXT("Socket_Q"));
+		AChampionSkillProjectile* Proj = SkillExecutor->SpawnProjectile(
+			Dir,
+			1800.f,
+			800.f,
+			Ctx,
+			false,
+			false,
+			TEXT("Socket_Q"));
 
 		// 챔피언별 평타 후처리 (ex. 이즈리얼 W 고리 소비)
 		SkillExecutor->OnBasicAttackFired(Proj, Target);
@@ -393,12 +477,13 @@ void ALoLChampion::ExecuteBasicAttack(AActor* Target)
 	// 발사체 없으면 타이머로 직접 데미지
 	TWeakObjectPtr<AActor> WeakTarget(Target);
 	GetWorldTimerManager().SetTimer(BasicAttackImpactTimer,
-		[this, WeakTarget]()
-		{
-			if (WeakTarget.IsValid() && CombatComp)
-			{
-				CombatComp->PerformBasicAttack(WeakTarget.Get());
-			}
-		},
-		0.3f, false);
+	                                [this, WeakTarget]()
+	                                {
+		                                if (WeakTarget.IsValid() && CombatComp)
+		                                {
+			                                CombatComp->PerformBasicAttack(WeakTarget.Get());
+		                                }
+	                                },
+	                                0.3f,
+	                                false);
 }

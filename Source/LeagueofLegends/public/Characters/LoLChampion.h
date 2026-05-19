@@ -54,6 +54,10 @@ public:
 	void StartAttackLoop(AActor* Target);
 	void StopAttackLoop();
 
+	// 이동 시스템 (서버 권위 + 로컬 예측)
+	void SetMoveTarget(FVector Destination);
+	void CancelMove();
+
 	// 리스폰 (서버 전용)
 	void Respawn();
 
@@ -73,6 +77,7 @@ private:
 	void CreateSkillExecutor();
 	void HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc);
 	void AttackLoopTick();
+	void UpdateMovement(float DeltaTime);
 
 	UFUNCTION()
 	void OnRep_ChampionData();
@@ -91,6 +96,13 @@ private:
 	FTimerHandle BasicAttackImpactTimer;
 	FTimerHandle RespawnTimer;
 	int32 AttackSectionIndex = 0;
+
+	// NavPath 이동 상태
+	FVector MoveDestination = FVector::ZeroVector;
+	TArray<FVector> PathPoints;
+	int32 PathIndex = 0;
+	bool bHasMoveTarget = false;
+	static constexpr float MoveAcceptanceRadius = 80.f;
 
 	UPROPERTY(EditAnywhere, Category = "Respawn")
 	float RespawnDelay = 5.f;
