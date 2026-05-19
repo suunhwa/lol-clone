@@ -149,3 +149,16 @@ public:
     
     
 };
+
+USTRUCT(BlueprintType)
+struct FChampionRespawnRow : public FTableRowBase
+{
+    GENERATED_BODY()
+    
+public:
+    FChampionRespawnRow()
+        : Respawn_Time_Base(0) {}
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Champion|Growth")
+    float Respawn_Time_Base;
+};
