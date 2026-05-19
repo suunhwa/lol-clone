@@ -50,6 +50,9 @@ public:
 	// EnemyLevel: 처치한 적 챔피언 레벨 (1~18)
 	const FChampionKillExpRow* GetChampionKillExpRow(int32 EnemyLevel) const;
 
+	// Level: 사망 챔피언 레벨 (1~18) → 기본 부활 시간(초)
+	const FChampionRespawnRow* GetRespawnRow(int32 Level) const;
+
 private:
 	template <typename T>
 	static const T* FindRowByID(UDataTable* Table, const FName& ID);
@@ -87,4 +90,8 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<UDataTable> ChampionKillTable;
+
+	// 레벨별 기본 부활 시간 DataTable
+	UPROPERTY()
+	TObjectPtr<UDataTable> RespawnTable;
 };

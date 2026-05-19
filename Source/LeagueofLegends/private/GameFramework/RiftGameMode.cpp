@@ -322,11 +322,19 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 	if (!Victim) { return; }
 	Victim->AddDeath();
 
-	// 📍 [해결책] 함수 최상단에서 죽은 챔피언의 위치를 가장 먼저 안전하게 확보합니다!
+	// 죽은 챔피언 위치 확보 + 부활 타이머 시작
 	FVector VictimLocation = FVector::ZeroVector;
 	if (APawn* VictimPawn = Victim->GetPawn())
 	{
 		VictimLocation = VictimPawn->GetActorLocation();
+
+		if (ALoLChampion* VictimChamp = Cast<ALoLChampion>(VictimPawn))
+		{
+			const ARiftGameState* GS = GetGameState<ARiftGameState>();
+			const float GameSecs = GS ? static_cast<float>(GS->GetElapsedSeconds()) : 0.f;
+			const int32 RespawnSecs = CalculateRespawnTime(Victim->GetChampionLevel(), GameSecs);
+			VictimChamp->StartRespawnTimer(static_cast<float>(RespawnSecs));
+		}
 	}
 	
 	if (!Killer || Killer == Victim) { return; }
@@ -619,6 +627,33 @@ float ARiftGameMode::CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 V
 float ARiftGameMode::CalcUnitXP(const struct FUnitRewardExpRow& Row, float GameMinutes)
 {
 	return FMath::Min(Row.BaseXP + Row.GrowthPerMinute * GameMinutes, Row.MaxXP);
+}
+
+int32 ARiftGameMode::CalculateRespawnTime(int32 ChampionLevel, float GameTimeSeconds, float AdditionalRespawnTime) const
+{
+	// 1. 레벨별 기본 부활 시간 (DataTable)
+	float BaseTime = 6.f; // 폴백
+	if (UChampionDataSubsystem* Sub = GetGameInstance()->GetSubsystem<UChampionDataSubsystem>())
+	{
+		if (const FChampionRespawnRow* Row = Sub->GetRespawnRow(ChampionLevel))
+		{
+			BaseTime = Row->Respawn_Time_Base;
+		}
+	}
+
+	// 2. 시간 보정치: 31분부터 매 완전한 1분마다 +0.02, 최대 1.5
+	const float GameMinutes = GameTimeSeconds / 60.f;
+	float Modifier = 1.f;
+	if (GameMinutes >= 31.f)
+	{
+		const float ExtraMinutes = FMath::FloorToFloat(GameMinutes - 30.f);
+		Modifier += ExtraMinutes * 0.02f;
+		Modifier = FMath::Min(Modifier, 1.5f);
+	}
+
+	// 3. 최종 계산 + 반올림
+	const float FinalTime = (BaseTime * Modifier) + AdditionalRespawnTime;
+	return FMath::RoundToInt(FinalTime);
 }
 
 TArray<ARiftPlayerState*> ARiftGameMode::FindNearbyAllies(FVector Location, float Radius, ETeam Team) const

@@ -404,6 +404,14 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 	}
 
 	Super::OnDeath(DamageInstigator);
+
+}
+
+void ALoLChampion::StartRespawnTimer(float Delay)
+{
+	if (!HasAuthority()) { return; }
+	PRINTLOG_SH(TEXT("[Respawn] 부활 타이머 %.0f초"), Delay);
+	GetWorldTimerManager().SetTimer(RespawnTimer, this, &ALoLChampion::Respawn, Delay, false);
 }
 
 void ALoLChampion::Respawn()

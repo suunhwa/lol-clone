@@ -60,6 +60,7 @@ public:
 
 	// 리스폰 (서버 전용)
 	void Respawn();
+	void StartRespawnTimer(float Delay);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Respawn();
@@ -104,6 +105,4 @@ private:
 	bool bHasMoveTarget = false;
 	static constexpr float MoveAcceptanceRadius = 80.f;
 
-	UPROPERTY(EditAnywhere, Category = "Respawn")
-	float RespawnDelay = 5.f;
 };

@@ -93,8 +93,15 @@ void UChampionDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		PRINTLOG_SH(TEXT("ChampionDataSubsystem: 경험치 DataTable 로드 실패. 경로 확인 필요"));
 	}
-	
-	
+
+	RespawnTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+	                                                 nullptr,
+	                                                 TEXT("/Game/DataTables/ChampionStatDataTable_ChampionRespawn.ChampionStatDataTable_ChampionRespawn")));
+
+	if (!RespawnTable)
+	{
+		PRINTLOG_SH(TEXT("ChampionDataSubsystem: RespawnTable 로드 실패. 경로 확인 필요"));
+	}
 }
 
 // DataAsset 조회 
@@ -219,6 +226,12 @@ const FChampionKillExpRow* UChampionDataSubsystem::GetChampionKillExpRow(int32 E
 {
 	if (!ChampionKillTable) { return nullptr; }
 	return ChampionKillTable->FindRow<FChampionKillExpRow>(FName(*FString::FromInt(EnemyLevel)), TEXT(""));
+}
+
+const FChampionRespawnRow* UChampionDataSubsystem::GetRespawnRow(int32 Level) const
+{
+	if (!RespawnTable) { return nullptr; }
+	return RespawnTable->FindRow<FChampionRespawnRow>(FName(*FString::FromInt(Level)), TEXT(""));
 }
 
 // 초기화

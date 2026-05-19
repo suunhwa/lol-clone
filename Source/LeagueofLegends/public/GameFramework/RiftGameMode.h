@@ -35,6 +35,8 @@ public:
 	static float CalcChampionKillXP(float BaseXP, int32 KillerLevel, int32 VictimLevel);
 	// 게임 시간(분) 기준으로 유닛 XP 계산 (MaxXP 상한 적용)
 	static float CalcUnitXP(const struct FUnitRewardExpRow& Row, float GameMinutes);
+	// 레벨 + 게임 시간 기반 최종 부활 시간 계산 (반올림된 초 단위 반환)
+	int32 CalculateRespawnTime(int32 ChampionLevel, float GameTimeSeconds, float AdditionalRespawnTime = 0.f) const;
 	// Team 소속 아군 중 Location 반경 Radius 이내 PlayerState 수집
 	TArray<ARiftPlayerState*> FindNearbyAllies(FVector Location, float Radius, ETeam Team) const;
 	
