@@ -676,6 +676,28 @@ ALoLChampionRespawnPoint* ARiftGameMode::FindRespawnPoint(ETeam Team) const
 	return nullptr;
 }
 
+void ARiftGameMode::RespawnChampion(ALoLChampion* Champion)
+{
+	if (!Champion || !Champion->HasAuthority()) { return; }
+
+	// 팀 + 슬롯 기반 부활 위치 결정
+	const ARiftPlayerState* PS = Champion->GetPlayerState<ARiftPlayerState>();
+	const ETeam MyTeam = PS ? PS->GetTeam() : ETeam::None;
+	ALoLChampionRespawnPoint* Point = FindRespawnPoint(MyTeam);
+
+	if (Point)
+	{
+		const int32 SlotIndex = PS ? PS->GetTeamSlotIndex() : 0;
+		const int32 Idx = SlotIndex % ALoLChampionRespawnPoint::SlotOffsets.Num();
+		const FVector SpawnLoc = Point->GetActorLocation() + ALoLChampionRespawnPoint::SlotOffsets[Idx];
+
+		// TeleportTo 대신 직접 설정 (충돌 실패 없음)
+		Champion->SetActorLocationAndRotation(SpawnLoc, Point->GetActorRotation(), false, nullptr, ETeleportType::TeleportPhysics);
+	}
+
+	Champion->Respawn();
+}
+
 TArray<ARiftPlayerState*> ARiftGameMode::FindNearbyAllies(FVector Location, float Radius, ETeam Team) const
 {
 	TArray<ARiftPlayerState*> Result;

@@ -413,30 +413,27 @@ void ALoLChampion::StartRespawnTimer(float Delay)
 {
 	if (!HasAuthority()) { return; }
 	PRINTLOG_SH(TEXT("[Respawn] 부활 타이머 %.0f초"), Delay);
-	GetWorldTimerManager().SetTimer(RespawnTimer, this, &ALoLChampion::Respawn, Delay, false);
+
+	TWeakObjectPtr<ALoLChampion> WeakThis(this);
+	GetWorldTimerManager().SetTimer(RespawnTimer,
+		[WeakThis]()
+		{
+			if (!WeakThis.IsValid()) { return; }
+			if (ARiftGameMode* GM = WeakThis->GetWorld()->GetAuthGameMode<ARiftGameMode>())
+			{
+				GM->RespawnChampion(WeakThis.Get());
+			}
+			else
+			{
+				WeakThis->Respawn(); // GameMode 없을 때 폴백
+			}
+		},
+		Delay, false);
 }
 
 void ALoLChampion::Respawn()
 {
 	if (!HasAuthority()) { return; }
-
-	// 팀별 부활 위치로 이동
-	if (ARiftGameMode* GM = GetWorld()->GetAuthGameMode<ARiftGameMode>())
-	{
-		const ETeam MyTeam = TagComp ? TagComp->GetTeam() : ETeam::None;
-		if (ALoLChampionRespawnPoint* Point = GM->FindRespawnPoint(MyTeam))
-		{
-			int32 SlotIndex = 0;
-			if (const ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>())
-			{
-				SlotIndex = PS->GetTeamSlotIndex();
-			}
-
-			const int32 Idx = SlotIndex % ALoLChampionRespawnPoint::SlotOffsets.Num();
-			const FVector SpawnLoc = Point->GetActorLocation() + ALoLChampionRespawnPoint::SlotOffsets[Idx];
-			TeleportTo(SpawnLoc, Point->GetActorRotation());
-		}
-	}
 
 	// HP/마나 전체 회복
 	if (StatComp)
@@ -470,6 +467,12 @@ void ALoLChampion::Respawn()
 void ALoLChampion::Multicast_Respawn_Implementation()
 {
 	SetActorEnableCollision(true);
+
+	// 사망 몽타주 강제 종료
+	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
+	{
+		Anim->StopAllMontages(0.1f);
+	}
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{

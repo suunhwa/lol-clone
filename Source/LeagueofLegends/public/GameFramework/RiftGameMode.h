@@ -5,6 +5,7 @@
 #include "Type/RiftTypes.h"
 #include "RiftGameMode.generated.h"
 
+class ALoLChampion;
 class ARiftPlayerState;
 class ALoLPlayerStart;
 
@@ -42,6 +43,9 @@ public:
 
 	// 해당 팀의 부활 포인트 반환 (없으면 nullptr)
 	class ALoLChampionRespawnPoint* FindRespawnPoint(ETeam Team) const;
+
+	// 부활 위치 계산 후 Champion 상태 복구까지 처리
+	void RespawnChampion(ALoLChampion* Champion);
 	
 private:
 	void TryStartGame();
