@@ -3,6 +3,7 @@
 #include "Characters/LoLChampion.h"
 #include "Characters/Data/ChampionData.h"
 #include "Components/StatComponent.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/RiftPlayerState.h"
 
 // LoL 레벨별 필요 경험치 (레벨 1→2부터 17→18까지)
@@ -46,6 +47,22 @@ float UChampionPortraitViewModel::GetXPProgress() const
 	if (Required <= 0.f) return 0.f;
 
 	return FMath::Clamp(PlayerState->GetXP() / Required, 0.f, 1.f);
+}
+
+bool UChampionPortraitViewModel::IsChampionDead() const
+{
+	return PlayerState ? PlayerState->IsDead() : false;
+}
+
+float UChampionPortraitViewModel::GetRespawnTimeRemaining() const
+{
+	if (!PlayerState || !PlayerState->IsDead()) { return 0.f; }
+	if (!Champion) { return 0.f; }
+
+	const AGameStateBase* GS = Champion->GetWorld()->GetGameState<AGameStateBase>();
+	if (!GS) { return 0.f; }
+
+	return FMath::Max(0.f, PlayerState->GetRespawnEndServerTime() - GS->GetServerWorldTimeSeconds());
 }
 
 void UChampionPortraitViewModel::HandleLevelChanged(int32 NewLevel)

@@ -18,4 +18,12 @@ void ARiftPlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float Delta
 	OutVT.POV.Location = CurrentCameraLoc + CamOffset;
 	OutVT.POV.Rotation = CamRot;
 	OutVT.POV.FOV = CamFOV;
+
+	// 사망 시 화면 회색조 후처리
+	if (bDeathDesaturation)
+	{
+		OutVT.POV.PostProcessBlendWeight = 1.f;
+		OutVT.POV.PostProcessSettings.bOverride_ColorSaturation = true;
+		OutVT.POV.PostProcessSettings.ColorSaturation = FVector4(0.f, 0.f, 0.f, 1.f);
+	}
 }

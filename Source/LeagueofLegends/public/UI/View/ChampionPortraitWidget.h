@@ -34,14 +34,20 @@ private:
 
 protected:
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> txt_Level;
+	TObjectPtr<UTextBlock> Txt_Level;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UImage> img_Portrait;
+	TObjectPtr<UImage> Img_Portrait;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> Img_DeadOverlay;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_DeathTimer;
 
 	// M_Exp Progress 파라미터 제어
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UImage> img_Exp;
+	TObjectPtr<UImage> Img_Exp;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Stats;

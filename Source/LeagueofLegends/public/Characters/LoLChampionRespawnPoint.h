@@ -7,6 +7,9 @@
 #include "Type/RiftTypes.h"
 #include "LoLChampionRespawnPoint.generated.h"
 
+// 팀 별 부활 우물 위치 마커
+// 맵에 블루/레드 각 1개씩 배치
+// SlotIndex 기반 offset으로 팀원 위치 분산
 UCLASS()
 class LEAGUEOFLEGENDS_API ALoLChampionRespawnPoint : public AActor
 {
@@ -16,14 +19,12 @@ public:
 	// Sets default values for this actor's properties
 	ALoLChampionRespawnPoint();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Respawn")
+	ETeam Team = ETeam::None;
 	
-	UPROPERTY(EditAnywhere)
-	ETeam Team;
+	// SlotIndex 오프셋 배열 (최대 5인 기준)
+	static const TArray<FVector> SlotOffsets;
+	
+	
 };

@@ -39,6 +39,9 @@ public:
 	int32 CalculateRespawnTime(int32 ChampionLevel, float GameTimeSeconds, float AdditionalRespawnTime = 0.f) const;
 	// Team 소속 아군 중 Location 반경 Radius 이내 PlayerState 수집
 	TArray<ARiftPlayerState*> FindNearbyAllies(FVector Location, float Radius, ETeam Team) const;
+
+	// 해당 팀의 부활 포인트 반환 (없으면 nullptr)
+	class ALoLChampionRespawnPoint* FindRespawnPoint(ETeam Team) const;
 	
 private:
 	void TryStartGame();

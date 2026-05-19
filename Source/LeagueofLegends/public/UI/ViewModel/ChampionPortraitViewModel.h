@@ -16,13 +16,17 @@ class LEAGUEOFLEGENDS_API UChampionPortraitViewModel : public UViewModelBase
 	GENERATED_BODY()
 
 public:
-	virtual void Initialize() override {}
+	virtual void Initialize() override
+	{
+	}
 
 	void Setup(ALoLChampion* InChampion);
 
-	int32       GetLevel()           const;
+	int32 GetLevel() const;
 	UTexture2D* GetPortraitTexture() const;
-	float       GetXPProgress()      const; // 0~1, NativeTick에서 폴링
+	float GetXPProgress() const;       // 0~1, NativeTick에서 폴링
+	bool IsChampionDead() const;       // 사망 오버레이 표시 여부
+	float GetRespawnTimeRemaining() const; // 남은 부활 시간 (초)
 
 	FOnPortraitLevelUpdated OnLevelUpdated;
 

@@ -22,6 +22,8 @@
 #include "Interfaces/Targetable.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "GameFramework/RiftHUD.h"
+#include "Characters/LoLChampionRespawnPoint.h"
+#include "GameFramework/LoLCameraActor.h"
 #include "GameFramework/RiftGameMode.h"
 #include "GameFramework/RiftPlayerState.h"
 #include "Kismet/GameplayStatics.h"
@@ -404,7 +406,7 @@ void ALoLChampion::OnDeath(AActor* DamageInstigator)
 	}
 
 	Super::OnDeath(DamageInstigator);
-
+	// 사망 상태는 GameMode::OnChampionKilled에서 PlayerState에 복제됨
 }
 
 void ALoLChampion::StartRespawnTimer(float Delay)
@@ -416,22 +418,54 @@ void ALoLChampion::StartRespawnTimer(float Delay)
 
 void ALoLChampion::Respawn()
 {
-	if (!HasAuthority()) return;
+	if (!HasAuthority()) { return; }
 
-	// HP 회복
-	StatComp->ApplyHealthChange(StatComp->GetMaxHP());
+	// 팀별 부활 위치로 이동
+	if (ARiftGameMode* GM = GetWorld()->GetAuthGameMode<ARiftGameMode>())
+	{
+		const ETeam MyTeam = TagComp ? TagComp->GetTeam() : ETeam::None;
+		if (ALoLChampionRespawnPoint* Point = GM->FindRespawnPoint(MyTeam))
+		{
+			int32 SlotIndex = 0;
+			if (const ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>())
+			{
+				SlotIndex = PS->GetTeamSlotIndex();
+			}
+
+			const int32 Idx = SlotIndex % ALoLChampionRespawnPoint::SlotOffsets.Num();
+			const FVector SpawnLoc = Point->GetActorLocation() + ALoLChampionRespawnPoint::SlotOffsets[Idx];
+			TeleportTo(SpawnLoc, Point->GetActorRotation());
+		}
+	}
+
+	// HP/마나 전체 회복
+	if (StatComp)
+	{
+		StatComp->ApplyHealthChange(StatComp->GetMaxHP());
+	}
 
 	// Dead/Untargetable 태그 제거
-	TagComp->RemoveTag(UnitTags::Dead);
-	TagComp->RemoveTag(UnitTags::Untargetable);
+	if (TagComp)
+	{
+		TagComp->RemoveTag(UnitTags::Dead);
+		TagComp->RemoveTag(UnitTags::Untargetable);
+	}
 
 	// 상태 Idle로 복귀
-	StateComp->TryChangeState(ECharacterState::Idle);
+	if (StateComp)
+	{
+		StateComp->TryChangeState(ECharacterState::Idle);
+	}
 
-	// 충돌 다시 활성화 (Multicast_OnDeath에서 껐으므로)
+	// 충돌·이동 복구 (모든 클라이언트)
 	Multicast_Respawn();
-}
 
+	// 사망 상태 해제 (OnRep_DeathState가 카메라 효과 + UI 모두 클리어)
+	if (ARiftPlayerState* PS = GetPlayerState<ARiftPlayerState>())
+	{
+		PS->SetDeadState(false, 0.f);
+	}
+}
 
 void ALoLChampion::Multicast_Respawn_Implementation()
 {

@@ -22,28 +22,38 @@ void UChampionPortraitWidget::BindViewModel(UViewModelBase* InViewModel)
 	VM->OnLevelUpdated.AddUObject(this, &UChampionPortraitWidget::OnLevelUpdated);
 
 	// 초기값 즉시 반영
-	if (txt_Level)
+	if (Txt_Level)
 	{
-		txt_Level->SetText(FText::AsNumber(FMath::Max(1, VM->GetLevel())));
+		Txt_Level->SetText(FText::AsNumber(FMath::Max(1, VM->GetLevel())));
 	}
 		
 
-	if (img_Portrait)
+	if (Img_Portrait)
 	{
 		if (UTexture2D* Portrait = VM->GetPortraitTexture())
 		{
-			UMaterialInstanceDynamic* DynMat = img_Portrait->GetDynamicMaterial();
+			UMaterialInstanceDynamic* DynMat = Img_Portrait->GetDynamicMaterial();
 			if (DynMat)
 			{
 				DynMat->SetTextureParameterValue(TEXT("PortraitTex"), Portrait);
 			}
 		}
 	}
+	
+	// 사망 오버레이 초기 숨김
+	if (Img_DeadOverlay)
+	{
+		Img_DeadOverlay->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (Txt_DeathTimer)
+	{
+		Txt_DeathTimer->SetVisibility(ESlateVisibility::Hidden);
+	}
 
 	// XP 머티리얼 Dynamic Instance 캐싱
-	if (img_Exp)
+	if (Img_Exp)
 	{
-		ExpMat = img_Exp->GetDynamicMaterial();
+		ExpMat = Img_Exp->GetDynamicMaterial();
 		if (ExpMat)
 		{
 			ExpMat->SetScalarParameterValue(TEXT("Progress"), 0.f);
@@ -55,13 +65,36 @@ void UChampionPortraitWidget::NativeTick(const FGeometry& MyGeometry, float InDe
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	if (!IsValid(VM) || !ExpMat) { return; }
+	if (!IsValid(VM)) { return; }
 
+	// 사망 오버레이 + 타이머 갱신
+	const bool bDead = VM->IsChampionDead();
+	const ESlateVisibility DeadVis = bDead ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden;
+
+	if (Img_DeadOverlay)
+	{
+		Img_DeadOverlay->SetVisibility(DeadVis);
+	}
+
+	if (Txt_DeathTimer)
+	{
+		Txt_DeathTimer->SetVisibility(DeadVis);
+		if (bDead)
+		{
+			const int32 SecsLeft = FMath::CeilToInt(VM->GetRespawnTimeRemaining());
+			Txt_DeathTimer->SetText(FText::AsNumber(FMath::Max(0, SecsLeft)));
+		}
+	}
+
+	// XP 바 갱신 (기존 로직 유지)
 	TickAccum += InDeltaTime;
 	if (TickAccum < RefreshInterval) { return; }
 	TickAccum = 0.f;
 
-	ExpMat->SetScalarParameterValue(TEXT("Progress"), VM->GetXPProgress());
+	if (ExpMat)
+	{
+		ExpMat->SetScalarParameterValue(TEXT("Progress"), VM->GetXPProgress());
+	}
 }
 
 void UChampionPortraitWidget::OnStatsClicked()
@@ -72,8 +105,8 @@ void UChampionPortraitWidget::OnStatsClicked()
 void UChampionPortraitWidget::OnLevelUpdated(int32 NewLevel)
 {
 	PRINTLOG_SH(TEXT("[Portrait] Level updated → %d"), NewLevel);
-	if (txt_Level)
+	if (Txt_Level)
 	{
-		txt_Level->SetText(FText::AsNumber(NewLevel));
+		Txt_Level->SetText(FText::AsNumber(NewLevel));
 	}
 }

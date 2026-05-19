@@ -39,6 +39,9 @@ public:
 	void SetReady(bool bReady);
 	void SetTeamSlotIndex(int32 InIndex);
 
+	// 사망 상태 (서버 전용 setter, 클라이언트에 복제됨)
+	void SetDeadState(bool bDead, float EndServerTime = 0.f);
+
 	FName GetSelectedChampion() const { return SelectedChampionID; }
 	bool GetIsReady() const { return bIsReady; }
 
@@ -69,6 +72,8 @@ public:
 	float GetXP() const { return XP; }
 	int32 GetTeamSlotIndex() const { return TeamSlotIndex; }
 	bool IsDisconnected() const { return bIsDisconnected; }
+	bool IsDead() const { return bIsDead; }
+	float GetRespawnEndServerTime() const { return RespawnEndServerTime; }
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Team)
@@ -115,6 +120,12 @@ private:
 	UPROPERTY(Replicated)
 	bool bIsDisconnected = false;
 
+	UPROPERTY(ReplicatedUsing = OnRep_DeathState)
+	bool bIsDead = false;
+
+	UPROPERTY(ReplicatedUsing = OnRep_DeathState)
+	float RespawnEndServerTime = 0.f;
+
 	UPROPERTY(ReplicatedUsing = OnRep_IsReady)
 	bool bIsReady = false;
 
@@ -123,6 +134,9 @@ private:
 
 	UFUNCTION()
 	void OnRep_IsReady();
+
+	UFUNCTION()
+	void OnRep_DeathState();
 
 	UFUNCTION()
 	void OnRep_Team();

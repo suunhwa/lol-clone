@@ -3,24 +3,29 @@
 
 #include "Characters/LoLChampionRespawnPoint.h"
 
+#include "Components/BillboardComponent.h"
+
+const TArray<FVector> ALoLChampionRespawnPoint::SlotOffsets = {
+	FVector(0.f, 0.f, 0.f),
+	FVector(120.f, 0.f, 0.f),
+	FVector(-120.f, 0.f, 0.f),
+	FVector(0.f, 120.f, 0.f),
+	FVector(0.f, -120.f, 0.f),
+};
 
 // Sets default values
 ALoLChampionRespawnPoint::ALoLChampionRespawnPoint()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-}
-
-// Called when the game starts or when spawned
-void ALoLChampionRespawnPoint::BeginPlay()
-{
-	Super::BeginPlay();
+	PrimaryActorTick.bCanEverTick = false;
+	
+#if WITH_EDITOR
+	// 에디터에서 위치 확인용 빌보드
+	if (UBillboardComponent* Billboard = CreateDefaultSubobject<UBillboardComponent>(TEXT("Billboard")))
+	{
+		RootComponent = Billboard;
+	}
+#endif
 	
 }
 
-// Called every frame
-void ALoLChampionRespawnPoint::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
 

@@ -64,6 +64,7 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Respawn();
+
 	
 	// 동적 생성되는 챔피언별 스킬 실행 컴포넌트
 	UPROPERTY()

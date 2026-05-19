@@ -5,6 +5,7 @@
 #include "Components/StatComponent.h"
 #include "FOW/FOWManager.h"
 #include "GameFramework/RiftGameState.h"
+#include "GameFramework/RiftPlayerCameraManager.h"
 #include "Manager/ChampionDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
@@ -71,11 +72,34 @@ void ARiftPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(ARiftPlayerState, bIsDisconnected);
 	DOREPLIFETIME(ARiftPlayerState, bIsReady);
 	DOREPLIFETIME(ARiftPlayerState, SelectedChampionID);
+	DOREPLIFETIME(ARiftPlayerState, bIsDead);
+	DOREPLIFETIME(ARiftPlayerState, RespawnEndServerTime);
 }
 
 void ARiftPlayerState::SetTeamSlotIndex(int32 InIndex)
 {
 	TeamSlotIndex = InIndex;
+}
+
+void ARiftPlayerState::SetDeadState(bool bDead, float EndServerTime)
+{
+	bIsDead = bDead;
+	RespawnEndServerTime = EndServerTime;
+	// 리슨 서버 로컬 플레이어는 OnRep가 호출되지 않으므로 직접 호출
+	OnRep_DeathState();
+}
+
+void ARiftPlayerState::OnRep_DeathState()
+{
+	// 이 PlayerState를 소유한 로컬 플레이어의 카메라에만 효과 적용
+	APlayerController* PC = Cast<APlayerController>(GetOwner());
+	if (!PC || !PC->IsLocalController()) { return; }
+
+	ARiftPlayerCameraManager* Cam = Cast<ARiftPlayerCameraManager>(PC->PlayerCameraManager);
+	if (Cam)
+	{
+		Cam->SetDeathDesaturation(bIsDead);
+	}
 }
 
 void ARiftPlayerState::SetTeam(ETeam InTeam)

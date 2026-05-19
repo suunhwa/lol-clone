@@ -21,6 +21,10 @@ public:
 	float CamYaw = 90.f;
 	void SetTeamYaw(bool bRedTeam) { CamYaw = 90.f; }
 
+	// 사망 화면 후처리 (회색조). 사망 시 활성화, 부활 시 해제
+	bool bDeathDesaturation = false;
+	void SetDeathDesaturation(bool bEnabled) { bDeathDesaturation = bEnabled; }
+
 private:
 	static constexpr float ArmLength = 2000.f;
 	static constexpr float CamPitch  = -55.f;

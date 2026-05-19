@@ -16,6 +16,7 @@
 #include "Struct/MinionStruct.h"
 #include "Components/InventoryComponent.h"
 #include "Manager/ObjectDataSubsystem.h"
+#include "Characters/LoLChampionRespawnPoint.h"
 
 ARiftGameMode::ARiftGameMode()
 {
@@ -334,6 +335,13 @@ void ARiftGameMode::OnChampionKilled(ARiftPlayerState* Killer,
 			const float GameSecs = GS ? static_cast<float>(GS->GetElapsedSeconds()) : 0.f;
 			const int32 RespawnSecs = CalculateRespawnTime(Victim->GetChampionLevel(), GameSecs);
 			VictimChamp->StartRespawnTimer(static_cast<float>(RespawnSecs));
+
+			// 사망 상태 + 부활 종료 시간 PlayerState에 복제
+			const AGameStateBase* GSBase = GetGameState<AGameStateBase>();
+			const float EndServerTime = GSBase
+				? GSBase->GetServerWorldTimeSeconds() + static_cast<float>(RespawnSecs)
+				: 0.f;
+			Victim->SetDeadState(true, EndServerTime);
 		}
 	}
 	
@@ -654,6 +662,18 @@ int32 ARiftGameMode::CalculateRespawnTime(int32 ChampionLevel, float GameTimeSec
 	// 3. 최종 계산 + 반올림
 	const float FinalTime = (BaseTime * Modifier) + AdditionalRespawnTime;
 	return FMath::RoundToInt(FinalTime);
+}
+
+ALoLChampionRespawnPoint* ARiftGameMode::FindRespawnPoint(ETeam Team) const
+{
+	for (TActorIterator<ALoLChampionRespawnPoint> It(GetWorld()); It; ++It)
+	{
+		if (It->Team == Team)
+		{
+			return *It;
+		}
+	}
+	return nullptr;
 }
 
 TArray<ARiftPlayerState*> ARiftGameMode::FindNearbyAllies(FVector Location, float Radius, ETeam Team) const
