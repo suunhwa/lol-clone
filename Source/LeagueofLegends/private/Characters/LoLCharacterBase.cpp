@@ -116,6 +116,7 @@ void ALoLCharacterBase::BeginPlay()
 	{
 		// TagComp->SetTeam(InitialTeam);
 		CombatComp->OnDeath.AddUObject(this, &ALoLCharacterBase::OnDeath);
+
 	}
 
 

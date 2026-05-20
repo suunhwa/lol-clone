@@ -56,6 +56,7 @@ public:
 
 	// 이동 시스템 (서버 권위 + 로컬 예측)
 	void SetMoveTarget(FVector Destination);
+	void SetMoveTargetFrom(FVector StartLoc, FVector Destination);  // 서버/클라 동일 경로 보장
 	void CancelMove();
 
 	// 리스폰 (서버 전용)

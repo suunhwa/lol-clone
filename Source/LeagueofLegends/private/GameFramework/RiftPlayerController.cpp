@@ -418,14 +418,8 @@ void ARiftPlayerController::OnMove()
 		return;
 	}
 
-	// 서버 권위 이동 (서버에서 StopAttackLoop + SetMoveTarget 처리)
+	// 서버 권위 이동 — 클라 예측 없이 서버에서 SetMoveTarget 처리 후 CMC 복제로 반영
 	Server_MoveToLocation(HitResult.ImpactPoint);
-
-	if (OwnedChamp->IsLocallyControlled())
-	{
-		// 로컬 예측 이동
-		OwnedChamp->SetMoveTarget(HitResult.ImpactPoint);
-	}
 	
 }
 

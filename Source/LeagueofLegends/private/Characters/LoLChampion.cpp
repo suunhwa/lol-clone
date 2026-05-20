@@ -152,12 +152,10 @@ void ALoLChampion::SetChampionData(UChampionData* Data)
 
 // ----------------------- 이동 시스템 -----------------------
 
-void ALoLChampion::SetMoveTarget(FVector Destination)
+void ALoLChampion::SetMoveTargetFrom(FVector StartLoc, FVector Destination)
 {
 	UNavigationPath* Path = UNavigationSystemV1::FindPathToLocationSynchronously(
-		GetWorld(),
-		GetActorLocation(),
-		Destination);
+		GetWorld(), StartLoc, Destination);
 
 	if (Path && Path->PathPoints.Num() >= 2)
 	{
@@ -165,8 +163,7 @@ void ALoLChampion::SetMoveTarget(FVector Destination)
 	}
 	else
 	{
-		// NavMesh 없을 때 직선 이동 폴백
-		PathPoints = {GetActorLocation(), Destination};
+		PathPoints = {StartLoc, Destination};
 	}
 
 	PathIndex = 1;
@@ -177,6 +174,11 @@ void ALoLChampion::SetMoveTarget(FVector Destination)
 	{
 		StateComp->TryChangeState(ECharacterState::Moving);
 	}
+}
+
+void ALoLChampion::SetMoveTarget(FVector Destination)
+{
+	SetMoveTargetFrom(GetActorLocation(), Destination);
 }
 
 void ALoLChampion::CancelMove()
@@ -193,8 +195,6 @@ void ALoLChampion::CancelMove()
 
 void ALoLChampion::UpdateMovement(float DeltaTime)
 {
-	// server or local player
-	// if (!HasAuthority() && !IsLocallyControlled()) { return; }
 	if (!HasAuthority()) { return; }
 	if (!bHasMoveTarget || PathPoints.Num() == 0) { return; }
 
