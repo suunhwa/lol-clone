@@ -357,6 +357,15 @@ void ALoLCharacterBase::Multicast_StartCooldown_Implementation(FName Tag, float 
 		CooldownComp->StartCooldown(Tag, Duration);
 }
 
+void ALoLCharacterBase::Multicast_ResetCooldowns_Implementation()
+{
+	if (CooldownComp)
+	{
+		CooldownComp->ResetAllCooldowns();
+	}
+	
+}
+
 void ALoLCharacterBase::Multicast_PlayMontage_Implementation(UAnimMontage* Montage)
 {
 	if (!Montage) { return; }

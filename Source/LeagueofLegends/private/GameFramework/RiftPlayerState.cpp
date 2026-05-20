@@ -250,15 +250,6 @@ void ARiftPlayerState::OnRep_PlayerName()
 void ARiftPlayerState::OnRep_ChampionLevel()
 {
 	OnXPChanged.Broadcast(XP, ChampionLevel);
-
-	// 클라이언트 StatComp 레벨 동기화
-	if (APawn* Pawn = GetPawn())
-	{
-		if (UStatComponent* StatComp = Pawn->FindComponentByClass<UStatComponent>())
-		{
-			StatComp->SetLevel(ChampionLevel);
-		}
-	}
 }
 
 void ARiftPlayerState::OnRep_XP()

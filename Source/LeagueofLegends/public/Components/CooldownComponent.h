@@ -24,6 +24,7 @@ public:
 	float GetRemaining(FName Tag) const;
 	float GetDuration(FName Tag) const;
 	void ReduceAllCooldowns(float Amount); // Q 패시브 등 쿨다운 감소
+	void ResetAllCooldowns() { Cooldowns.Empty(); }
 
 	// AH → CDR 변환: CDR% = AH / (100 + AH)
 	void SetAbilityHaste(float InAH) { AbilityHaste = FMath::Max(0.f, InAH); }

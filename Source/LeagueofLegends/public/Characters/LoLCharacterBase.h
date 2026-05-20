@@ -123,6 +123,10 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_StartCooldown(FName Tag, float Duration);
 
+	// 디버그: 모든 쿨타임 초기화
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_ResetCooldowns();
+
 	// 특정 섹션부터 몽타주 재생
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontageSection(UAnimMontage* Montage, FName SectionName);

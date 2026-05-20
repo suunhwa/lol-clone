@@ -16,7 +16,6 @@
 #include "GameFramework/LoLGameInstance.h"
 #include "GameFramework/RiftGameState.h"
 #include "Components/CooldownComponent.h"
-#include "Components/StatComponent.h"
 #include "Struct/SpellStruct.h"
 #include "UI/View/MainHUDWidget.h"
 #include "UI/View/SkillBarWidget.h"
@@ -361,10 +360,15 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_Attack_A, ETriggerEvent::Completed, this, &ARiftPlayerController::OnAReleased);
 	EIC->BindAction(IA_LeftClick, ETriggerEvent::Started, this, &ARiftPlayerController::OnLeftClick);
 	EIC->BindAction(IA_Shop, ETriggerEvent::Started, this, &ARiftPlayerController::OnToggleShop);
-
-	EIC->BindAction(IA_LevelUp, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddXP);
 	EIC->BindAction(IA_Spell_D, ETriggerEvent::Started, this, &ARiftPlayerController::OnSpellD);
 	EIC->BindAction(IA_Spell_F, ETriggerEvent::Started, this, &ARiftPlayerController::OnSpellF);
+	
+	// ---- Debug ----
+	EIC->BindAction(IA_LevelUp, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddXP);
+	EIC->BindAction(IA_HP, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddHP);
+	EIC->BindAction(IA_MP, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddMP);
+	EIC->BindAction(IA_Cooldown, ETriggerEvent::Started, this, &ARiftPlayerController::Server_ResetCooldowns);
+
 }
 
 void ARiftPlayerController::OnCameraFocusHeld()
@@ -384,27 +388,11 @@ void ARiftPlayerController::OnMove()
 {
 	if (!OwnedChamp)
 	{
-		PRINTLOG_SH(TEXT("[OnMove] OwnedChamp=null — 이동 불가"));
 		return;
 	}
 
-	/*// MaxWalkSpeed 0이면 로그
-	if (UCharacterMovementComponent* MC = OwnedChamp->GetCharacterMovement())
-	{
-		if (MC->MaxWalkSpeed < 1.f)
-		{
-			PRINTLOG_SH(TEXT("[OnMove] MaxWalkSpeed=0 — R 장전 잠금 상태"));
-			return;
-		}
-	}*/
-
 	FHitResult HitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
-
-	PRINTLOG_SH(TEXT("[OnMove] Hit=%d Actor=%s Loc=%s"),
-		HitResult.bBlockingHit,
-		*GetNameSafe(HitResult.GetActor()),
-		*HitResult.ImpactPoint.ToString());
 
 	if (!HitResult.bBlockingHit) { return; }
 
@@ -433,8 +421,12 @@ void ARiftPlayerController::OnMove()
 	// 서버 권위 이동 (서버에서 StopAttackLoop + SetMoveTarget 처리)
 	Server_MoveToLocation(HitResult.ImpactPoint);
 
-	// 로컬 예측 이동
-	OwnedChamp->SetMoveTarget(HitResult.ImpactPoint);
+	if (OwnedChamp->IsLocallyControlled())
+	{
+		// 로컬 예측 이동
+		OwnedChamp->SetMoveTarget(HitResult.ImpactPoint);
+	}
+	
 }
 
 void ARiftPlayerController::OnCameraLockToggled()
@@ -703,11 +695,9 @@ void ARiftPlayerController::Server_AddXP_Implementation()
 	const int32 PrevLevel = PS->GetChampionLevel();
 	PS->AddXP(200.f);
 
-	// 레벨업: StatComp 동기화
 	const int32 NewLevel = PS->GetChampionLevel();
-	if (NewLevel > PrevLevel && OwnedChamp && OwnedChamp->StatComp)
+	if (NewLevel > PrevLevel)
 	{
-		OwnedChamp->StatComp->SetLevel(NewLevel);
 		PRINTLOG_SH(TEXT("[Debug] LevelUp → Lv.%d"), NewLevel);
 	}
 	else
@@ -716,6 +706,24 @@ void ARiftPlayerController::Server_AddXP_Implementation()
 		            PS->GetXP(),
 		            NewLevel < 18 ? 280.f : 0.f);
 	}
+}
+
+void ARiftPlayerController::Server_AddHP_Implementation()
+{
+	if (!OwnedChamp || !OwnedChamp->StatComp) { return; }
+	OwnedChamp->StatComp->ApplyHealthChange(50.f);
+}
+
+void ARiftPlayerController::Server_AddMP_Implementation()
+{
+	if (!OwnedChamp || !OwnedChamp->StatComp) { return; }
+	OwnedChamp->StatComp->ApplyManaCost(-50.f);  // 음수 = 회복
+}
+
+void ARiftPlayerController::Server_ResetCooldowns_Implementation()
+{
+	if (!OwnedChamp || !OwnedChamp->CooldownComp) { return; }
+	OwnedChamp->Multicast_ResetCooldowns();
 }
 
 void ARiftPlayerController::Server_SelectSummonerSpells_Implementation(ESummonerSpell Spell1, ESummonerSpell Spell2)
@@ -734,6 +742,11 @@ void ARiftPlayerController::OnSpellD()
 	GetHitResultUnderCursor(ECC_Visibility, false, Hit);
 	FVector TargetLoc = Hit.bBlockingHit ? Hit.ImpactPoint : OwnedChamp->GetActorLocation();
 	Server_CastSummonerSpell(0, TargetLoc);
+	
+	if (OwnedChamp)
+	{
+		OwnedChamp->CancelMove();
+	}
 }
 
 void ARiftPlayerController::OnSpellF()
@@ -743,6 +756,11 @@ void ARiftPlayerController::OnSpellF()
 	GetHitResultUnderCursor(ECC_Visibility, false, Hit);
 	FVector TargetLoc = Hit.bBlockingHit ? Hit.ImpactPoint : OwnedChamp->GetActorLocation();
 	Server_CastSummonerSpell(1, TargetLoc);
+	
+	if (OwnedChamp)
+	{
+		OwnedChamp->CancelMove();
+	}
 }
 
 void ARiftPlayerController::Server_CastSummonerSpell_Implementation(int32 SlotIndex, FVector TargetLoc)
@@ -919,3 +937,4 @@ void ARiftPlayerController::Server_SelectLane_Implementation(ELane Lane)
 
 	PS->SetLane(Lane);
 }
+

@@ -32,6 +32,11 @@
 ALoLChampion::ALoLChampion()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	
+	bUseControllerRotationYaw = false;
+
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 
 	StatModifierComp = CreateDefaultSubobject<UStatModifierComponent>(TEXT("StatModifierComp"));
 	InventoryComp = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComp"));
@@ -189,7 +194,8 @@ void ALoLChampion::CancelMove()
 void ALoLChampion::UpdateMovement(float DeltaTime)
 {
 	// server or local player
-	if (!HasAuthority() && !IsLocallyControlled()) { return; }
+	// if (!HasAuthority() && !IsLocallyControlled()) { return; }
+	if (!HasAuthority()) { return; }
 	if (!bHasMoveTarget || PathPoints.Num() == 0) { return; }
 
 	const FVector CurrentLoc = GetActorLocation();
@@ -219,11 +225,11 @@ void ALoLChampion::UpdateMovement(float DeltaTime)
 	{
 		AddMovementInput(Dir);
 
-		// 이동 방향으로 회전 (서버에서 처리 → SetReplicateMovement로 복제됨)
+		/*// 이동 방향으로 회전 (서버에서 처리 → SetReplicateMovement로 복제됨)
 		if (HasAuthority())
 		{
 			SetActorRotation(Dir.Rotation());
-		}
+		}*/
 	}
 }
 
@@ -298,6 +304,8 @@ void ALoLChampion::StopAttackLoop()
 
 void ALoLChampion::AttackLoopTick()
 {
+	if (!HasAuthority()) { return; }
+	
 	if (!AttackTarget.IsValid())
 	{
 		StopAttackLoop();
@@ -354,7 +362,7 @@ void ALoLChampion::AttackLoopTick()
 	StateComp->TryChangeState(ECharacterState::BasicAttacking);
 
 	FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-	if (!Dir.IsNearlyZero())
+	if (HasAuthority() && !Dir.IsNearlyZero())
 	{
 		SetActorRotation(Dir.Rotation());
 	}
@@ -371,6 +379,7 @@ void ALoLChampion::AttackLoopTick()
 void ALoLChampion::OnDeath(AActor* DamageInstigator)
 {
 	StopAttackLoop();
+	CancelMove();
 
 	// 이동 즉시 차단 (죽은 채로 걷는 좀비 방지)
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
@@ -462,6 +471,8 @@ void ALoLChampion::Respawn()
 	{
 		PS->SetDeadState(false, 0.f);
 	}
+	
+	CancelMove();
 }
 
 void ALoLChampion::Multicast_Respawn_Implementation()

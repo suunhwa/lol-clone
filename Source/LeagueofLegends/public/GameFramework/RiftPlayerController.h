@@ -142,8 +142,21 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
 	TObjectPtr<UInputAction> IA_Spell_F;
 	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions")
+	TObjectPtr<UInputAction> IA_Recall;
+	
+	// ---- 디버그용 치트키 ----
 	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
-	TObjectPtr<UInputAction> IA_LevelUp;
+	TObjectPtr<UInputAction> IA_LevelUp;  // L
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
+	TObjectPtr<UInputAction> IA_HP; // 8
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
+	TObjectPtr<UInputAction> IA_MP;  // 9
+	
+	UPROPERTY(EditAnywhere, Category ="Input|Input Actions|Debug")
+	TObjectPtr<UInputAction> IA_Cooldown;  // 0
 
 
 	virtual void SetupInputComponent() override;
@@ -192,10 +205,20 @@ public:
 	void Server_AddXP();
 
 	UFUNCTION(Server, Reliable)
+	void Server_AddHP();
+
+	UFUNCTION(Server, Reliable)
+	void Server_AddMP();
+
+	UFUNCTION(Server, Reliable)
+	void Server_ResetCooldowns();
+
+	UFUNCTION(Server, Reliable)
 	void Server_AssignSkillPoint(ESkillSlot Slot);
 
 	UFUNCTION(Client, Reliable)
 	void Client_OnSkillAssigned(ESkillSlot Slot);
+	
 
 	// 스킬 조준 상태 (-1 = 없음, 0=Q, 1=W, 2=E, 3=R)
 	int32 PendingSkillSlot = -1;
