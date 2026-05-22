@@ -161,7 +161,7 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 
 	if (Proj && Q_MuzzleEffect)
 	{
-		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		/*UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			Q_MuzzleEffect,
 			Proj->GetRootComponent(),
 			NAME_None,
@@ -173,14 +173,14 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 		if (NiagaraComp)
 		{
 			NiagaraComp->SetWorldScale3D(FVector(0.4f));
-		}
+		}*/
 		
-		/*// 서버: 직접 스폰 (서버 비주얼) + 복제 설정 (클라는 OnRep_ReplicatedVFX에서 자동 스폰)
+		// 서버: 직접 스폰 (서버 비주얼) + 복제 설정 (클라는 OnRep_ReplicatedVFX에서 자동 스폰)
 		UNiagaraFunctionLibrary::SpawnSystemAttached(
 			Q_MuzzleEffect, Proj->GetRootComponent(), NAME_None,
 			FVector::ZeroVector, FRotator::ZeroRotator,
 			EAttachLocation::SnapToTarget, false);
-		Proj->SetReplicatedVFX(Q_MuzzleEffect, FVector(0.4f));*/
+		Proj->SetReplicatedVFX(Q_MuzzleEffect, FVector(0.4f));
 	}
 	
 	if (Q_CastSound)
