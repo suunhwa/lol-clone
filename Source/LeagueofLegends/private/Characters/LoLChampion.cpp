@@ -36,7 +36,7 @@ ALoLChampion::ALoLChampion()
 
 	bUseControllerRotationYaw = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;  // 직접 SetActorRotation으로 제어
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 
 	StatModifierComp = CreateDefaultSubobject<UStatModifierComponent>(TEXT("StatModifierComp"));

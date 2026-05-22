@@ -419,6 +419,16 @@ void ARiftPlayerController::OnMove()
 		return;
 	}
 
+	// 클릭 방향으로 즉시 로컬 회전 (서버 응답 전 시각 피드백 — 로컬 플레이어에게만)
+	if (OwnedChamp && OwnedChamp->IsLocallyControlled())
+	{
+		const FVector Dir = (HitResult.ImpactPoint - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
+		if (!Dir.IsNearlyZero())
+		{
+			OwnedChamp->SetActorRotation(Dir.Rotation());
+		}
+	}
+
 	// 서버 권위 이동 — 클라 예측 없이 서버에서 SetMoveTarget 처리 후 CMC 복제로 반영
 	Server_MoveToLocation(HitResult.ImpactPoint);
 	
@@ -646,6 +656,13 @@ void ARiftPlayerController::Server_MoveToLocation_Implementation(FVector Loc)
 	if (!OwnedChamp) { return; }
 
 	OwnedChamp->StopAttackLoop();
+
+	const FVector Dir = (Loc - OwnedChamp->GetActorLocation()).GetSafeNormal2D();
+	if (!Dir.IsNearlyZero())
+	{
+		OwnedChamp->SetActorRotation(Dir.Rotation());
+	}
+
 	OwnedChamp->SetMoveTarget(Loc);
 }
 
