@@ -60,6 +60,7 @@ public:
 	{
 		ReplicatedVFX = VFX;
 		ReplicatedVFXScale = Scale;
+		SpawnReplicatedVFX();
 	}
 
 	// true이면 구조물(타워/억제기/넥서스)에 피해를 주지 않음

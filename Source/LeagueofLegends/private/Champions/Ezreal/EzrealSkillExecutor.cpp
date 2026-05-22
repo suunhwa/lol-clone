@@ -161,25 +161,25 @@ void UEzrealSkillExecutor::ExecuteQ(FVector TargetLoc)
 
 	if (Proj && Q_MuzzleEffect)
 	{
-		/*UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			Q_MuzzleEffect,
-			Proj->GetRootComponent(),
-			NAME_None,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget,
-			false); // bAutoDestroy = false, 발사체 수명에 맞춰 같이 사라짐
-		
-		if (NiagaraComp)
-		{
-			NiagaraComp->SetWorldScale3D(FVector(0.4f));
-		}*/
+		// UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		// 	Q_MuzzleEffect,
+		// 	Proj->GetRootComponent(),
+		// 	NAME_None,
+		// 	FVector::ZeroVector,
+		// 	FRotator::ZeroRotator,
+		// 	EAttachLocation::SnapToTarget,
+		// 	false); // bAutoDestroy = false, 발사체 수명에 맞춰 같이 사라짐
+		//
+		// if (NiagaraComp)
+		// {
+		// 	NiagaraComp->SetWorldScale3D(FVector(0.4f));
+		// }
 		
 		// 서버: 직접 스폰 (서버 비주얼) + 복제 설정 (클라는 OnRep_ReplicatedVFX에서 자동 스폰)
-		UNiagaraFunctionLibrary::SpawnSystemAttached(
-			Q_MuzzleEffect, Proj->GetRootComponent(), NAME_None,
-			FVector::ZeroVector, FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget, false);
+		// UNiagaraFunctionLibrary::SpawnSystemAttached(
+		// 	Q_MuzzleEffect, Proj->GetRootComponent(), NAME_None,
+		// 	FVector::ZeroVector, FRotator::ZeroRotator,
+		// 	EAttachLocation::SnapToTarget, false);
 		Proj->SetReplicatedVFX(Q_MuzzleEffect, FVector(0.4f));
 	}
 	
@@ -246,12 +246,8 @@ void UEzrealSkillExecutor::ExecuteW(FVector TargetLoc)
 
 		if (W_MuzzleEffect)
 		{
-			if (UNiagaraComponent* WFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
-				W_MuzzleEffect, WProj->GetRootComponent(), NAME_None,
-				FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false))
-			{
-				WFX->SetWorldScale3D(FVector(0.5f));
-			}
+			// 서버: 복제 설정 (클라는 OnRep_ReplicatedVFX에서 자동 스폰)
+			WProj->SetReplicatedVFX(W_MuzzleEffect, FVector(0.5f));
 		}
 	}
 
@@ -624,17 +620,8 @@ void UEzrealSkillExecutor::ExecuteR(FVector TargetLoc)
 
 			                                           	if (R_MuzzleEffect)
 			                                           	{
-			                                           		if (UNiagaraComponent* RFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			                                           			R_MuzzleEffect,
-			                                           			Proj->GetRootComponent(),
-			                                           			NAME_None,
-			                                           			FVector::ZeroVector,
-			                                           			FRotator::ZeroRotator,
-			                                           			EAttachLocation::SnapToTarget,
-			                                           			false))
-			                                           		{
-			                                           			RFX->SetWorldScale3D(FVector(0.4f));
-			                                           		}
+			                                           		// 서버: 복제 설정 (클라는 OnRep_ReplicatedVFX에서 자동 스폰)
+			                                           		Proj->SetReplicatedVFX(R_MuzzleEffect, FVector(0.4f));
 			                                           	}
 			                                           }
 	                                           },
