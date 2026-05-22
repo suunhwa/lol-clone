@@ -538,8 +538,8 @@ void ARiftPlayerController::ShowSkillIndicator(ESkillSlot Slot)
 {
 	if (!OwnedChamp) { return; }
 
-	// 랭크 0이면 인디케이터 표시 안 함
-	if (OwnedChamp->SkillComp && OwnedChamp->SkillComp->GetRank(Slot) == 0) { return; }
+	// 랭크 체크: 서버(ListenServer 호스트)만 로컬 확인, 클라이언트는 Ranks 미복제라 서버에서 검증
+	if (HasAuthority() && OwnedChamp->SkillComp && OwnedChamp->SkillComp->GetRank(Slot) == 0) { return; }
 
 	HideSkillIndicator();
 	PendingSkillSlot = static_cast<int32>(Slot);

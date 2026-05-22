@@ -18,6 +18,8 @@
 void AChampionSkillProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(AChampionSkillProjectile, LaunchVelocity);
 	DOREPLIFETIME(AChampionSkillProjectile, ReplicatedVFX);
 	DOREPLIFETIME(AChampionSkillProjectile, ReplicatedVFXScale);
 }
@@ -31,6 +33,14 @@ void AChampionSkillProjectile::BeginPlay()
 	if (!HasAuthority())
 	{
 		SpawnReplicatedVFX();
+	}
+}
+
+void AChampionSkillProjectile::OnRep_LaunchVelocity()
+{
+	if (ProjectileMovement && !LaunchVelocity.IsZero())
+	{
+		ProjectileMovement->Velocity = LaunchVelocity;
 	}
 }
 
@@ -62,6 +72,7 @@ void AChampionSkillProjectile::SpawnReplicatedVFX()
 AChampionSkillProjectile::AChampionSkillProjectile()
 {
 	bReplicates = true;
+	SetReplicateMovement(true);
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComp"));
@@ -81,7 +92,10 @@ AChampionSkillProjectile::AChampionSkillProjectile()
 void AChampionSkillProjectile::SetCollisionRadius(float Radius)
 {
 	if (CollisionComp)
+	{
 		CollisionComp->SetSphereRadius(Radius);
+	}
+		
 }
 
 void AChampionSkillProjectile::Tick(float DeltaTime)
@@ -113,7 +127,8 @@ void AChampionSkillProjectile::Launch(FDamageContext InCtx, float Speed, float M
 		CollisionComp->SetGenerateOverlapEvents(true);
 	}
 
-	ProjectileMovement->Velocity = GetActorForwardVector() * Speed;
+	LaunchVelocity = GetActorForwardVector() * Speed;
+	ProjectileMovement->Velocity = LaunchVelocity;
 	SetLifeSpan(MaxRange / Speed);
 }
 

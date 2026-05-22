@@ -34,6 +34,13 @@ public:
 	UPROPERTY()
 	float DebugTrailHalfWidth = 0.f;
 
+	// 발사 속도 — 클라이언트 ProjectileMovement 시뮬레이션용
+	UPROPERTY(ReplicatedUsing = OnRep_LaunchVelocity)
+	FVector LaunchVelocity = FVector::ZeroVector;
+
+	UFUNCTION()
+	void OnRep_LaunchVelocity();
+
 	// 클라이언트 비주얼 이펙트 — OnRep로 수신 즉시 스폰
 	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedVFX)
 	TObjectPtr<UNiagaraSystem> ReplicatedVFX;
