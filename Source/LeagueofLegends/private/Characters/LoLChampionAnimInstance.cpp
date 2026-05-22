@@ -22,7 +22,7 @@ void ULoLChampionAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	CurrentState = StateComp->GetCurrentState();
 
 	MoveSpeed = OwnerChar->GetVelocity().Size2D();
-	bIsMoving = MoveSpeed > 10.f;
+	bIsMoving = MoveSpeed > 1.f;
 	bIsAttacking = (CurrentState == ECharacterState::BasicAttacking);
 	bIsCastingSkill = (CurrentState == ECharacterState::CastingSkill);
 	bIsHit = (CurrentState == ECharacterState::Hit);

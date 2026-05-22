@@ -70,7 +70,6 @@ void ALoLChampion::PostNetReceiveLocationAndRotation()
 
 		if (GetCharacterMovement())
 		{
-			GetCharacterMovement()->Velocity = RepMove.LinearVelocity;
 			GetCharacterMovement()->SmoothCorrection(OldLoc, OldQuat, RepMove.Location, RepMove.Rotation.Quaternion());
 		}
 		return;
@@ -126,6 +125,7 @@ void ALoLChampion::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ALoLChampion, ChampionData);
+	DOREPLIFETIME(ALoLChampion, AnimVelocity);
 }
 
 void ALoLChampion::Tick(float DeltaTime)
@@ -236,6 +236,7 @@ void ALoLChampion::CancelMove()
 	bHasMoveTarget = false;
 	PathPoints.Empty();
 	PathIndex = 0;
+	AnimVelocity = FVector::ZeroVector;
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
@@ -262,6 +263,7 @@ void ALoLChampion::UpdateMovement(float DeltaTime)
 		// 목적지 도착
 		bHasMoveTarget = false;
 		PathPoints.Empty();
+		AnimVelocity = FVector::ZeroVector;
 		if (HasAuthority() && StateComp &&
 			StateComp->GetCurrentState() == ECharacterState::Moving)
 		{
@@ -273,8 +275,9 @@ void ALoLChampion::UpdateMovement(float DeltaTime)
 	const FVector Dir = (PathPoints[PathIndex] - CurrentLoc).GetSafeNormal2D();
 	if (!Dir.IsNearlyZero())
 	{
-		// RequestDirectMove: 가속/감속 없이 즉각 최대 속도로 이동 (AddMovementInput은 CMC 가속 곡선 적용)
-		GetCharacterMovement()->RequestDirectMove(Dir * GetCharacterMovement()->MaxWalkSpeed, false);
+		const FVector MoveVelocity = Dir * GetCharacterMovement()->MaxWalkSpeed;
+		AnimVelocity = MoveVelocity;
+		GetCharacterMovement()->RequestDirectMove(MoveVelocity, false);
 	}
 }
 

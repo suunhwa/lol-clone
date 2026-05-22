@@ -88,12 +88,14 @@ public:
 	// 동적 생성되는 챔피언별 스킬 실행 컴포넌트
 	UPROPERTY()
 	TObjectPtr<USkillExecutorComponent> SkillExecutor;
+	
+	// AnimBP용 이동 속도 — 서버에서 세팅, 복제로 모든 클라이언트에 전달
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Animation")
+	FVector AnimVelocity = FVector::ZeroVector;
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator) override;
 	virtual void OnDamageReceived() override;
-	
-	
 	
 private:
 	void CreateSkillExecutor();
@@ -123,6 +125,7 @@ private:
 	FTimerHandle RespawnTimer;
 	FTimerHandle RecallTimer;
 	bool bIsRecalling = false;
+	
 	int32 AttackSectionIndex = 0;
 
 	// NavPath 이동 상태
