@@ -167,8 +167,8 @@ void ARiftPlayerController::Tick(float DeltaTime)
 					EUnitType HitType = ITargetable::Execute_GetUnitType(HitActor);
 					bOverEnemy = (HitTeam != MyTeam && HitTeam != ETeam::None
 						&& HitType == EUnitType::Champion);
-					// 타워/미니언도 포함하려면 아래 주석 해제
-					// bOverEnemy = (HitTeam != MyTeam && HitTeam != ETeam::None);
+					// 타워/미니언
+					bOverEnemy = (HitTeam != MyTeam && HitTeam != ETeam::None);
 				}
 			}
 		}
