@@ -70,6 +70,7 @@ void ALoLChampion::PostNetReceiveLocationAndRotation()
 
 		if (GetCharacterMovement())
 		{
+			GetCharacterMovement()->Velocity = RepMove.LinearVelocity;
 			GetCharacterMovement()->SmoothCorrection(OldLoc, OldQuat, RepMove.Location, RepMove.Rotation.Quaternion());
 		}
 		return;
