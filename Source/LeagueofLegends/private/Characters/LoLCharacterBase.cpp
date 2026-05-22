@@ -30,6 +30,11 @@
 #include "Components/Image.h"
 
 
+ALoLCharacterBase::ALoLCharacterBase(const FObjectInitializer& OI) : Super(OI)
+{
+	// 서브클래스에서 FObjectInitializer로 CMC 교체 시 사용 (예: ALoLChampion)
+}
+
 ALoLCharacterBase::ALoLCharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -153,6 +158,8 @@ void ALoLCharacterBase::BeginPlay()
 void ALoLCharacterBase::ReceiveDamage_Implementation(float Amount, EDamageType DamageType, AActor* DamageInstigator)
 {
 	if (!HasAuthority()) { return; }
+
+	OnDamageReceived();
 
 	FDamageContext Ctx;
 	Ctx.RawDamage = Amount;

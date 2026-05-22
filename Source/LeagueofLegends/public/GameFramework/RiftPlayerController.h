@@ -191,6 +191,7 @@ public:
 	void OnExit();
 	void OnSpellD();
 	void OnSpellF();
+	void OnRecall();
 
 	UFUNCTION(Server, Reliable)
 	void Server_CastSummonerSpell(int32 SlotIndex, FVector TargetLoc);

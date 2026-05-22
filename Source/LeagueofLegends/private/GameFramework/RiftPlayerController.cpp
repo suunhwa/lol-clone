@@ -362,6 +362,7 @@ void ARiftPlayerController::SetupInputComponent()
 	EIC->BindAction(IA_Shop, ETriggerEvent::Started, this, &ARiftPlayerController::OnToggleShop);
 	EIC->BindAction(IA_Spell_D, ETriggerEvent::Started, this, &ARiftPlayerController::OnSpellD);
 	EIC->BindAction(IA_Spell_F, ETriggerEvent::Started, this, &ARiftPlayerController::OnSpellF);
+	EIC->BindAction(IA_Recall, ETriggerEvent::Started, this, &ARiftPlayerController::OnRecall);
 	
 	// ---- Debug ----
 	EIC->BindAction(IA_LevelUp, ETriggerEvent::Started, this, &ARiftPlayerController::Server_AddXP);
@@ -754,6 +755,14 @@ void ARiftPlayerController::OnSpellF()
 	if (OwnedChamp)
 	{
 		OwnedChamp->CancelMove();
+	}
+}
+
+void ARiftPlayerController::OnRecall()
+{
+	if (OwnedChamp)
+	{
+		OwnedChamp->Server_RequestRecall();
 	}
 }
 

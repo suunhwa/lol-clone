@@ -12,6 +12,7 @@
 
 class UInventoryComponent;
 class UStatModifierComponent;
+class UDecalComponent;
 
 UCLASS()
 class LEAGUEOFLEGENDS_API ALoLChampion : public ALoLCharacterBase
@@ -25,6 +26,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PawnClientRestart() override;
+	virtual void PostNetReceiveLocationAndRotation() override;
 
 	// 서버가 캐릭터 선택 후 ChampionDataSubsystem에서 받아 세팅.
 	// EditDefaultsOnly는 테스트 전용 — 실제론 SetChampionData() 사용
@@ -66,6 +68,22 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Respawn();
 
+	// 귀환 (클라이언트 → Server_RequestRecall → StartRecall)
+	void StartRecall();
+	void CancelRecall();
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestRecall();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_CancelRecall();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayRecallLanding();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_ShowRecallDecal();
+
 	
 	// 동적 생성되는 챔피언별 스킬 실행 컴포넌트
 	UPROPERTY()
@@ -73,6 +91,7 @@ public:
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator) override;
+	virtual void OnDamageReceived() override;
 	
 	
 	
@@ -81,6 +100,7 @@ private:
 	void HandleSkillActivated(ESkillSlot Slot, FVector TargetLoc);
 	void AttackLoopTick();
 	void UpdateMovement(float DeltaTime);
+	void CompleteRecall();
 
 	UFUNCTION()
 	void OnRep_ChampionData();
@@ -92,12 +112,17 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UInventoryComponent> InventoryComp;
 
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UDecalComponent> RecallGroundComp;
+
 
 
 	TWeakObjectPtr<AActor> AttackTarget;
 	FTimerHandle AttackLoopTimer;
 	FTimerHandle BasicAttackImpactTimer;
 	FTimerHandle RespawnTimer;
+	FTimerHandle RecallTimer;
+	bool bIsRecalling = false;
 	int32 AttackSectionIndex = 0;
 
 	// NavPath 이동 상태

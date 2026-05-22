@@ -79,6 +79,7 @@ enum class ECharacterState : uint8
 	CastingSkill UMETA(DisplayName = "CastingSkill"),
 	Hit UMETA(DisplayName = "Hit"),
 	Dead UMETA(DisplayName = "Dead"),
+	Recalling UMETA(DisplayName = "Recalling"),
 };
 
 UENUM(BlueprintType)

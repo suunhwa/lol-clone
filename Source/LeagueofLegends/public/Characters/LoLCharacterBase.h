@@ -27,6 +27,7 @@ class LEAGUEOFLEGENDS_API ALoLCharacterBase : public ACharacter, public IDamagea
 	virtual AActor* GetCurrentCombatTarget_Implementation() const override;
 public:
 	ALoLCharacterBase();
+	explicit ALoLCharacterBase(const FObjectInitializer& OI);
 
 protected:
 	virtual void BeginPlay() override;
@@ -136,6 +137,9 @@ public:
 
 protected:
 	virtual void OnDeath(AActor* DamageInstigator);
+
+	// 데미지 수신 시 서브클래스 훅 (귀환 캔슬 등)
+	virtual void OnDamageReceived() {}
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_OnDeath();

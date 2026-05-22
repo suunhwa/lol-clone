@@ -35,6 +35,11 @@ bool UStateComponent::CanTransitionTo(ECharacterState NewState) const
 		return NewState == ECharacterState::Idle;
 	}
 
+	// Recalling → Idle(캔슬/완료) 또는 Dead만 허용
+	if (CurrentState == ECharacterState::Recalling)
+	{
+		return NewState == ECharacterState::Idle || NewState == ECharacterState::Dead;
+	}
 
 	if (NewState == ECharacterState::Dead) { return true; }
 	if (NewState == ECharacterState::Hit) { return true; }
@@ -56,6 +61,14 @@ bool UStateComponent::CanTransitionTo(ECharacterState NewState) const
 			&& !TagComp->HasTag(UnitTags::Knockup);
 	case ECharacterState::CastingSkill:
 		return !TagComp->HasTag(UnitTags::Stunned)
+			&& !TagComp->HasTag(UnitTags::Silenced)
+			&& !TagComp->HasTag(UnitTags::Knockup);
+	// 귀환 시작: CC 또는 스킬/공격 중이면 불가
+	case ECharacterState::Recalling:
+		return CurrentState != ECharacterState::CastingSkill
+			&& CurrentState != ECharacterState::BasicAttacking
+			&& !TagComp->HasTag(UnitTags::Stunned)
+			&& !TagComp->HasTag(UnitTags::Rooted)
 			&& !TagComp->HasTag(UnitTags::Silenced)
 			&& !TagComp->HasTag(UnitTags::Knockup);
 	default:

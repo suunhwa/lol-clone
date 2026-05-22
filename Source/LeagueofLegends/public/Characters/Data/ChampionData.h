@@ -71,6 +71,15 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Champion|Animation")
 	TObjectPtr<UAnimMontage> RespawnMontage;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Animation")
+	TObjectPtr<UAnimMontage> RecallMontage;  // 리콜 채널링 (~8초)
+
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Animation")
+	TObjectPtr<UAnimMontage> RecallLandMontage;   // 착지
+
+	UPROPERTY(EditDefaultsOnly, Category = "Champion|Animation")
+	TObjectPtr<UAnimMontage> RecallExitMontage;   // 착지 후 모션
 
 	// 스킬 실행 컴포넌트 클래스. 챔피언별 BP 자식 클래스 지정 (예: BP_EzrealSkillExecutor)
 	// 발사체 클래스는 SkillExecutorComponent 안에서 설정
