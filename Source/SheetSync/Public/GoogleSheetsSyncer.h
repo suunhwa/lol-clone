@@ -12,10 +12,10 @@ class SHEETSYNC_API UGoogleSheetsSyncer : public UObject
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, CallInEditor, Category = "SheetSync")
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Sheet Syncer")
 	static void SyncAll();
 	
-	UFUNCTION(BlueprintCallable, Category = "SheetSync")
+	UFUNCTION(BlueprintCallable, Category = "Sheet Syncer")
 	static void SyncCategory(int32 CategoryIndex);
 
 private:

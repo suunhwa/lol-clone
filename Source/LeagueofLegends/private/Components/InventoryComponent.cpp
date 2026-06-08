@@ -104,7 +104,7 @@ bool UInventoryComponent::PurchaseItem(int32 ItemID)
 	// Host(Server) UI 갱신 - OnRep는 클라이언트에서만 호출되므로 직접 처리
 	OnInventorySlotChanged.Broadcast(EmptySlot, NewItem);
 	
-	// ReplicatedSlotIDs 갱신 -> 에진이 OwningClient에 자동 복제
+	// ReplicatedSlotIDs 갱신 -> OwningClient에 자동 복제
 	SyncSlotIDsToClients();
 
 	FPurchaseRecord Record

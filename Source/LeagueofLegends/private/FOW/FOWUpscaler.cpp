@@ -39,8 +39,7 @@ void FFOWUpscaler::Upscale(const AFOWTileMap* TileMap)
 			bool BL = TileBL && TileBL->bIsVisible;
 			bool BR = TileBR && TileBR->bIsVisible;
 			
-			//
-			int32 CaseIndex = (TL ? 8 : 0) | (TR ? 4 : 0) | (BL ? 2 : 0) | (BR ? 1 : 0);;
+			int32 CaseIndex = (TL ? 8 : 0) | (TR ? 4 : 0) | (BL ? 2 : 0) | (BR ? 1 : 0);
 			
 			int32 BaseX = X * ScaleFactor;
 			int32 BaseY = Y * ScaleFactor;

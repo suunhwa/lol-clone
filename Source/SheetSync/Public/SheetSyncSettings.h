@@ -31,7 +31,7 @@ struct FSheetSyncCategory
 	TArray<FSheetSyncEntry> Entries;
 };
 
-UCLASS(Config = SheetSync, DefaultConfig, meta = (DisplayName = "Sheet Sync"))
+UCLASS(Config = SheetSync, DefaultConfig, meta = (DisplayName = "Sheet Syncer"))
 class SHEETSYNC_API USheetSyncSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()

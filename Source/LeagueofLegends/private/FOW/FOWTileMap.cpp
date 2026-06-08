@@ -102,10 +102,10 @@ void AFOWTileMap::GenerateTileMap(AFOWVolume* FOWVolume)
 	WorldMin = Bounds.Min;
 	FVector WorldMax = Bounds.Max;
 
-	float MapWidthLength = WorldMax.X - WorldMin.X;
-	float MapHeightLength = WorldMax.Y - WorldMin.Y;
+	float MapXLength = WorldMax.X - WorldMin.X;
+	float MapYLength = WorldMax.Y - WorldMin.Y;
 
-	TileSize = FMath::Max(MapWidthLength, MapHeightLength) / MapSize;
+	TileSize = FMath::Max(MapXLength, MapYLength) / MapSize;
 	float HalfTileSize = TileSize / 2.f;
 	float RayHeight = WorldMax.Z + 1000.f; // Ray의 시작 높이
 
@@ -283,15 +283,13 @@ void AFOWTileMap::CreateFogTexture()
  			PRINTLOG_TK(TEXT("CreateDebugTexture: Failed to create transient texture"));
  			return;
  		}
- 
- 		// FogTexture->Filter = TF_Nearest; // 픽셀 경계 선명하게
+ 		
  		FogTexture->Filter = TF_Bilinear; // 부드러운 경계
  		FogTexture->CompressionSettings = TC_Grayscale;
  		FogTexture->AddressX = TA_Clamp;
  		FogTexture->AddressY = TA_Clamp;
  		FogTexture->SRGB = false;
  		FogTexture->UpdateResource();
- 		// FlushRenderingCommands();
  	}
  
  	// uint8 버퍼 동적 할당
@@ -410,8 +408,6 @@ void AFOWTileMap::UpdateFogTexture()
 			const FTile* Tile = GetTile(X, Y);
 
 			// Wall이면 255(흰색), Floor면 0(검정)
-			// PF_G8 포맷: 1바이트(uint8)가 머티리얼 샘플링 시 R채널로 출력됨
-			// PixelBuffer[Y * MapSize + X] = (Tile && Tile->Type == ETileType::Wall) ? 255 : 0;
 			PixelBuffer[Y * MapSize + X] = (Tile && Tile->bIsVisible) ? 255 : 0;
 		}
 	}
@@ -439,12 +435,12 @@ void AFOWTileMap::UpdateFogTexture()
 		0, 0, 0, 0, TextureSize, TextureSize);
 	
 	FogTexture->UpdateTextureRegions(
-		0, // MipIndex
-		1, // NumRegions
-		Region, // Regions
-		static_cast<uint32>(TextureSize), // SrcPitch (행당 바이트 수: MapSize * 1)
-		sizeof(uint8), // SrcBpp (픽셀당 바이트 수: 1)
-		SourceData, // SrcData
+		0,
+		1,
+		Region,
+		static_cast<uint32>(TextureSize),
+		sizeof(uint8),
+		SourceData,
 		[](uint8* /*SrcData*/, const FUpdateTextureRegion2D* InRegion)
 		{
 			delete InRegion; // Region 힙 해제
