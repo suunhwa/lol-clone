@@ -17,6 +17,7 @@ AFOWManager::AFOWManager()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 }
 
 void AFOWManager::PostInitializeComponents()
@@ -161,19 +162,22 @@ void AFOWManager::RegisterSightProvider(UObject* SightObject)
 	TScriptInterface<ISightProvider> SightProvider;
 	SightProvider.SetObject(SightObject);
 	SightProvider.SetInterface(SightProviderHelper::TryGetProvider(SightObject));
+	
+	RedSightProviders.Remove(SightProvider);
+	BlueSightProviders.Remove(SightProvider);
 
-	if (SightProviderHelper::GetTeam(SightObject) == ERiftSightTag::Red)
+	const ERiftSightTag Team = SightProviderHelper::GetTeam(SightObject);
+	if (Team == ERiftSightTag::Red)
 	{
-		// SightObject 이름과, GetTeam 결과를 로그에 출력
-		// PRINTLOG_TK(TEXT("Registering SightProvider: %s, Team=%s"), *SightObject->GetName(), TEXT("Red"));
-		if (RedSightProviders.Contains(SightProvider)) { return; }
 		RedSightProviders.Add(SightProvider);
+	}
+	else if (Team == ERiftSightTag::Blue)
+	{
+		BlueSightProviders.Add(SightProvider);
 	}
 	else
 	{
-		// PRINTLOG_TK(TEXT("Registering SightProvider: %s, Team=%s"), *SightObject->GetName(), TEXT("Blue"));
-		if (BlueSightProviders.Contains(SightProvider)) { return; }
-		BlueSightProviders.Add(SightProvider);
+		PRINTLOG_TK(TEXT("RegisterSightProvider: SightObject %s has invalid team tag"), *SightObject->GetName());
 	}
 }
 
@@ -189,14 +193,8 @@ void AFOWManager::UnregisterSightProvider(UObject* SightObject)
 	SightProvider.SetObject(SightObject);
 	SightProvider.SetInterface(SightProviderHelper::TryGetProvider(SightObject));
 
-	if (SightProviderHelper::GetTeam(SightObject) == ERiftSightTag::Red)
-	{
-		RedSightProviders.Remove(SightProvider);
-	}
-	else
-	{
-		BlueSightProviders.Remove(SightProvider);
-	}
+	RedSightProviders.Remove(SightProvider);
+	BlueSightProviders.Remove(SightProvider);
 }
 
 void AFOWManager::ComputeFOV(const FIntPoint& Origin, AFOWTileMap* TileMap, int32 MaxDepth)

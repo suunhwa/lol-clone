@@ -215,9 +215,9 @@ void ARiftPlayerState::OnRep_Team()
 		}
 	}
 	
-	// 로컬 플레이어의 PlayerState일 때만 FOWManager에 통보
-	APlayerController* PC = GetPlayerController();
-	if (!PC || !PC->IsLocalController()) { return; }
+	// 진짜 로컬 플레이어의 PlayerState일 때만 FOWManager에 통보
+	APlayerController* LocalPC = GetWorld()->GetFirstPlayerController();
+	if (!LocalPC || LocalPC->PlayerState != this) { return; }
 
 	if (Team == ETeam::None) { return; }
 
@@ -225,8 +225,7 @@ void ARiftPlayerState::OnRep_Team()
 	{
 		if (AFOWManager* FOW = GS->GetFOWManager())
 		{
-			const ERiftSightTag Tag = (Team == ETeam::Blue) 
-				? ERiftSightTag::Blue : ERiftSightTag::Red;
+			const ERiftSightTag Tag = (Team == ETeam::Blue) ? ERiftSightTag::Blue : ERiftSightTag::Red;
 			FOW->SetLocalClientTeam(Tag);
 		}
 	}
